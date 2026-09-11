@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HYBRID · Signal Cluster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Geist+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --void: #070708;
+      --leather: #0e0e10;
+      --piano: #161618;
+      --bezel: #2a2a2e;
+      --hairline: rgba(232,220,198,.14);
+      --ivory: #f4efe6;
+      --sand: #cfc3ae;
+      --warm: #9a9082;
+      --fog: #6d675e;
+      --gold: #c4a574;
+      --gold-hi: #e8d7b0;
+      --go: #7dff9a;
+      --go-core: #1aff6b;
+      --wait: #ffc14d;
+      --wait-core: #ff9f1a;
+      --stop: #ff3b3b;
+      --stop-core: #d5001c;
+      --hole: #3a3938;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--void);
+      color: var(--ivory);
+      font-family: Outfit, system-ui, sans-serif;
+      font-weight: 300;
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 420px at 50% -8%, rgba(196,165,116,.08), transparent 55%),
+        radial-gradient(700px 280px at 100% 0%, rgba(213,0,28,.05), transparent 40%),
+        linear-gradient(180deg, #0c0c0e 0%, #070708 38%);
+    }
+    body:before {
+      content: "";
+      pointer-events: none;
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.12) 3px);
+      opacity: .25;
+      z-index: 0;
+    }
+    .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 32px 22px 96px; }
+
+    .crest {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .mark { display: flex; align-items: center; gap: 14px; }
+    .shield {
+      width: 42px; height: 52px;
+      border: 1px solid var(--gold);
+      clip-path: polygon(50% 0, 100% 16%, 92% 78%, 50% 100%, 8% 78%, 0 16%);
+      display: grid; place-items: center;
+      background: linear-gradient(180deg, #1a1a1c, #0a0a0b);
+      box-shadow: 0 0 24px rgba(196,165,116,.18);
+      animation: crestBreath 4.8s ease-in-out infinite;
+    }
+    .shield span {
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      color: var(--gold-hi);
+      font-size: 18px;
+    }
+    .brand .k {
+      font-family: Outfit, sans-serif;
+      font-size: 10px;
+      letter-spacing: .42em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    h1 {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 500;
+      font-size: clamp(36px, 6vw, 62px);
+      line-height: .88;
+      letter-spacing: -.02em;
+      color: var(--ivory);
+      margin-top: 4px;
+    }
+    h1 em { font-style: italic; color: var(--gold-hi); }
+    .meta {
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--warm);
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    .cluster {
+      margin: 28px 0 22px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 14px;
+    }
+    .gauge {
+      background:
+        radial-gradient(circle at 50% 40%, #1c1c20 0%, #0d0d0f 62%);
+      border: 1px solid var(--hairline);
+      padding: 22px 18px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .gauge:after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.04) 48%, transparent 56%);
+      animation: sweep 5.5s ease-in-out infinite;
+    }
+    .ring-wrap { display: grid; place-items: center; position: relative; height: 168px; }
+    .ring {
+      width: 156px; height: 156px; border-radius: 50%;
+      background: conic-gradient(from -90deg, var(--wait) 0 220deg, #1a1a1c 220deg 360deg);
+      display: grid; place-items: center;
+      animation: ringIn 1.4s cubic-bezier(.16,1,.3,1) both;
+      box-shadow: 0 0 0 8px #0a0a0c, 0 0 40px rgba(255,193,77,.12);
+    }
+    .ring-inner {
+      width: 122px; height: 122px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 32%, #242428, #0a0a0c 70%);
+      display: grid; place-items: center; text-align: center;
+      border: 1px solid rgba(196,165,116,.2);
+    }
+    .score {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 54px; line-height: .8; color: var(--ivory);
+    }
+    .score small { font-size: 16px; color: var(--fog); }
+    .score-lab {
+      font-family: "Geist Mono", monospace;
+      font-size: 9px; letter-spacing: .22em; color: var(--gold);
+      margin-top: 6px; text-transform: uppercase;
+    }
+    .formula {
+      background: var(--leather);
+      border: 1px solid var(--hairline);
+      padding: 20px 22px;
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      color: var(--warm);
+      line-height: 1.75;
+    }
+    .formula b { color: var(--ivory); font-weight: 500; }
+    .eyebrow {
+      font-size: 9px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold);
+      margin-bottom: 10px;
+    }
+
+    .lamps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+    .lamp {
+      background: var(--leather);
+      border: 1px solid var(--hairline);
+      padding: 16px 14px 14px;
+      position: relative;
+    }
+    .lamp-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .lens {
+      width: 22px; height: 22px; border-radius: 50%;
+      position: relative;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow:
+        inset 0 2px 4px rgba(255,255,255,.18),
+        inset 0 -3px 6px rgba(0,0,0,.55),
+        0 0 0 3px #0a0a0c;
+    }
+    .lens:before {
+      content: "";
+      position: absolute; inset: 3px; border-radius: 50%;
+    }
+    .lens.go { background: #05210e; box-shadow: 0 0 16px rgba(26,255,107,.28), inset 0 2px 4px rgba(255,255,255,.18), 0 0 0 3px #0a0a0c; }
+    .lens.go:before { background: radial-gradient(circle at 35% 30%, #b6ffc8, var(--go-core) 45%, #0b3 80%); animation: pulseGo 2.4s ease-in-out infinite; }
+    .lens.wait { background: #2a1a05; box-shadow: 0 0 16px rgba(255,193,77,.28), inset 0 2px 4px rgba(255,255,255,.18), 0 0 0 3px #0a0a0c; }
+    .lens.wait:before { background: radial-gradient(circle at 35% 30%, #ffe7a8, var(--wait-core) 48%, #a60 80%); animation: pulseWait 2.2s ease-in-out infinite; }
+    .lens.stop { background: #2a0608; box-shadow: 0 0 16px rgba(213,0,28,.32), inset 0 2px 4px rgba(255,255,255,.18), 0 0 0 3px #0a0a0c; }
+    .lens.stop:before { background: radial-gradient(circle at 35% 30%, #ff9a9a, var(--stop-core) 48%, #7a0010 80%); animation: pulseStop 1.8s ease-in-out infinite; }
+    .lens.gap { background: #171717; }
+    .lens.gap:before { background: radial-gradient(circle at 35% 30%, #4a4a4a, #222); }
+    .lamp h3 {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 28px; font-weight: 500; line-height: 1;
+    }
+    .lamp p {
+      font-family: "Geist Mono", monospace;
+      font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--fog);
+    }
+
+    h2 {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 500;
+      font-size: 32px;
+      margin: 36px 0 14px;
+      letter-spacing: -.01em;
+    }
+    h2 span { color: var(--gold); font-style: italic; }
+
+    table.lab {
+      width: 100%; border-collapse: collapse;
+      background: var(--leather);
+      border: 1px solid var(--hairline);
+    }
+    table.lab th {
+      font-family: "Geist Mono", monospace;
+      font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--fog); font-weight: 400;
+      text-align: left; padding: 12px 10px;
+      border-bottom: 1px solid var(--hairline);
+      background: #0c0c0e;
+    }
+    table.lab td {
+      padding: 11px 10px;
+      border-bottom: 1px solid rgba(232,220,198,.06);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    table.lab tr { animation: rowIn .7s cubic-bezier(.16,1,.3,1) both; }
+    table.lab tr:nth-child(1) { animation-delay: .02s; }
+    table.lab tr:nth-child(2) { animation-delay: .06s; }
+    table.lab tr:nth-child(3) { animation-delay: .1s; }
+    table.lab tr:nth-child(4) { animation-delay: .14s; }
+    table.lab tr:nth-child(5) { animation-delay: .18s; }
+    table.lab tr:nth-child(6) { animation-delay: .22s; }
+    table.lab tr:nth-child(7) { animation-delay: .26s; }
+    table.lab tr:nth-child(8) { animation-delay: .3s; }
+    table.lab tr:nth-child(n+9) { animation-delay: .34s; }
+    table.lab tr:hover td { background: rgba(196,165,116,.04); }
+    .mono { font-family: "Geist Mono", monospace; font-size: 11px; }
+    .mute { color: var(--warm); }
+    .pbar { font-family: "Geist Mono", monospace; font-size: 11px; letter-spacing: -.08em; white-space: nowrap; }
+    .g { color: var(--go); }
+    .a { color: var(--wait); }
+    .r { color: #ff6b6b; }
+
+    .state {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: "Geist Mono", monospace;
+      font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      box-shadow: 0 0 10px currentColor;
+    }
+    .dot.go { background: var(--go-core); color: var(--go); }
+    .dot.wait { background: var(--wait-core); color: var(--wait); }
+    .dot.stop { background: var(--stop-core); color: var(--stop); animation: blink 1.15s steps(1) infinite; }
+
+    .sections { display: grid; gap: 8px; }
+    .sec {
+      display: grid;
+      grid-template-columns: 28px 150px 72px 1fr 1.3fr;
+      gap: 12px; align-items: center;
+      background: var(--leather);
+      border: 1px solid var(--hairline);
+      padding: 12px 14px;
+    }
+    .track { height: 3px; background: #1c1c1f; overflow: hidden; }
+    .fill { height: 100%; transform-origin: left; animation: grow 1.6s cubic-bezier(.16,1,.3,1) both; }
+    .fill.go { background: linear-gradient(90deg, #146b32, var(--go)); }
+    .fill.wait { background: linear-gradient(90deg, #8a5a00, var(--wait)); }
+    .fill.stop { background: linear-gradient(90deg, #7a0010, var(--stop)); }
+
+    .timeline { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+    .tick {
+      background: var(--leather);
+      border: 1px solid var(--hairline);
+      padding: 14px 12px 16px;
+      min-height: 138px;
+      position: relative;
+      overflow: hidden;
+    }
+    .tick:before {
+      content: "";
+      position: absolute; left: 12px; top: 0; width: 1px; height: 10px;
+      background: var(--gold);
+    }
+    .tick .t {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px; letter-spacing: .14em; color: var(--gold);
+    }
+    .tick p { font-size: 12.5px; color: var(--warm); margin-top: 10px; line-height: 1.4; font-weight: 300; }
+
+    .prio {
+      margin-top: 22px;
+      padding: 18px 20px;
+      border: 1px solid rgba(196,165,116,.28);
+      background: linear-gradient(90deg, rgba(196,165,116,.08), transparent 70%);
+      font-size: 16px;
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+    }
+    footer.note {
+      margin-top: 28px; padding-top: 14px;
+      border-top: 1px solid var(--hairline);
+      font-family: "Geist Mono", monospace;
+      font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--fog);
+    }
+
+    @keyframes pulseGo { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+    @keyframes pulseWait { 0%,100% { filter: brightness(.95); } 50% { filter: brightness(1.25); } }
+    @keyframes pulseStop { 0%,100% { filter: brightness(.9); } 50% { filter: brightness(1.4); } }
+    @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: .35; } }
+    @keyframes sweep { 0%,100% { transform: translateX(-30%); } 50% { transform: translateX(30%); } }
+    @keyframes crestBreath { 0%,100% { box-shadow: 0 0 16px rgba(196,165,116,.12); } 50% { box-shadow: 0 0 28px rgba(196,165,116,.28); } }
+    @keyframes ringIn { from { transform: scale(.92); filter: saturate(.6); } to { transform: scale(1); } }
+    @keyframes rowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    @media (max-width: 900px) {
+      .crest, .cluster, .lamps, .sec, .timeline { grid-template-columns: 1fr; }
+      .meta { text-align: left; }
+      .sec { grid-template-columns: 28px 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="crest">
+      <div class="mark">
+        <div class="shield" aria-hidden="true"><span>H</span></div>
+        <div class="brand">
+          <div class="k">Hybrid Signal Cluster</div>
+          <h1>Semáforo <em>de lujo</em></h1>
+        </div>
+      </div>
+      <div class="meta">
+        Landing · /oferta-mentoria<br />
+        18–24 Ago 2026 · 7d<br />
+        Events Manager + Clarity + GA4<br />
+        Mobile 81% · UU 4.280
+      </div>
+    </header>
+
+    <section class="cluster">
+      <div class="gauge">
+        <div class="eyebrow">Session score</div>
+        <div class="ring-wrap">
+          <div class="ring">
+            <div class="ring-inner">
+              <div>
+                <div class="score">61<small>/100</small></div>
+                <div class="score-lab">Ámbar · hold</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="formula">
+        <div class="eyebrow">Telemetría · no narrativa</div>
+        Score = 0.20·(1−bounce) + 0.20·scroll50 + 0.15·time15 + 0.15·cta_view + 0.15·EMQ + 0.15·conv<br />
+        <b>0.20·0.41</b> + <b>0.20·0.52</b> + <b>0.15·0.31</b> + <b>0.15·0.58</b> + <b>0.15·0.72</b> + <b>0.15·0.18</b> = <b>61.3</b><br />
+        Base de todo el cluster: <b>4.280 UU</b> deduplicados. Clicks de Ads y pageviews brutos quedan fuera del volante.
+      </div>
+    </section>
+
+    <section class="lamps">
+      <article class="lamp">
+        <div class="lamp-row"><div class="lens go"></div><p>Verde · go</p></div>
+        <h3>4.280</h3>
+        <p>UU entrada · pixel estable</p>
+      </article>
+      <article class="lamp">
+        <div class="lamp-row"><div class="lens wait"></div><p>Ámbar · hold</p></div>
+        <h3>19.4%</h3>
+        <p>Quality visit · 830 UU</p>
+      </article>
+      <article class="lamp">
+        <div class="lamp-row"><div class="lens go"></div><p>Verde · go</p></div>
+        <h3>7.2</h3>
+        <p>EMQ lead · usable</p>
+      </article>
+      <article class="lamp">
+        <div class="lamp-row"><div class="lens stop"></div><p>Rojo · stop</p></div>
+        <h3>1.8%</h3>
+        <p>Lead · 77 UU</p>
+      </article>
+    </section>
+
+    <h2>Movimiento <span>en UU</span></h2>
+    <table class="lab">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Movimiento</th>
+          <th>UU</th>
+          <th>% entrada</th>
+          <th>Barra</th>
+          <th>Timing</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="state"><i class="dot go"></i>Go</span></td>
+          <td>UU entrada / PageView dedup</td>
+          <td class="mono">4.280</td>
+          <td class="mono">100%</td>
+          <td class="pbar g">████████████████████</td>
+          <td class="mono mute">0.0s</td>
+          <td class="mute">Base limpia.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot go"></i>Go</span></td>
+          <td>Survived 3s</td>
+          <td class="mono">2.996</td>
+          <td class="mono">70.0%</td>
+          <td class="pbar g">██████████████░░░░░░</td>
+          <td class="mono mute">3.0s</td>
+          <td class="mute">LCP 2.8s · al filo.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot wait"></i>Hold</span></td>
+          <td>Survived 8s</td>
+          <td class="mono">2.054</td>
+          <td class="mono">48.0%</td>
+          <td class="pbar a">█████████░░░░░░░░░░░</td>
+          <td class="mono mute">8.0s</td>
+          <td class="mute">Hero no cierra oferta.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot stop"></i>Stop</span></td>
+          <td>Survived 15s</td>
+          <td class="mono">1.327</td>
+          <td class="mono">31.0%</td>
+          <td class="pbar r">██████░░░░░░░░░░░░░░</td>
+          <td class="mono mute">15.0s</td>
+          <td class="mute">Video autoplay mata hold.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot wait"></i>Hold</span></td>
+          <td>Scroll 50%</td>
+          <td class="mono">2.226</td>
+          <td class="mono">52.0%</td>
+          <td class="pbar a">██████████░░░░░░░░░░</td>
+          <td class="mono mute">9.1s</td>
+          <td class="mute">Prueba social tarde.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot stop"></i>Stop</span></td>
+          <td>Scroll 75%</td>
+          <td class="mono">1.070</td>
+          <td class="mono">25.0%</td>
+          <td class="pbar r">█████░░░░░░░░░░░░░░░</td>
+          <td class="mono mute">18.4s</td>
+          <td class="mute">FAQ empuja el form.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot stop"></i>Stop</span></td>
+          <td>Quality Visit</td>
+          <td class="mono">830</td>
+          <td class="mono">19.4%</td>
+          <td class="pbar r">████░░░░░░░░░░░░░░░░</td>
+          <td class="mono mute">21.0s</td>
+          <td class="mute">Aún no es goal de ads.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot wait"></i>Hold</span></td>
+          <td>CTA viewed</td>
+          <td class="mono">2.482</td>
+          <td class="mono">58.0%</td>
+          <td class="pbar a">███████████░░░░░░░░░</td>
+          <td class="mono mute">6.8s</td>
+          <td class="mute">Sticky tapado en iOS.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot stop"></i>Stop</span></td>
+          <td>CTA clicked</td>
+          <td class="mono">257</td>
+          <td class="mono">6.0%</td>
+          <td class="pbar r">█░░░░░░░░░░░░░░░░░░░</td>
+          <td class="mono mute">11.5s</td>
+          <td class="mute">10.3% de quienes lo vieron.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot stop"></i>Stop</span></td>
+          <td>Lead / submit</td>
+          <td class="mono">77</td>
+          <td class="mono">1.8%</td>
+          <td class="pbar r">░░░░░░░░░░░░░░░░░░░░</td>
+          <td class="mono mute">41.0s</td>
+          <td class="mute">9 campos. Sobran siete.</td>
+        </tr>
+        <tr>
+          <td><span class="state"><i class="dot wait"></i>Hold</span></td>
+          <td>Pixel ↔ CAPI Lead</td>
+          <td class="mono">55/77</td>
+          <td class="mono">71%</td>
+          <td class="pbar a">██████████████░░░░░░</td>
+          <td class="mono mute">—</td>
+          <td class="mute">Falta event_id en 22.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Mapa <span>de sección</span></h2>
+    <div class="sections">
+      <div class="sec"><div class="lens go"></div><div>Hero / fold</div><div class="mono">100%</div><div class="track"><div class="fill go" style="width:100%"></div></div><div class="mute">3.1s. Headline de método, no de resultado.</div></div>
+      <div class="sec"><div class="lens wait"></div><div>Prueba social</div><div class="mono">52%</div><div class="track"><div class="fill wait" style="width:52%"></div></div><div class="mute">Carousel pesado. Subir 1 cita al fold.</div></div>
+      <div class="sec"><div class="lens wait"></div><div>Oferta</div><div class="mono">41%</div><div class="track"><div class="fill wait" style="width:41%"></div></div><div class="mute">Precio sin ancla. CTA secundario compite.</div></div>
+      <div class="sec"><div class="lens stop"></div><div>FAQ</div><div class="mono">28%</div><div class="track"><div class="fill stop" style="width:28%"></div></div><div class="mute">Siete acordeones antes del form.</div></div>
+      <div class="sec"><div class="lens stop"></div><div>Form</div><div class="mono">22%</div><div class="track"><div class="fill stop" style="width:22%"></div></div><div class="mute">WhatsApp + email. El resto sobra.</div></div>
+    </div>
+
+    <h2>Cronómetro <span>del UU</span></h2>
+    <div class="timeline">
+      <div class="tick"><div class="t">0.0s</div><p>PageView. ViewContent duplicado. CAPI aún no entra.</p></div>
+      <div class="tick"><div class="t">0.8s</div><p>Hero a medias. LCP abierto. El dedo ya busca scroll.</p></div>
+      <div class="tick"><div class="t">1.6s</div><p>Tap al video. Rage click en un mockup muerto.</p></div>
+      <div class="tick"><div class="t">3.0s</div><p>30% apaga. No hay Time3. Lámpara ⚫.</p></div>
+      <div class="tick"><div class="t">8.0s</div><p>Prueba social. El precio todavía no existe.</p></div>
+      <div class="tick"><div class="t">15s</div><p>Queda 31%. QualityVisit casi no enciende.</p></div>
+      <div class="tick"><div class="t">24s</div><p>FAQ. Form fuera. Sticky tapado por iOS.</p></div>
+      <div class="tick"><div class="t">exit</div><p>Salida mediana 11.8s. Sin Lead. Sin CAPI.</p></div>
+    </div>
+
+    <p class="prio">Si solo tocas una palanca esta semana: sube form + CTA al fold en mobile y deja de optimizar contra ViewContent. El resto es ruido de tablero.</p>
+    <footer class="note">Demo de telemetría · números ilustrativos · Hybrid Signal Cluster · Guards Red solo cuando hay fuga real</footer>
+  </div>
+</body>
+</html>

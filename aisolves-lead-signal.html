@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AISOLVES · Lead Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* vanlent.dev palette */
+    --bg:#0f0f10;
+    --panel:#161618;
+    --panel-2:#1b1b1d;
+    --raise:#202023;
+    --hairline:rgba(250,250,250,.08);
+    --hairline-2:rgba(250,250,250,.05);
+    --ink:#fafafa;
+    --sub:#d4d4d8;
+    --muted:#a1a1aa;
+    --faint:#63636c;
+    --teal:#2fc5b1;      /* --logo-van */
+    --teal-hi:#43cabc;
+    --teal-dim:rgba(47,197,177,.14);
+    --go:#2fc5b1;
+    --hold:#fcbb00;      /* vanlent amber-400 */
+    --stop:#fb2c36;      /* vanlent red-500 */
+    --grid:rgba(250,250,250,.035);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 520px at 78% -6%, rgba(47,197,177,.06), transparent 55%),
+      linear-gradient(180deg,#141416 0%, var(--bg) 46%);
+    background-attachment:fixed;
+  }
+  /* engineering grid */
+  body:before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:44px 44px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 88%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:34px 24px 92px}
+
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--teal)}
+  .lbl{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
+
+  /* ---------- header ---------- */
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;border-bottom:1px solid var(--hairline);padding-bottom:22px}
+  .brand{display:flex;align-items:center;gap:15px}
+  .glyph{width:40px;height:40px;border:1px solid var(--teal);border-radius:50%;display:grid;place-items:center;position:relative;box-shadow:0 0 30px rgba(47,197,177,.18) inset}
+  .glyph:before{content:"";width:13px;height:13px;border-radius:50%;background:var(--teal);box-shadow:0 0 14px var(--teal);animation:beat 3.4s ease-in-out infinite}
+  .brand .who .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--muted)}
+  .brand .who h1{font-weight:800;font-size:22px;letter-spacing:-.02em;margin-top:3px}
+  .brand .who h1 b{color:var(--teal);font-weight:800}
+  .runmeta{font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.9;letter-spacing:.06em;color:var(--muted);text-align:right}
+  .runmeta b{color:var(--sub);font-weight:500}
+  .live{display:inline-flex;align-items:center;gap:7px;color:var(--go)}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--go);box-shadow:0 0 10px var(--go);animation:beat 1.6s infinite}
+
+  /* ---------- hero row: identity + score ---------- */
+  .hero{display:grid;grid-template-columns:1.55fr .9fr;gap:14px;margin-top:24px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--hairline);border-radius:2px;position:relative}
+  .card .cap{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--hairline-2)}
+  .tick{position:absolute;width:7px;height:7px;border:1px solid var(--hairline)}
+  .tick.tl{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .tick.tr{top:-1px;right:-1px;border-left:0;border-bottom:0}
+  .tick.bl{bottom:-1px;left:-1px;border-right:0;border-top:0}
+  .tick.br{bottom:-1px;right:-1px;border-left:0;border-top:0}
+
+  .identity{padding:20px 18px 6px}
+  .who-line{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .avatar{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#2b2b30,#101012);border:1px solid var(--hairline);display:grid;place-items:center;font-weight:700;color:var(--teal-hi);font-size:18px;flex:none}
+  .who-line .nm{font-weight:700;font-size:17px;letter-spacing:-.01em}
+  .who-line .anon{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--faint);letter-spacing:.1em;margin-top:2px}
+  .badge{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(47,197,177,.35);border-radius:999px;padding:5px 10px;background:var(--teal-dim)}
+
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline-2);border:1px solid var(--hairline-2)}
+  .fact{background:var(--panel);padding:12px 14px;min-height:62px}
+  .fact .lbl{margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .fact .v{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink);letter-spacing:.01em;line-height:1.35}
+  .fact .v small{color:var(--muted);font-size:11px}
+  .fact .src{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+  .pin{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+  .pin.amber{background:var(--hold);box-shadow:0 0 8px var(--hold)}
+
+  /* score gauge */
+  .gauge{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px 20px;text-align:center;height:100%}
+  .ringbox{position:relative;width:170px;height:170px;display:grid;place-items:center}
+  .ringbox svg{transform:rotate(-90deg)}
+  .ringbox .center{position:absolute;inset:0;display:grid;place-items:center}
+  .score{font-weight:800;font-size:52px;line-height:.8;letter-spacing:-.03em}
+  .score small{font-weight:500;font-size:15px;color:var(--faint)}
+  .band{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--go);margin-top:9px}
+  .bandbar{display:flex;gap:4px;margin-top:14px;width:100%;justify-content:center}
+  .bandbar span{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.12em;color:var(--faint);border:1px solid var(--hairline);border-radius:999px;padding:4px 8px}
+  .bandbar span.on{color:#0f0f10;background:var(--go);border-color:var(--go);font-weight:600}
+
+  /* ---------- section title ---------- */
+  .sec-h{display:flex;align-items:baseline;gap:14px;margin:34px 0 14px}
+  .sec-h .no{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--teal);letter-spacing:.1em}
+  .sec-h h2{font-weight:700;font-size:22px;letter-spacing:-.02em}
+  .sec-h h2 span{color:var(--muted);font-weight:400}
+  .sec-h .rule{flex:1;height:1px;background:var(--hairline)}
+
+  /* ---------- scroll journey ---------- */
+  .journey{display:grid;gap:1px;background:var(--hairline-2);border:1px solid var(--hairline)}
+  .stage{display:grid;grid-template-columns:120px 58px 1fr 74px;gap:14px;align-items:center;background:var(--panel);padding:13px 16px;transition:background .2s}
+  .stage:hover{background:var(--raise)}
+  .stage .st-name{display:flex;align-items:center;gap:10px}
+  .lens{width:11px;height:11px;border-radius:50%;flex:none;position:relative}
+  .lens.go{background:var(--go);box-shadow:0 0 10px rgba(47,197,177,.7)}
+  .lens.hold{background:var(--hold);box-shadow:0 0 10px rgba(252,187,0,.6)}
+  .lens.stop{background:var(--stop);box-shadow:0 0 10px rgba(251,44,54,.6)}
+  .st-name b{font-weight:600;font-size:13px}
+  .st-name .sub{display:block;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-top:2px}
+  .dwell{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--sub);text-align:right}
+  .dwell small{display:block;font-size:8px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-top:1px}
+  .depthbar{height:8px;background:#0c0c0d;border:1px solid var(--hairline);border-radius:2px;position:relative;overflow:hidden}
+  .depthbar i{position:absolute;left:0;top:0;bottom:0;border-radius:1px}
+  .depthbar i.go{background:linear-gradient(90deg,#1f9f8f,var(--go))}
+  .depthbar i.hold{background:linear-gradient(90deg,#b98700,var(--hold))}
+  .depthbar i.stop{background:linear-gradient(90deg,#9c1520,var(--stop))}
+  .signals{display:flex;flex-wrap:wrap;gap:5px;grid-column:3;margin-top:2px}
+  .sig{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--hairline);border-radius:2px;padding:2px 6px;background:#121214}
+  .sig.hot{color:var(--teal);border-color:rgba(47,197,177,.3)}
+  .sig.warn{color:var(--hold);border-color:rgba(252,187,0,.28)}
+  .sig.bad{color:var(--stop);border-color:rgba(251,44,54,.28)}
+  .stage .pct{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);text-align:right}
+
+  /* ---------- two-up: score model + summary ---------- */
+  .twoup{display:grid;grid-template-columns:1fr 1.25fr;gap:14px;margin-top:14px}
+  .model{padding:18px}
+  .dim{margin-bottom:15px}
+  .dim:last-child{margin-bottom:4px}
+  .dim .dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .dim .dh .dn{font-weight:600;font-size:12.5px}
+  .dim .dh .dn span{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--faint);letter-spacing:.1em;margin-left:6px}
+  .dim .dh .dv{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--sub)}
+  .dim .dv b{color:var(--teal-hi);font-weight:600}
+  .track{height:6px;background:#0c0c0d;border:1px solid var(--hairline);border-radius:2px;overflow:hidden}
+  .track i{display:block;height:100%;background:linear-gradient(90deg,#1f9f8f,var(--teal))}
+
+  .summary{padding:20px}
+  .summary .read{font-size:14.5px;line-height:1.62;color:var(--sub);font-weight:400}
+  .summary .read b{color:var(--ink);font-weight:600}
+  .summary .read .hl{color:var(--teal-hi);font-weight:600}
+  .need{margin-top:16px;padding:14px 16px;border:1px solid rgba(47,197,177,.28);border-radius:2px;background:linear-gradient(180deg,rgba(47,197,177,.07),transparent)}
+  .need .lbl{color:var(--teal);margin-bottom:8px}
+  .need p{font-size:13.5px;line-height:1.55;color:var(--ink)}
+  .actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+  .act{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.04em;padding:10px 14px;border-radius:2px;border:1px solid var(--hairline);color:var(--sub);text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:.18s}
+  .act.primary{background:var(--teal);color:#0b0b0c;border-color:var(--teal);font-weight:600}
+  .act.primary:hover{background:var(--teal-hi)}
+  .act:hover{border-color:var(--teal);color:var(--ink)}
+  .act .ico{width:14px;height:14px;display:inline-block}
+
+  /* ---------- timeline strip ---------- */
+  .timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--hairline-2);border:1px solid var(--hairline);margin-top:14px}
+  .tk{background:var(--panel);padding:14px 12px}
+  .tk .t{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--teal);letter-spacing:.06em}
+  .tk p{font-size:11px;line-height:1.5;color:var(--muted);margin-top:7px}
+
+  footer.note{margin-top:30px;padding-top:18px;border-top:1px solid var(--hairline);font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--faint);line-height:1.8}
+  footer.note b{color:var(--muted)}
+
+  @keyframes beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr}
+    .twoup{grid-template-columns:1fr}
+    .timeline{grid-template-columns:repeat(2,1fr)}
+    .stage{grid-template-columns:96px 50px 1fr;grid-template-areas:"n d bar" "n d sig"}
+    .stage .pct{display:none}
+    .runmeta{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="top">
+    <div class="brand">
+      <div class="glyph" aria-hidden="true"></div>
+      <div class="who">
+        <div class="k">AISOLVES · Behavioral Growth OS</div>
+        <h1>Lead <b>Signal</b></h1>
+      </div>
+    </div>
+    <div class="runmeta">
+      <span class="live"><i></i>SESIÓN EN VIVO</span><br />
+      Sesión <b>#SG-4471</b> · 11 Sep 2026 · 14:38<br />
+      Fuente <b>Meta Ads → /paquetes</b> · utm: engine-q3<br />
+      Datos de 1ª parte · post-consentimiento
+    </div>
+  </header>
+
+  <!-- IDENTITY + SCORE -->
+  <div class="hero">
+    <div class="card">
+      <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+      <div class="cap"><span class="eyebrow">Identidad · nivel organización</span><span class="lbl">enrichment · reverse-ip</span></div>
+      <div class="identity">
+        <div class="who-line">
+          <div class="avatar">A</div>
+          <div>
+            <div class="nm">Acme Studio <span style="color:var(--faint);font-weight:400;font-size:12px">· visitante no identificado</span></div>
+            <div class="anon">empresa inferida · persona anónima hasta que contacte</div>
+          </div>
+          <span class="badge">B2B · fit alto</span>
+        </div>
+
+        <div class="facts">
+          <div class="fact">
+            <div class="lbl"><span class="pin"></span>IP de acceso</div>
+            <div class="v">84.121.__.__ <small>· IPv4</small></div>
+            <div class="src">server-side · octetos finales enmascarados</div>
+          </div>
+          <div class="fact">
+            <div class="lbl"><span class="pin"></span>Geo aproximada</div>
+            <div class="v">Madrid, ES <small>· CET</small></div>
+            <div class="src">ciudad, no dirección · desde IP</div>
+          </div>
+          <div class="fact">
+            <div class="lbl"><span class="pin"></span>Empresa (reverse-IP)</div>
+            <div class="v">Acme Studio S.L. <small>· 92%</small></div>
+            <div class="src">red corporativa · dato público de empresa</div>
+          </div>
+          <div class="fact">
+            <div class="lbl"><span class="pin amber"></span>WhatsApp</div>
+            <div class="v" style="color:var(--muted)">— pendiente</div>
+            <div class="src">sólo si el visitante pulsa "Chatear"</div>
+          </div>
+          <div class="fact">
+            <div class="lbl"><span class="pin"></span>Perfil social (empresa)</div>
+            <div class="v" style="font-size:12px">linkedin.com/company/acme-studio</div>
+            <div class="src">perfil público · match por dominio</div>
+          </div>
+          <div class="fact">
+            <div class="lbl"><span class="pin"></span>Dispositivo</div>
+            <div class="v" style="font-size:12px">iPhone · Safari · 393×852</div>
+            <div class="src">user-agent · client hints</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+      <div class="gauge">
+        <div class="eyebrow" style="margin-bottom:4px">Lead score</div>
+        <div class="ringbox">
+          <svg width="170" height="170" viewBox="0 0 170 170">
+            <circle cx="85" cy="85" r="74" fill="none" stroke="#1e1e21" stroke-width="12"/>
+            <circle id="ring" cx="85" cy="85" r="74" fill="none" stroke="var(--teal)" stroke-width="12" stroke-linecap="round"
+                    stroke-dasharray="464.9" stroke-dashoffset="464.9"/>
+          </svg>
+          <div class="center">
+            <div>
+              <div class="score" id="scoreNum">0<small>/100</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="band">HOT · llamar hoy</div>
+        <div class="bandbar">
+          <span>COLD</span><span>WARM</span><span class="on">HOT</span><span>MQL</span><span>SQL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCROLL JOURNEY -->
+  <div class="sec-h">
+    <span class="no">01</span><h2>Comportamiento <span>por etapa de scroll</span></h2><div class="rule"></div>
+    <span class="lbl">observers · sin leer contenido</span>
+  </div>
+  <div class="journey">
+    <div class="stage">
+      <div class="st-name"><span class="lens go"></span><div><b>Hero / fold</b><span class="sub">00 · entrada</span></div></div>
+      <div class="dwell">6.4s<small>atención</small></div>
+      <div class="depthbar"><i class="go" style="width:100%"></i></div>
+      <div class="pct">100%</div>
+      <div class="signals"><span class="sig hot">leyó titular</span><span class="sig">scroll controlado</span></div>
+    </div>
+    <div class="stage">
+      <div class="st-name"><span class="lens go"></span><div><b>El sistema</b><span class="sub">02 · captura</span></div></div>
+      <div class="dwell">18.2s<small>atención</small></div>
+      <div class="depthbar"><i class="go" style="width:88%"></i></div>
+      <div class="pct">88%</div>
+      <div class="signals"><span class="sig hot">re-lectura ×2</span><span class="sig">hover en "CAPI"</span></div>
+    </div>
+    <div class="stage">
+      <div class="st-name"><span class="lens go"></span><div><b>Servicios</b><span class="sub">03 · frentes</span></div></div>
+      <div class="dwell">11.7s<small>atención</small></div>
+      <div class="depthbar"><i class="go" style="width:74%"></i></div>
+      <div class="pct">74%</div>
+      <div class="signals"><span class="sig">abrió "Performance"</span><span class="sig hot">hover SEM 5s</span></div>
+    </div>
+    <div class="stage">
+      <div class="st-name"><span class="lens go"></span><div><b>Precios</b><span class="sub">05 · paquetes</span></div></div>
+      <div class="dwell">41.0s<small>atención</small></div>
+      <div class="depthbar"><i class="go" style="width:96%"></i></div>
+      <div class="pct">96%</div>
+      <div class="signals"><span class="sig hot">8s fijo en "Engine"</span><span class="sig hot">volvió 2 veces</span><span class="sig warn">comparó 2 planes</span></div>
+    </div>
+    <div class="stage">
+      <div class="st-name"><span class="lens hold"></span><div><b>FAQ</b><span class="sub">07 · dudas</span></div></div>
+      <div class="dwell">14.3s<small>atención</small></div>
+      <div class="depthbar"><i class="hold" style="width:52%"></i></div>
+      <div class="pct">52%</div>
+      <div class="signals"><span class="sig warn">abrió "¿Es legal?"</span><span class="sig warn">abrió "¿ROAS real?"</span></div>
+    </div>
+    <div class="stage">
+      <div class="st-name"><span class="lens stop"></span><div><b>Contacto / form</b><span class="sub">08 · cierre</span></div></div>
+      <div class="dwell">9.1s<small>atención</small></div>
+      <div class="depthbar"><i class="stop" style="width:34%"></i></div>
+      <div class="pct">34%</div>
+      <div class="signals"><span class="sig bad">enfocó WhatsApp, no envió</span><span class="sig bad">exit-intent</span></div>
+    </div>
+  </div>
+
+  <!-- SCORE MODEL + SUMMARY -->
+  <div class="twoup">
+    <div class="card model">
+      <div class="eyebrow" style="margin-bottom:16px">Score · 4 dimensiones</div>
+      <div class="dim">
+        <div class="dh"><div class="dn">Intención<span>0–40</span></div><div class="dv"><b>34</b>/40</div></div>
+        <div class="track"><i style="width:85%"></i></div>
+      </div>
+      <div class="dim">
+        <div class="dh"><div class="dn">Engagement<span>0–25</span></div><div class="dv"><b>22</b>/25</div></div>
+        <div class="track"><i style="width:88%"></i></div>
+      </div>
+      <div class="dim">
+        <div class="dh"><div class="dn">Fit<span>0–20</span></div><div class="dv"><b>17</b>/20</div></div>
+        <div class="track"><i style="width:85%"></i></div>
+      </div>
+      <div class="dim">
+        <div class="dh"><div class="dn">Identidad<span>0–15</span></div><div class="dv"><b>6</b>/15</div></div>
+        <div class="track"><i style="width:40%"></i></div>
+      </div>
+      <div class="lbl" style="margin-top:16px;line-height:1.8">
+        Σ = 34 + 22 + 17 + 6 = <span style="color:var(--teal)">79 / 100</span><br />
+        Identidad baja: aún no dejó contacto directo.
+      </div>
+    </div>
+
+    <div class="card summary">
+      <div class="eyebrow" style="margin-bottom:14px">Resumen para quien recibe el lead</div>
+      <p class="read">
+        Visitante de <b>Acme Studio</b> (Madrid) llegó desde <b>Meta Ads</b> a la página de paquetes.
+        Recorrido de <span class="hl">alta intención</span>: releyó la capa de captura, y se detuvo
+        <b>41&nbsp;s en Precios</b> con <span class="hl">8&nbsp;s fijos en el plan Engine</span>, al que volvió dos veces.
+        En FAQ abrió sólo las objeciones de <b>legalidad</b> y <b>ROAS real</b> — señal de comité, no de curiosidad.
+        Enfocó el campo de WhatsApp pero <b>salió sin enviar</b>: fricción de último paso, no falta de interés.
+      </p>
+      <div class="need">
+        <div class="lbl">Qué necesita este cliente</div>
+        <p>Prueba de que el sistema es <b>legal y medible</b> y una vía de contacto de <b>cero fricción</b>.
+        No busca descuento: busca certeza. Encaja con <b>Engine (2.900&nbsp;€/mes)</b>, no con Signal.</p>
+      </div>
+      <div class="actions">
+        <a class="act primary" href="#"><span class="ico" aria-hidden="true">➤</span> Llamar &lt; 15 min</a>
+        <a class="act" href="#"><span class="ico" aria-hidden="true">✆</span> Abrir WhatsApp con ángulo "legal + ROAS"</a>
+        <a class="act" href="#">Enviar caso CAPI de Acme</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="sec-h">
+    <span class="no">02</span><h2>Cronómetro <span>de la sesión</span></h2><div class="rule"></div>
+    <span class="lbl">01m 41s total</span>
+  </div>
+  <div class="timeline">
+    <div class="tk"><div class="t">0.0s</div><p>Entra desde Meta Ads. Consentimiento aceptado. Pixel + CAPI con event_id par.</p></div>
+    <div class="tk"><div class="t">6s</div><p>Lee el titular completo. Scroll controlado, no rebote.</p></div>
+    <div class="tk"><div class="t">24s</div><p>Re-lectura de "Captura". Hover sostenido en CAPI. Intención técnica.</p></div>
+    <div class="tk"><div class="t">58s</div><p>Precios. 8s fijos en Engine. Compara con Compound.</p></div>
+    <div class="tk"><div class="t">1m18s</div><p>FAQ: sólo legalidad y ROAS. Perfil de decisor con dudas de riesgo.</p></div>
+    <div class="tk"><div class="t">1m41s</div><p>Enfoca WhatsApp, exit-intent. Cierra sin enviar. Retarget caliente.</p></div>
+  </div>
+
+  <footer class="note">
+    <b>Demo · datos ilustrativos.</b> Todo lo mostrado es telemetría de <b>primera parte</b> capturada tras <b>consentimiento explícito</b>: comportamiento (scroll, tiempo, foco), no el contenido que la persona escribe.
+    IP y empresa se resuelven a <b>nivel organización</b> (reverse-IP), no identifican a una persona. WhatsApp y datos de contacto sólo aparecen cuando <b>el visitante los entrega</b> al iniciar conversación. Revocable en un clic · Consent Mode v2.
+  </footer>
+</div>
+
+<script>
+  // animate score ring + counter
+  (function(){
+    var target=79, C=464.9, ring=document.getElementById('ring'), num=document.getElementById('scoreNum');
+    var t0=null, dur=1200;
+    function ease(x){return 1-Math.pow(1-x,3);}
+    function step(ts){
+      if(!t0)t0=ts; var p=Math.min((ts-t0)/dur,1), e=ease(p);
+      ring.style.strokeDashoffset = (C - C*(target/100)*e).toFixed(1);
+      num.firstChild.nodeValue = Math.round(target*e);
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  })();
+</script>
+</body>
+</html>

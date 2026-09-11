@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AISOLVES · Consentimiento de visita</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0f0f10;--panel:#161618;--hairline:rgba(250,250,250,.09);
+    --ink:#fafafa;--sub:#d4d4d8;--muted:#a1a1aa;--faint:#63636c;
+    --teal:#2fc5b1;--teal-hi:#43cabc;--teal-dim:rgba(47,197,177,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:Montserrat,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    min-height:100vh;overflow:hidden;
+  }
+  /* faux site behind the modal */
+  .behind{position:fixed;inset:0;padding:56px 8vw;filter:blur(7px) brightness(.5);user-select:none;z-index:0}
+  .behind .nav{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.2em;color:var(--muted)}
+  .behind h1{font-size:clamp(48px,10vw,120px);font-weight:800;letter-spacing:-.03em;line-height:.92;margin-top:16vh}
+  .behind h1 b{color:var(--teal)}
+  .behind p{max-width:640px;color:var(--sub);font-size:20px;margin-top:24px;line-height:1.5}
+
+  .scrim{position:fixed;inset:0;z-index:5;background:radial-gradient(900px 600px at 50% 40%,rgba(0,0,0,.55),rgba(6,6,7,.86));display:grid;place-items:center;padding:22px}
+
+  .modal{
+    width:min(520px,100%);background:linear-gradient(180deg,#191a1c,#141416);
+    border:1px solid var(--hairline);border-radius:4px;position:relative;
+    box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(47,197,177,.06);
+    animation:rise .6s cubic-bezier(.16,1,.3,1) both;overflow:hidden;
+  }
+  .modal:before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),transparent);opacity:.8}
+  .tick{position:absolute;width:9px;height:9px;border:1px solid rgba(47,197,177,.4)}
+  .tick.tl{top:9px;left:9px;border-right:0;border-bottom:0}
+  .tick.tr{top:9px;right:9px;border-left:0;border-bottom:0}
+  .tick.bl{bottom:9px;left:9px;border-right:0;border-top:0}
+  .tick.br{bottom:9px;right:9px;border-left:0;border-top:0}
+
+  .pad{padding:30px 30px 26px}
+  .glyph{width:44px;height:44px;border:1px solid var(--teal);border-radius:50%;display:grid;place-items:center;margin-bottom:20px}
+  .glyph:before{content:"";width:14px;height:14px;border-radius:50%;background:var(--teal);box-shadow:0 0 16px var(--teal);animation:beat 3s infinite}
+  .kick{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--teal)}
+  h2{font-size:25px;font-weight:700;letter-spacing:-.02em;margin:10px 0 12px;line-height:1.15}
+  .lead{color:var(--sub);font-size:14.5px;line-height:1.6}
+  .lead b{color:var(--ink);font-weight:600}
+
+  .measures{margin:20px 0 6px;border:1px solid var(--hairline);border-radius:3px;background:#0d0d0e}
+  .measures .mh{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--hairline)}
+  .measures .mh span{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .row{display:flex;gap:11px;padding:10px 14px;align-items:flex-start}
+  .row+.row{border-top:1px solid rgba(250,250,250,.045)}
+  .row .ic{width:16px;height:16px;flex:none;margin-top:1px;color:var(--teal)}
+  .row.no .ic{color:var(--faint)}
+  .row p{font-size:12.5px;line-height:1.45;color:var(--sub)}
+  .row p b{color:var(--ink);font-weight:600}
+  .row.no p{color:var(--muted)}
+  .row.no p b{color:var(--sub)}
+
+  .btns{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+  .accept{
+    width:100%;border:0;cursor:pointer;background:var(--teal);color:#0a0b0b;
+    font-family:Montserrat,sans-serif;font-weight:700;font-size:15px;letter-spacing:.01em;
+    padding:16px;border-radius:3px;transition:.18s;display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .accept:hover{background:var(--teal-hi);transform:translateY(-1px)}
+  .accept .ar{font-family:"IBM Plex Mono",monospace}
+  .minor{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .ghost{background:none;border:0;cursor:pointer;color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+  .ghost:hover{color:var(--ink)}
+  .fine{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.05em;color:var(--faint);text-align:center;margin-top:16px;line-height:1.7}
+  .fine a{color:var(--muted)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(22px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+</style>
+</head>
+<body>
+  <!-- faux site behind -->
+  <div class="behind" aria-hidden="true">
+    <div class="nav"><span>AISOLVES</span><span>EL SISTEMA · SERVICIOS · MÉTODO · PAQUETES</span></div>
+    <h1>Comportamiento<br />convertido en <b>ingresos.</b></h1>
+    <p>No vendemos anuncios. Instalamos el sistema que lee a cada visitante y decide quién merece una llamada.</p>
+  </div>
+
+  <!-- consent modal -->
+  <div class="scrim" role="dialog" aria-modal="true" aria-labelledby="ct">
+    <div class="modal">
+      <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+      <div class="pad">
+        <div class="glyph" aria-hidden="true"></div>
+        <div class="kick">AISOLVES · Consentimiento de visita</div>
+        <h2 id="ct">Esta web lee tu comportamiento<br />para atenderte mejor.</h2>
+        <p class="lead">
+          Al entrar medimos <b>cómo navegas</b> —no lo que escribes— para saber qué te interesa
+          y contactarte por el canal correcto. Es de <b>primera parte</b> y lo puedes revocar cuando quieras.
+        </p>
+
+        <div class="measures">
+          <div class="mh"><span>Qué medimos</span><span>transparente · revocable</span></div>
+          <div class="row"><span class="ic" aria-hidden="true">◆</span><p><b>Tu recorrido:</b> scroll, tiempo de atención por sección, hover y clics — como señal, no como grabación.</p></div>
+          <div class="row"><span class="ic" aria-hidden="true">◆</span><p><b>Contexto técnico:</b> IP (nivel ciudad/empresa), dispositivo y desde qué campaña llegas.</p></div>
+          <div class="row"><span class="ic" aria-hidden="true">◆</span><p><b>Sólo si tú lo inicias:</b> tu WhatsApp o email cuando pulsas "chatear" o rellenas el formulario.</p></div>
+          <div class="row no"><span class="ic" aria-hidden="true">○</span><p><b>Nunca:</b> el contenido que escribes, ni tus redes privadas, ni datos de terceros sin tu acción.</p></div>
+        </div>
+
+        <div class="btns">
+          <button class="accept" onclick="accept()"><span>Aceptar y entrar</span><span class="ar">→</span></button>
+          <div class="minor">
+            <button class="ghost" onclick="essential()">Sólo lo esencial</button>
+            <button class="ghost" onclick="prefs()">Preferencias</button>
+          </div>
+        </div>
+
+        <p class="fine">
+          Sin registro. Sin contraseña. Consent Mode v2 · GDPR/LOPDGDD.<br />
+          <a href="#">Política de privacidad</a> · <a href="#">Cómo revocar</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function accept(){ document.querySelector('.scrim').style.display='none'; document.querySelector('.behind').style.filter='none'; }
+    function essential(){ alert('Modo esencial: sólo cookies necesarias. Sin scoring conductual ni envío a Meta/Google.'); }
+    function prefs(){ alert('Panel de preferencias: activar/desactivar cada categoría por separado.'); }
+  </script>
+</body>
+</html>

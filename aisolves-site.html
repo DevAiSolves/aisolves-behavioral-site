@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AISOLVES — Behavioral Growth OS</title>
+<meta name="description" content="No vendemos anuncios. Instalamos el sistema que lee el comportamiento de cada visitante, lo puntúa en tiempo real y decide quién merece una llamada." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#fafafb; --card:#fff; --navy:#0d1017;
+    --ink:#18181b; --ink-2:#52525b; --ink-3:#9a9aa3; --note:#b9bfcc;
+    --line:#e4e9f2; --line-2:#eef1f7;
+    --teal:#2fc5b1; --teal-ink:#0f8577; --teal-wash:rgba(47,197,177,.10);
+    --confirm:#1faa5a; --hold:#e0a400; --stop:#e5484d;
+    --grid:#e9edf6; --nav-h:64px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:Montserrat,system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  /* vanlent grid: uniform light blue-lavender */
+  body:before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:100px 100px}
+  a{color:inherit;text-decoration:none}
+  section{position:relative;z-index:1}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+  /* numbered corner labels — Montserrat, letter-spaced, light */
+  .lab{font-weight:400;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+  .lab i{font-style:normal;color:var(--note)}
+  /* live CSS annotations — monospace, very light */
+  .note{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;color:var(--note);white-space:nowrap}
+  .note.v{writing-mode:vertical-rl}
+  .display{font-weight:200;text-transform:uppercase;letter-spacing:.04em;line-height:.94}
+
+  /* buttons */
+  .btn{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:500;font-size:13.5px;padding:15px 22px;cursor:pointer;border:1px solid transparent;transition:background .2s,color .2s,border-color .2s;line-height:1;font-family:Montserrat}
+  .btn>*{position:relative;z-index:2}
+  .btn .prog{position:absolute;inset:0;z-index:1;transform-origin:left;transform:scaleX(0);background:rgba(0,0,0,.14)}
+  .btn .bar{position:absolute;left:0;bottom:0;height:3px;width:0;z-index:2;background:rgba(0,0,0,.26)}
+  .btn.dark{background:var(--navy);color:#fff}.btn.dark:hover{background:#171d29}
+  .btn.ghost{border-color:var(--ink);color:var(--ink)}.btn.ghost:hover{background:var(--ink);color:#fff}
+  .btn.loading{pointer-events:none}
+  .btn.confirm{background:var(--confirm);color:#fff;border-color:var(--confirm)}
+  .btn.confirm .prog{background:rgba(255,255,255,.16)}.btn.confirm .bar{background:rgba(255,255,255,.6)}
+  .btn .ar{font-family:"IBM Plex Mono",monospace}
+  .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  .btn.loading .spin{display:inline-block}
+  .ticks{font-family:"IBM Plex Mono",monospace;letter-spacing:-2px}
+
+  /* NAV */
+  nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:60;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,251,.84);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  nav .lg{display:flex;align-items:center;gap:10px;font-weight:400;letter-spacing:.22em;font-size:13px;text-transform:uppercase}
+  nav .lg .d{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+  nav .links{display:flex;gap:30px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  nav .links a:hover{color:var(--ink)}
+  nav .cta{font-size:11.5px;letter-spacing:.1em;padding:10px 16px;border:1px solid var(--line);text-transform:uppercase;transition:.18s}
+  nav .cta:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media(max-width:900px){nav .links{display:none}}
+
+  /* ===== HERO with particle sphere + live clip-path notes ===== */
+  .hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;padding-top:var(--nav-h)}
+  .hero .lab{position:absolute}
+  .hero .l1{top:calc(var(--nav-h) + 48px);left:40px}
+  .hero .l2{top:calc(var(--nav-h) + 48px);right:40px}
+  .hero .l3{bottom:60px;left:40px}
+  .hero .l4{bottom:60px;right:40px}
+  .hero .contact-t{position:absolute;bottom:88px;left:70px;font-weight:400;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
+  /* framed sphere box with annotations on 4 sides */
+  .sphere-box{position:relative;width:min(46vw,640px);aspect-ratio:1/.98;border:1px solid var(--line)}
+  .sphere-box canvas{position:absolute;inset:0;width:100%;height:100%}
+  .sphere-box .note{position:absolute}
+  .sphere-box .n-top{top:14px;left:16px}
+  .sphere-box .n-bot{bottom:14px;right:16px}
+  .sphere-box .n-left{left:14px;top:50%;transform:translateY(-50%) rotate(180deg)}
+  .sphere-box .n-right{right:14px;top:22%}
+  .hero-copy{position:absolute;left:40px;top:50%;transform:translateY(-50%);max-width:34vw;z-index:2}
+  .hero-copy h1{font-weight:100;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(30px,3.6vw,54px);line-height:1.02}
+  .hero-copy h1 b{font-weight:300;color:var(--teal-ink)}
+  .hero-copy p{margin-top:20px;color:var(--ink-2);font-size:14.5px;line-height:1.6;max-width:38ch}
+  .hero-copy .row{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  @media(max-width:1100px){.hero{flex-direction:column;justify-content:center;gap:30px;padding:120px 0 80px}
+    .hero-copy{position:static;transform:none;max-width:none;padding:0 40px}.sphere-box{width:min(80vw,460px)}
+    /* etiquetas de esquina son decorativas: se ocultan al apilar para no chocar con el titular */
+    .hero .lab,.hero .contact-t{display:none}}
+
+  /* live counters strip */
+  .counters{position:absolute;left:40px;bottom:150px;display:grid;grid-template-columns:repeat(4,auto);gap:0;border:1px solid var(--line);background:rgba(255,255,255,.7);z-index:2}
+  .counters .c{padding:12px 20px;border-right:1px solid var(--line)}
+  .counters .c:last-child{border-right:0}
+  .counters .c .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+  .counters .c .v{font-family:"IBM Plex Mono",monospace;font-size:20px;color:var(--ink);margin-top:5px}
+  .counters .c .v.teal{color:var(--teal-ink)}
+  @media(max-width:1100px){.counters{position:static;margin:0 40px;grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:700px){.counters{grid-template-columns:repeat(2,1fr)}.counters .c:nth-child(2){border-right:0}}
+
+  /* TICKER */
+  .ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;padding:15px 0;background:var(--card)}
+  .ticker .track{display:flex;white-space:nowrap;animation:marquee 36s linear infinite;width:max-content}
+  .ticker .track span{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);padding:0 28px}
+  .ticker .track span b{color:var(--teal-ink);font-weight:500}
+
+  /* SECTION HEAD */
+  .sec{padding:110px 0}
+  .sec-top{display:flex;justify-content:space-between;align-items:stretch;gap:24px;margin-bottom:0;border:1px solid var(--line);border-bottom:0}
+  .sec-top .st-l{padding:30px 34px}
+  .sec-top h2{font-weight:200;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(28px,4.6vw,52px);line-height:1}
+  .sec-top .sub2{margin-top:10px;color:var(--ink-2);font-size:14.5px}
+  .startbox{flex:none;border-left:1px solid var(--line);padding:0 40px;font-weight:300;font-size:19px;transition:.2s;cursor:pointer;display:flex;align-items:center}
+  .startbox:hover{background:var(--navy);color:#fff}
+  @media(max-width:760px){.startbox{padding:18px;font-size:15px}.sec-top{flex-direction:column}.startbox{border-left:0;border-top:1px solid var(--line)}}
+
+  /* ===== CAROUSEL (vanlent project card) ===== */
+  .carousel{border:1px solid var(--line);background:var(--card)}
+  .car-bar{display:grid;grid-template-columns:64px 64px 1fr 64px;border-bottom:1px solid var(--line)}
+  .car-bar button{background:none;border:0;border-right:1px solid var(--line);padding:20px 0;cursor:pointer;color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:19px;transition:.15s}
+  .car-bar button:hover{background:var(--paper);color:var(--teal-ink)}
+  .car-bar .title{display:flex;align-items:center;justify-content:center;font-weight:300;font-size:20px;letter-spacing:.01em}
+  .car-bar .nx{border-right:0;border-left:1px solid var(--line)}
+  .car-desc{padding:34px;min-height:150px}
+  .car-desc p{color:var(--ink-2);font-size:16px;line-height:1.62;max-width:80ch;margin-bottom:14px}
+  .car-desc p:last-child{margin-bottom:0}
+  .car-desc .use{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--teal-ink);letter-spacing:.06em;margin-top:16px}
+  .car-body{display:grid;grid-template-columns:1fr 110px 1fr;border-top:1px solid var(--line);min-height:330px}
+  .car-cell{position:relative;overflow:hidden}
+  .car-cell.gears{border-right:1px solid var(--line)}
+  .car-cell canvas,.car-cell svg{display:block;width:100%;height:100%}
+  .car-cell .note{position:absolute;left:16px;bottom:14px}
+  .stack{display:flex;flex-direction:column;border-right:1px solid var(--line)}
+  .stack .sq{flex:1;border-bottom:1px solid var(--line);display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;color:var(--ink-3);background:var(--card)}
+  .stack .sq:last-child{border-bottom:0}
+  .stack .sq.hatch{background-image:repeating-linear-gradient(45deg,var(--line) 0 1px,transparent 1px 7px),repeating-linear-gradient(-45deg,var(--line) 0 1px,transparent 1px 7px)}
+  @media(max-width:860px){.car-body{grid-template-columns:1fr}.car-cell.gears,.stack{border-right:0;border-bottom:1px solid var(--line)}.stack{flex-direction:row}.stack .sq{border-bottom:0;border-right:1px solid var(--line)}}
+  .car-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:16px 24px;gap:16px;flex-wrap:wrap}
+  .dots{display:flex;gap:8px}
+  .dots i{width:7px;height:7px;border-radius:50%;border:1px solid var(--note);cursor:pointer}
+  .dots i.on{background:var(--teal);border-color:var(--teal)}
+
+  /* generic sections */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);background:var(--card)}
+  .cell{padding:32px 28px;border-right:1px solid var(--line)}
+  .cell:last-child{border-right:0}
+  .cell .cn{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--teal-ink)}
+  .cell h3{font-weight:300;text-transform:uppercase;letter-spacing:.04em;font-size:19px;margin:14px 0 10px}
+  .cell .lead{color:var(--ink-2);font-size:13.5px;line-height:1.55;margin-bottom:18px}
+  .cell ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .cell li{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2);padding-left:18px;position:relative;line-height:1.4}
+  .cell li:before{content:"→";position:absolute;left:0;color:var(--teal-ink)}
+  @media(max-width:860px){.grid3{grid-template-columns:1fr}.cell{border-right:0;border-bottom:1px solid var(--line)}}
+
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);background:var(--card)}
+  .phase{padding:30px;border-right:1px solid var(--line)}
+  .phase:last-child{border-right:0}
+  .phase .ph{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .phase h3{font-weight:200;text-transform:uppercase;letter-spacing:.05em;font-size:25px;margin:12px 0 4px}
+  .phase .goal{color:var(--teal-ink);font-size:12.5px;margin-bottom:18px;font-family:"IBM Plex Mono",monospace}
+  .phase p{color:var(--ink-2);font-size:13px;line-height:1.55;margin-bottom:10px}
+  .phase p b{color:var(--ink);font-weight:500}
+  @media(max-width:860px){.phases{grid-template-columns:1fr}.phase{border-right:0;border-bottom:1px solid var(--line)}}
+
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);background:var(--card)}
+  .plan{padding:32px 26px;border-right:1px solid var(--line);display:flex;flex-direction:column;position:relative}
+  .plan:last-child{border-right:0}
+  .plan.pop{background:linear-gradient(180deg,var(--teal-wash),transparent 60%)}
+  .plan .pn{font-weight:300;text-transform:uppercase;letter-spacing:.1em;font-size:18px}
+  .plan .pop-b{position:absolute;top:14px;right:14px;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#0a1413;background:var(--teal);padding:4px 8px}
+  .plan .desc{color:var(--ink-2);font-size:12.5px;line-height:1.5;margin:10px 0 18px;min-height:38px}
+  .plan .price{font-weight:200;font-size:42px}
+  .plan .price small{font-size:14px;color:var(--ink-3);font-weight:400}
+  .plan .from{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .plan ul{list-style:none;margin:18px 0 24px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .plan li{font-size:12.5px;color:var(--ink-2);padding-left:18px;position:relative;line-height:1.4}
+  .plan li:before{content:"→";position:absolute;left:0;color:var(--teal-ink)}
+  @media(max-width:860px){.plans{grid-template-columns:1fr}.plan{border-right:0;border-bottom:1px solid var(--line)}}
+
+  .team{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);background:var(--card)}
+  .member{padding:32px;display:flex;gap:20px;border-right:1px solid var(--line)}
+  .member:last-child{border-right:0}
+  .member .av{width:62px;height:62px;border-radius:50%;flex:none;background:var(--navy);display:grid;place-items:center;font-weight:200;font-size:24px;color:var(--teal)}
+  .member h3{font-weight:300;text-transform:uppercase;letter-spacing:.08em;font-size:19px}
+  .member .role{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-ink);margin:5px 0 12px}
+  .member p{color:var(--ink-2);font-size:13px;line-height:1.5;margin-bottom:14px}
+  .member .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .member .tags span{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line);padding:4px 8px}
+  @media(max-width:860px){.team{grid-template-columns:1fr}.member{border-right:0;border-bottom:1px solid var(--line)}}
+
+  .faq{border:1px solid var(--line);background:var(--card)}
+  .qa{border-bottom:1px solid var(--line)}.qa:last-child{border-bottom:0}
+  .qa button{width:100%;background:none;border:0;cursor:pointer;color:var(--ink);text-align:left;padding:26px 30px;display:flex;justify-content:space-between;align-items:center;gap:20px;font-family:Montserrat;font-weight:400;font-size:clamp(15px,2vw,20px)}
+  .qa .plus{color:var(--teal-ink);font-family:"IBM Plex Mono",monospace;font-size:22px;transition:.2s;flex:none}
+  .qa.open .plus{transform:rotate(45deg)}
+  .qa .a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--ink-2);font-size:14px;line-height:1.6}
+  .qa .a p{padding:0 30px 26px;max-width:82ch}
+  .qa.open .a{max-height:360px}
+
+  .contact{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);background:var(--card)}
+  .contact .cl{padding:44px}
+  .contact h2{font-weight:100;text-transform:uppercase;letter-spacing:.04em;font-size:clamp(30px,5vw,58px);line-height:1}
+  .contact h2 b{font-weight:300;color:var(--teal-ink)}
+  .contact .sub{color:var(--ink-2);font-size:15px;line-height:1.55;margin:22px 0 26px;max-width:44ch}
+  .contact .lines{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-2);line-height:2.2}
+  .contact .lines a:hover{color:var(--teal-ink)}
+  .cbox{padding:44px;border-left:1px solid var(--line)}
+  .cbox .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:14px}
+  .cbox h3{font-weight:300;text-transform:uppercase;letter-spacing:.05em;font-size:21px;margin-bottom:10px}
+  .cbox p{color:var(--ink-2);font-size:13.5px;line-height:1.5;margin-bottom:22px}
+  @media(max-width:860px){.contact{grid-template-columns:1fr}.cbox{border-left:0;border-top:1px solid var(--line)}}
+
+  footer{border-top:1px solid var(--line);padding:36px 0;margin-top:60px}
+  footer .fx{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+
+  /* FORM */
+  .field{margin-bottom:15px}
+  .field label{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:7px}
+  .field input{width:100%;background:var(--paper);border:1px solid var(--line);color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:14px;padding:13px 14px}
+  .field input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-wash);background:#fff}
+  .consent-row{display:flex;gap:10px;align-items:flex-start;margin:6px 0 18px}
+  .consent-row input{margin-top:3px;accent-color:var(--teal-ink);width:16px;height:16px;flex:none}
+  .consent-row label{font-size:11px;color:var(--ink-2);line-height:1.5}
+
+  /* MODALS */
+  .scrim{position:fixed;inset:0;z-index:200;display:none;background:rgba(13,16,23,.3);backdrop-filter:blur(5px)}
+  .scrim.on{display:block}
+  .shell{position:absolute;background:var(--card);border:1px solid var(--line);box-shadow:0 50px 130px rgba(13,16,23,.28);overflow:auto}
+  .mpad{padding:32px}
+  .mclose{position:absolute;top:14px;right:16px;background:none;border:0;color:var(--ink-3);cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:16px;z-index:3}
+  .glyph{width:40px;height:40px;border:1px solid var(--teal);border-radius:50%;display:grid;place-items:center;margin-bottom:16px}
+  .glyph:before{content:"";width:12px;height:12px;border-radius:50%;background:var(--teal)}
+  .mh{font-weight:300;text-transform:uppercase;letter-spacing:.04em;font-size:22px;margin:8px 0 10px;line-height:1.2}
+  .mlead{color:var(--ink-2);font-size:14px;line-height:1.55}.mlead b{color:var(--ink)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal-ink)}
+  .fmt-tag{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-ink);border:1px solid var(--line);padding:4px 8px;display:inline-block;margin-bottom:14px}
+  .fine{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ink-3);text-align:center;margin-top:14px;line-height:1.7}
+  #mSpot .shell,#mForm .shell,#mConsent .shell,#mBehavior .shell{top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 40px));max-height:92vh}
+  #mSpot .shell{width:min(900px,calc(100% - 40px))}
+  #mDrawer .shell{top:0;right:0;height:100%;width:min(460px,100%);border-top:0;border-bottom:0;border-right:0;transform:translateX(100%);transition:transform .45s cubic-bezier(.16,1,.3,1)}
+  #mDrawer.on .shell{transform:translateX(0)}
+  #mSheet .shell{left:0;right:0;bottom:0;max-height:88vh;border-left:0;border-right:0;border-bottom:0;transform:translateY(100%);transition:transform .45s cubic-bezier(.16,1,.3,1)}
+  #mSheet.on .shell{transform:translateY(0)}
+  #mFull .shell{inset:0;width:100%;height:100%;border:0}
+  #mFull .mpad{max-width:820px;margin:0 auto;padding:60px 40px}
+  #mToast .shell{right:20px;bottom:20px;width:min(370px,calc(100% - 40px))}
+  .measures{margin:18px 0 6px;border:1px solid var(--line);background:var(--paper)}
+  .measures .mhh{padding:10px 14px;border-bottom:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between}
+  .mrow{display:flex;gap:11px;padding:11px 14px;align-items:flex-start}.mrow+.mrow{border-top:1px solid var(--line-2)}
+  .mrow .ic{color:var(--teal-ink);flex:none;font-size:11px;margin-top:2px}.mrow.no .ic{color:var(--ink-3)}
+  .mrow p{font-size:12px;line-height:1.45;color:var(--ink-2)}.mrow p b{color:var(--ink)}
+  .btns{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+  .minor{display:flex;justify-content:space-between}
+  .ghostlink{background:none;border:0;cursor:pointer;color:var(--ink-2);font-family:"IBM Plex Mono",monospace;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+
+  /* report body */
+  .rep-top{display:flex;align-items:center;gap:18px;margin-bottom:16px;flex-wrap:wrap}
+  .ringbox{position:relative;width:100px;height:100px;flex:none}
+  .ringbox svg{transform:rotate(-90deg)}
+  .ringbox .ctr{position:absolute;inset:0;display:grid;place-items:center}
+  .ringbox .ctr b{font-weight:200;font-size:30px}
+  .ringbox .ctr b small{font-size:11px;color:var(--ink-3)}
+  .rep-band{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-ink)}
+  .rep-top .rt{flex:1;min-width:180px}
+  .rep-top .rt .rl{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+  .rep-summary{font-size:13px;line-height:1.6;color:var(--ink-2);border:1px solid var(--line);padding:14px 16px;background:var(--paper);margin-bottom:14px}
+  .rep-summary b{color:var(--ink)}.rep-summary .hl{color:var(--teal-ink);font-weight:500}
+  .journey{border:1px solid var(--line);margin-bottom:14px}
+  .st{display:grid;grid-template-columns:1fr 54px 44px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line-2)}
+  .st:last-child{border-bottom:0}
+  .st .n{display:flex;align-items:center;gap:9px;font-size:12.5px}
+  .lens{width:9px;height:9px;border-radius:50%;flex:none}
+  .lens.go{background:var(--teal)}.lens.hold{background:var(--hold)}.lens.stop{background:var(--stop)}
+  .st .d{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);text-align:right}
+  .st .p{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right}
+  .need{padding:14px 16px;border:1px solid var(--teal);background:var(--teal-wash);margin-bottom:16px}
+  .need .rl{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-ink);margin-bottom:7px}
+  .need p{font-size:13px;line-height:1.5}
+  .delivery{border:1px solid var(--line);background:var(--paper);padding:16px;margin-top:4px}
+  .delivery .dh{display:flex;justify-content:space-between;margin-bottom:12px}
+  .delivery .dt{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .delivery .num{font-family:"IBM Plex Mono",monospace;font-size:12px}
+  .track-line{height:8px;background:#e6e9f0;overflow:hidden;margin-bottom:12px}
+  .track-line i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s}
+  .track-line.done i{background:var(--confirm)}
+  .steps{display:flex;justify-content:space-between;gap:8px}
+  .step{flex:1;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:9px;text-transform:uppercase;color:var(--ink-3);position:relative;padding-top:20px}
+  .step:before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:15px;height:15px;border-radius:50%;border:2px solid var(--line);background:#fff}
+  .step.on{color:var(--teal-ink)}.step.on:before{border-color:var(--teal);background:var(--teal)}
+  .step.done{color:var(--confirm)}.step.done:before{border-color:var(--confirm);background:var(--confirm)}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);z-index:400;opacity:0;transition:.3s;background:#fff;border:1px solid var(--teal);padding:13px 18px;font-family:"IBM Plex Mono",monospace;font-size:12px;box-shadow:0 24px 60px rgba(13,16,23,.18)}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.green{border-color:var(--confirm)}
+  .float-pill{position:fixed;right:20px;bottom:20px;z-index:120;display:none;align-items:center;gap:11px;cursor:pointer;background:#fff;border:1px solid var(--teal);border-radius:999px;padding:11px 17px;box-shadow:0 16px 44px rgba(13,16,23,.12)}
+  .float-pill.on{display:flex}
+  .float-pill .d{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .float-pill span{font-family:"IBM Plex Mono",monospace;font-size:11px}
+  .float-pill b{color:var(--teal-ink)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes marquee{to{transform:translateX(-50%)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="lg" href="#top"><span class="d"></span>AISOLVES</a>
+  <div class="links"><a href="#work">Trabajo</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#paquetes">Paquetes</a><a href="#equipo">Equipo</a></div>
+  <a class="cta" onclick="openForm()">Auditoría gratuita →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top" data-sec="Hero">
+  <div class="lab l1"><i>01.</i> Behavioral Growth OS</div>
+  <div class="lab l2"><i>02.</i> Amsterdam · Remoto</div>
+  <div class="contact-t">T: +34 600 000 000</div>
+  <div class="lab l3"><i>03.</i> M: hola@aisolves.com</div>
+  <div class="lab l4"><i>04.</i> Abiertos a 3 proyectos</div>
+
+  <div class="hero-copy">
+    <h1>Comportamiento convertido en <b>ingresos.</b></h1>
+    <p>No vendemos anuncios. Instalamos el sistema que lee a cada visitante y decide quién merece una llamada.</p>
+    <div class="row">
+      <button class="btn dark" onclick="openForm()"><span>Recibir mi reporte</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+      <a class="btn ghost" href="#work"><span>Ver formatos ↓</span></a>
+    </div>
+  </div>
+
+  <div class="sphere-box">
+    <canvas id="heroSphere"></canvas>
+    <div class="note n-top" id="nTop">clip-path: inset(0px 0px 0px 0px)</div>
+    <div class="note v n-right" id="nRight">clip-path: inset(0px 0px 0px 0px)</div>
+    <div class="note n-bot" id="nBot">clip-path: inset(0px 0px 0px 0px)</div>
+    <div class="note v n-left" id="nLeft">clip-path: inset(0px 0px 0px 0px)</div>
+  </div>
+
+  <div class="counters">
+    <div class="c"><div class="k">Señales</div><div class="v teal" id="cSignals">0</div></div>
+    <div class="c"><div class="k">Atención</div><div class="v" id="cAttn">0s</div></div>
+    <div class="c"><div class="k">Profundidad</div><div class="v" id="cDepth">0%</div></div>
+    <div class="c"><div class="k">Estado</div><div class="v" id="cBand">COLD</div></div>
+  </div>
+</section>
+
+<div class="ticker"><div class="track">
+  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span>
+  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span>
+</div></div>
+
+<!-- SELECTED WORK -->
+<section class="sec wrap" id="work" data-sec="Work">
+  <div class="sec-top">
+    <div class="st-l"><h2>Selected Work</h2><p class="sub2">Formatos de modal de comportamiento, de la señal a la conversación.</p></div>
+    <a class="startbox" onclick="openForm()">Start a Project</a>
+  </div>
+
+  <div class="carousel">
+    <div class="car-bar">
+      <button onclick="carPrev()" aria-label="anterior">‹</button>
+      <button onclick="carOpen()" aria-label="abrir formato" title="Abrir formato en vivo">⧉</button>
+      <div class="title" id="carTitle">center spotlight</div>
+      <button class="nx" onclick="carNext()" aria-label="siguiente">›</button>
+    </div>
+    <div class="car-desc" id="carDesc"></div>
+    <div class="car-body">
+      <div class="car-cell gears">
+        <svg id="gears" viewBox="0 0 420 330" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="note" id="gearNote">transform: translate3d(0px, 0px, 0) rotate(0deg)</div>
+      </div>
+      <div class="stack">
+        <div class="sq hatch"></div>
+        <div class="sq">META</div><div class="sq">CAPI</div><div class="sq">GA4</div><div class="sq">WA</div><div class="sq">GSAP</div>
+      </div>
+      <div class="car-cell"><canvas id="workSphere"></canvas><div class="note" id="waveNote">transform: scale3d(1, 1, 1)</div></div>
+    </div>
+    <div class="car-foot">
+      <div class="dots" id="carDots"></div>
+      <button class="btn dark" onclick="carOpen()"><span>Ver este formato en vivo</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+    </div>
+  </div>
+</section>
+
+<!-- SISTEMA -->
+<section class="sec wrap" id="sistema" data-sec="Sistema">
+  <div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento.</p></div></div>
+  <div class="grid3">
+    <div class="cell"><div class="cn">01 / Captura</div><h3>Absorción de metadata</h3><div class="lead">Cada sección y bloque emite eventos estructurados. Medimos la señal, nunca lo que la persona escribe.</div><ul><li>Observers por sección y bloque</li><li>Metadata de formularios sin leer valores</li><li>Velocidad de scroll y relectura</li><li>Fricción: rage click, exit intent</li></ul></div>
+    <div class="cell"><div class="cn">02 / Puntuación</div><h3>Lead scoring conductual</h3><div class="lead">Un motor en cuatro dimensiones convierte el ruido en un número de 0 a 100 y una banda accionable.</div><ul><li>Intención 0-40 · Engagement 0-25</li><li>Fit 0-20 · Identidad 0-15</li><li>COLD → WARM → HOT → MQL → SQL</li><li>Histórico con causa de cada salto</li></ul></div>
+    <div class="cell"><div class="cn">03 / Activación</div><h3>Píxeles y CAPI</h3><div class="lead">El mismo event_id viaja por navegador y servidor. Meta deduplica y se queda con la mejor señal.</div><ul><li>Meta Pixel + Conversions API</li><li>Consent Mode v2 + GA4 server-side</li><li>TikTok Events API · LinkedIn</li><li>PII hasheada SHA-256 en origen</li></ul></div>
+  </div>
+</section>
+
+<!-- METODO -->
+<section class="sec wrap" id="metodo" data-sec="Método">
+  <div class="sec-top"><div class="st-l"><h2>Método</h2><p class="sub2">90 días para que el sistema decida por ti.</p></div></div>
+  <div class="phases">
+    <div class="phase"><div class="ph">Semanas 1–3</div><h3>Instrumentación</h3><div class="goal">Que el negocio empiece a ver.</div><p><b>Auditoría de pérdida de señal</b> entre navegador y servidor.</p><p><b>Taxonomía de eventos</b> única para todos los canales.</p><p><b>Data layer y CAPI</b> deduplicados con Consent Mode v2.</p></div>
+    <div class="phase"><div class="ph">Semanas 4–7</div><h3>Ignición</h3><div class="goal">Convertir datos en conversaciones.</div><p><b>Activos de viralidad</b> sobre las objeciones que revelan los datos.</p><p><b>Campañas de intención</b> con audiencias conductuales.</p><p><b>WhatsApp como canal</b> con detección de intención.</p></div>
+    <div class="phase"><div class="ph">Semanas 8–12</div><h3>Escala</h3><div class="goal">Que el sistema decida solo.</div><p><b>Enrutamiento automático</b>: SQL a llamada en &lt;15 min.</p><p><b>Retargeting secuencial</b> por etapa.</p><p><b>Onboarding</b> de las primeras 48-72 h, medido.</p></div>
+  </div>
+</section>
+
+<!-- PAQUETES -->
+<section class="sec wrap" id="paquetes" data-sec="Paquetes">
+  <div class="sec-top"><div class="st-l"><h2>Paquetes</h2><p class="sub2">Retainer sin permanencia · precio por sistema, no por horas.</p></div></div>
+  <div class="plans">
+    <div class="plan"><div class="pn">Signal</div><div class="desc">Empieza a ver lo que ya está pasando.</div><div class="from">Desde</div><div class="price">1.200<small> €/mes</small></div><ul><li>Auditoría de pérdida de señal</li><li>Taxonomía de eventos unificada</li><li>Meta Pixel + CAPI deduplicados</li><li>Consent Mode v2 + GA4 server-side</li><li>Lead scoring conductual</li></ul><button class="btn ghost" onclick="openForm()"><span>Solicitar diagnóstico</span></button></div>
+    <div class="plan pop"><div class="pop-b">Más contratado</div><div class="pn">Engine</div><div class="desc">El sistema completo, funcionando solo.</div><div class="from">Desde</div><div class="price">2.900<small> €/mes</small></div><ul><li>Todo lo de Signal</li><li>Meta Ads y Google Ads gestionados</li><li>Retargeting y secuencias progresivas</li><li>Contenido orgánico: reels y carruseles</li><li>WhatsApp Business API con intención</li></ul><button class="btn dark" onclick="openForm()"><span>Solicitar diagnóstico</span><span class="prog"></span><span class="bar"></span></button></div>
+    <div class="plan"><div class="pn">Compound</div><div class="desc">Crecimiento que se acelera con el tiempo.</div><div class="from">Desde</div><div class="price">5.500<small> €/mes</small></div><ul><li>Todo lo de Engine</li><li>Onboarding de alta activación 48-72 h</li><li>Experimentación continua A/B</li><li>Atribución multi-touch</li><li>SLA &lt;15 min para SQL</li></ul><button class="btn ghost" onclick="openForm()"><span>Solicitar diagnóstico</span></button></div>
+  </div>
+</section>
+
+<!-- EQUIPO -->
+<section class="sec wrap" id="equipo" data-sec="Equipo">
+  <div class="sec-top"><div class="st-l"><h2>Equipo</h2><p class="sub2">Dos personas, cero capas. Hablas con quien construye.</p></div></div>
+  <div class="team">
+    <div class="member"><div class="av">J</div><div><h3>Javier</h3><div class="role">CEO · Growth Architect</div><p>Arquitectura de conversión, tracking multicanal, full stack UX/UI y campañas como trafficker profesional.</p><div class="tags"><span>Meta Pixel + CAPI</span><span>Full Stack</span><span>Funnels</span><span>Lead scoring</span></div></div></div>
+    <div class="member"><div class="av">M</div><div><h3>Milagros</h3><div class="role">CMO · Content & Virality</div><p>Contenido orgánico, storytelling de venta, community management avanzado y tráfico con estrategias exclusivas.</p><div class="tags"><span>Storytelling</span><span>Reels</span><span>Community</span><span>Funnels de contenido</span></div></div></div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec wrap" data-sec="FAQ">
+  <div class="sec-top"><div class="st-l"><h2>Preguntas</h2><p class="sub2">Las dudas que sí importan.</p></div></div>
+  <div class="faq">
+    <div class="qa"><button onclick="tog(this)">¿Esto es legal? Suena a espiar al usuario.<span class="plus">+</span></button><div class="a"><p>Es lo contrario. Medimos comportamiento —scroll, tiempo, dudas—, nunca el contenido que la persona escribe. Nada de tracking personalizado ocurre antes del consentimiento explícito: Consent Mode v2 en denegado por defecto y revocable en un clic. Además le enseñamos su propio informe: es más transparente que cualquier banner de cookies.</p></div></div>
+    <div class="qa"><button onclick="tog(this)">¿En qué se diferencia de Google Analytics o Hotjar?<span class="plus">+</span></button><div class="a"><p>GA4 te dice qué pasó en agregado. Hotjar te deja grabaciones que nadie revisa. Nosotros convertimos el comportamiento en un score por visitante, lo devolvemos a Meta y Google por servidor, y lo enrutamos a una acción: a quién se llama hoy y a quién no.</p></div></div>
+    <div class="qa"><button onclick="tog(this)">¿Qué gano con Conversions API?<span class="plus">+</span></button><div class="a"><p>Recuperas entre un 20% y un 40% de conversiones que hoy se pierden por ITP, ATT y bloqueadores. No es reporting: es información que el algoritmo de puja de Meta no recibe, y por eso tu CPA sube sin explicación.</p></div></div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section class="sec wrap" id="contacto" data-sec="Contacto">
+  <div class="contact">
+    <div class="cl">
+      <h2>Empieza por <b>ver</b><br/>lo que ya pasa.</h2>
+      <p class="sub">Deja tu WhatsApp y te enviamos el reporte de comportamiento de esta misma visita. Sin registro, sin permanencia.</p>
+      <div class="lines">M: <a href="mailto:hola@aisolves.com">hola@aisolves.com</a><br/>W: <a href="#" onclick="openForm();return false">WhatsApp Business</a><br/>04. ABIERTOS A 3 PROYECTOS · Q3 2026</div>
+    </div>
+    <div class="cbox">
+      <div class="eyebrow">Reporte de comportamiento</div>
+      <h3>Recibe tu Lead Signal</h3>
+      <p>El sistema ya está leyendo tu visita. Pide el informe completo y lo tienes en tu WhatsApp en segundos.</p>
+      <button class="btn dark" style="width:100%" onclick="openForm()"><span>Recibir mi reporte</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+    </div>
+  </div>
+  <footer><div class="fx"><span>© 2026 AISOLVES · Behavioral Growth OS</span><span>Privacidad · Cómo revocar · Consent Mode v2</span></div></footer>
+</section>
+
+<div class="float-pill" id="pill" onclick="openBehavior()"><span class="d"></span><span>Tu comportamiento · <b id="pillScore">0</b>/100</span></div>
+
+<!-- CONSENT -->
+<div class="scrim" id="mConsent"><div class="shell">
+  <div class="mpad"><div class="glyph"></div><div class="eyebrow">AISOLVES · Consentimiento de visita</div>
+    <h2 class="mh">Esta web lee tu comportamiento para atenderte mejor.</h2>
+    <p class="mlead">Al entrar medimos <b>cómo navegas</b> —no lo que escribes— para saber qué te interesa. Es de primera parte y revocable cuando quieras.</p>
+    <div class="measures"><div class="mhh"><span>Qué medimos</span><span>transparente · revocable</span></div>
+      <div class="mrow"><span class="ic">◆</span><p><b>Tu recorrido:</b> scroll, tiempo de atención, hover y clics — como señal, no grabación.</p></div>
+      <div class="mrow"><span class="ic">◆</span><p><b>Contexto técnico:</b> IP (ciudad/empresa), dispositivo y campaña de origen.</p></div>
+      <div class="mrow"><span class="ic">◆</span><p><b>Sólo si tú lo inicias:</b> tu WhatsApp cuando pides el reporte.</p></div>
+      <div class="mrow no"><span class="ic">○</span><p><b>Nunca:</b> lo que escribes, tus redes privadas, ni datos de terceros sin tu acción.</p></div></div>
+    <div class="btns"><button class="btn dark" id="consentBtn" style="padding:16px" onclick="acceptConsent(this)"><span class="lbl">Aceptar y entrar</span><span class="spin"></span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+      <div class="minor"><button class="ghostlink" onclick="essential()">Sólo lo esencial</button><button class="ghostlink" onclick="acceptConsent(document.getElementById('consentBtn'))">Preferencias</button></div></div>
+    <p class="fine">Sin registro. Sin contraseña. GDPR/LOPDGDD · Consent Mode v2.</p>
+  </div></div></div>
+
+<div class="scrim" id="mBehavior"><div class="shell"><button class="mclose" onclick="closeModal('mBehavior')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Center Spotlight (teaser)</div><div class="eyebrow">Lead Signal · en vivo</div>
+    <h2 class="mh">Esto es lo que el sistema ha leído de tu visita.</h2>
+    <div class="repbody" id="teaserBody"></div>
+    <button class="btn dark" style="width:100%" onclick="closeModal('mBehavior');openForm()"><span>Recibir el reporte por WhatsApp</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+  </div></div></div>
+
+<div class="scrim" id="mForm"><div class="shell"><button class="mclose" onclick="closeModal('mForm')">✕</button>
+  <div class="mpad"><div class="glyph"></div><div class="eyebrow">Reporte completo</div>
+    <h2 class="mh">Te lo enviamos por WhatsApp.</h2>
+    <p class="mlead">Deja tu nombre y tu WhatsApp. Generamos el reporte de esta visita y te lo mandamos al momento.</p>
+    <form onsubmit="submitForm(event)" style="margin-top:20px">
+      <div class="field"><label>Nombre</label><input name="name" required placeholder="Tu nombre" autocomplete="name" /></div>
+      <div class="field"><label>WhatsApp (con prefijo)</label><input name="wa" required placeholder="+34 600 000 000" inputmode="tel" autocomplete="tel" /></div>
+      <div class="field"><label>Email (opcional)</label><input name="email" type="email" placeholder="tu@empresa.com" autocomplete="email" /></div>
+      <div class="consent-row"><input type="checkbox" id="agree" required /><label for="agree">Autorizo a AISOLVES a enviarme el reporte por WhatsApp y a tratar mi comportamiento de esta visita. Revocable en un clic.</label></div>
+      <button class="btn dark" type="submit" id="formBtn" style="width:100%;padding:16px"><span class="lbl">Enviar mi reporte por WhatsApp</span><span class="spin"></span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+    </form>
+  </div></div></div>
+
+<div class="scrim" id="mSpot"><div class="shell"><button class="mclose" onclick="closeModal('mSpot')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Center Spotlight</div><div class="eyebrow">Lead Signal · reporte completo</div>
+    <h2 class="mh" id="rHi">Reporte de tu visita</h2>
+    <div class="repbody" id="spotBody"></div>
+    <div class="delivery"><div class="dh"><span class="dt">Entrega por WhatsApp</span><span class="num" id="dNum">—</span></div>
+      <div class="track-line" id="dTrack"><i id="dFill"></i></div>
+      <div class="steps"><div class="step" id="step1">Generado</div><div class="step" id="step2">Enviando</div><div class="step" id="step3">Entregado</div><div class="step" id="step4">Confirmado</div></div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+      <button class="btn dark" id="rWaBtn" style="flex:1;min-width:220px" disabled><span class="lbl">Enviar reporte por WhatsApp</span><span class="spin"></span><span class="tk"></span><span class="prog"></span><span class="bar"></span></button>
+      <button class="btn ghost" onclick="openWaLink()"><span>Abrir chat</span></button></div>
+  </div></div></div>
+
+<div class="scrim" id="mDrawer"><div class="shell"><button class="mclose" onclick="closeModal('mDrawer')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Drawer lateral</div><h2 class="mh">Tu señal, sin salir de la página.</h2><div class="repbody" data-variant></div>
+    <button class="btn dark" style="width:100%" onclick="closeModal('mDrawer');openForm()"><span>Recibir por WhatsApp →</span></button></div></div></div>
+
+<div class="scrim" id="mSheet"><div class="shell"><button class="mclose" onclick="closeModal('mSheet')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Bottom sheet</div><h2 class="mh">Desliza para ver tu comportamiento.</h2><div class="repbody" data-variant></div>
+    <button class="btn dark" style="width:100%" onclick="closeModal('mSheet');openForm()"><span>Recibir por WhatsApp →</span></button></div></div></div>
+
+<div class="scrim" id="mFull"><div class="shell"><button class="mclose" onclick="closeModal('mFull')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Full-screen takeover</div><h2 class="mh" style="font-size:30px">Tu visita, a pantalla completa.</h2><div class="repbody" data-variant></div>
+    <button class="btn dark" style="max-width:340px;width:100%" onclick="closeModal('mFull');openForm()"><span>Recibir por WhatsApp →</span></button></div></div></div>
+
+<div class="scrim" id="mToast" style="background:none;backdrop-filter:none;pointer-events:none"><div class="shell" style="pointer-events:auto"><button class="mclose" onclick="closeModal('mToast')">✕</button>
+  <div class="mpad" style="padding:22px"><div class="fmt-tag">Formato · Toast expandible</div><h2 class="mh" style="font-size:17px">Tu comportamiento</h2><div class="repbody" data-variant data-compact></div>
+    <button class="btn dark" style="width:100%" onclick="closeModal('mToast');openForm()"><span>Recibir por WhatsApp →</span></button></div></div></div>
+
+<div class="scrim" id="mInline"><div class="shell"><button class="mclose" onclick="closeModal('mInline')">✕</button>
+  <div class="mpad"><div class="fmt-tag">Formato · Inline expand</div><h2 class="mh">Integrado en la página, sin overlay.</h2><div class="repbody" data-variant></div>
+    <button class="btn dark" style="width:100%" onclick="closeModal('mInline');openForm()"><span>Recibir por WhatsApp →</span></button></div></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CONFIG={businessWhatsApp:"34600000000",reportEndpoint:"/api/send-report"};
+
+/* ============ PARTICLE SPHERE (canvas, fibonacci + noise) ============ */
+function particleSphere(canvas,opt){
+  const o=Object.assign({count:5600,mode:'blob',speed:.0045,ink:'20,24,34',scale:.36},opt||{});
+  const ctx=canvas.getContext('2d',{alpha:true});
+  const pts=[];
+  for(let i=0;i<o.count;i++){const y=1-(i/(o.count-1))*2,r=Math.sqrt(Math.max(0,1-y*y)),th=i*2.399963229;
+    // jitter por punto: rompe el moiré de la espiral de Fibonacci y da grano orgánico
+    const j=()=>(Math.random()-.5)*.035;
+    pts.push([Math.cos(th)*r+j(),y+j(),Math.sin(th)*r+j()]);}
+  let t=Math.random()*10,w=0,h=0,dpr=1,run=false,raf=0;
+  function size(){dpr=Math.min(devicePixelRatio||1,2);const r=canvas.getBoundingClientRect();
+    w=Math.max(1,r.width|0);h=Math.max(1,r.height|0);canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+  function frame(){
+    if(!run)return;
+    t+=o.speed;
+    ctx.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2,R=Math.min(w,h)*o.scale,ca=Math.cos(t),sa=Math.sin(t);
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i];let x=p[0],y=p[1],z=p[2];
+      const X=x*ca-z*sa, Z=x*sa+z*ca, Y=y;
+      let n;
+      if(o.mode==='wave'){ n=.20*Math.sin(Y*3.2+t*2.1)+.10*Math.sin(X*2.4-t*1.4)+.05*Math.sin(Z*5+t); }
+      else {
+        // ruido en direcciones DIAGONALES: senos alineados a los ejes abultan en ±X/±Y/±Z
+        // y convierten la esfera en un cubo redondeado. Con diagonales queda redonda y orgánica.
+        const u=X*.60+Y*.50+Z*.62, v=-X*.52+Y*.71+Z*.48;
+        n=.042*Math.sin(u*4.5+t)+.032*Math.sin(v*5.5-t*1.15)+.016*Math.sin((u+v)*8.5+t*2);
+      }
+      const s=1+n, px=cx+X*R*s, py=cy+Y*R*s, depth=(Z+1)/2;
+      ctx.fillStyle='rgba('+o.ink+','+(0.07+depth*0.5).toFixed(3)+')';
+      ctx.fillRect(px,py,1,1);
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  function start(){if(run)return;run=true;size();raf=requestAnimationFrame(frame);}
+  function stop(){run=false;cancelAnimationFrame(raf);}
+  addEventListener('resize',()=>{if(run)size();},{passive:true});
+  // only animate while visible
+  new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting?start():stop()),{threshold:.05}).observe(canvas);
+  return{start,stop,get t(){return t;}};
+}
+
+/* ============ GEARS (serrated circles + live transform note) ============ */
+function gearPath(r,teeth,th){let d='';const n=teeth*2;
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,rad=(i%2?r:r+th);const x=(Math.cos(a)*rad).toFixed(1),y=(Math.sin(a)*rad).toFixed(1);d+=(i?'L':'M')+x+','+y;}
+  return d+'Z';}
+function buildGears(){
+  const svg=document.getElementById('gears');if(!svg)return null;
+  // dientes finos y numerosos, como el template (no sierra gruesa)
+  const defs=[{cx:210,cy:170,r:118,t:76,th:5,sp:-1},{cx:118,cy:120,r:62,t:44,th:4,sp:1.9},{cx:150,cy:210,r:46,t:34,th:3.5,sp:-2.6},{cx:262,cy:228,r:54,t:38,th:4,sp:2.2},{cx:78,cy:88,r:24,t:20,th:3,sp:-4.1}];
+  svg.innerHTML='<circle cx="210" cy="170" r="132" fill="none" stroke="#e4e9f2"/>'+
+    defs.map((g,i)=>`<path id="g${i}" d="${gearPath(g.r,g.t,g.th)}" transform="translate(${g.cx} ${g.cy})" fill="none" stroke="#c9d0dd" stroke-width="1"/>`).join('');
+  return{defs,els:defs.map((_,i)=>document.getElementById('g'+i))};
+}
+
+/* ============ CAROUSEL (modal formats as "projects") ============ */
+const FORMATS=[
+ {id:'mSpot',name:'center spotlight',
+  d:['Overlay central que detiene la página y entrega el reporte completo: score 0-100, recorrido por etapa y qué necesita el visitante.',
+     'Debajo, la entrega por WhatsApp con sus cuatro estados — generado, enviando, entregado y confirmado en verde.'],
+  use:'USO · máxima jerarquía · el que más convierte'},
+ {id:'mDrawer',name:'drawer lateral',
+  d:['Panel que entra desde la derecha sin tapar la página. El visitante mantiene el contexto mientras lee su señal.',
+     'Es el formato menos invasivo en desktop: no interrumpe la lectura y se cierra con un gesto lateral.'],
+  use:'USO · desktop · no intrusivo'},
+ {id:'mSheet',name:'bottom sheet',
+  d:['Hoja que sube desde abajo con tirador, el patrón nativo de iOS y Android.',
+     'El pulgar la alcanza sin recolocar la mano, se arrastra y se descarta. La mejor conversión en teléfono.'],
+  use:'USO · móvil · alcance del pulgar'},
+ {id:'mToast',name:'toast expandible',
+  d:['Empieza como la píldora de la esquina y se despliega en una tarjeta compacta sólo con el score y el resumen.',
+     'Cero fricción: no bloquea nada, aparece cuando el score sube de banda y se puede ignorar sin coste.'],
+  use:'USO · ambiente · baja fricción'},
+ {id:'mInline',name:'inline expand',
+  d:['Sin overlay: el reporte se despliega dentro de la propia sección y empuja el contenido hacia abajo.',
+     'Se siente parte de la página en lugar de una interrupción, y el contenido sigue siendo indexable.'],
+  use:'USO · integrado · sin overlay'},
+ {id:'mFull',name:'full-screen takeover',
+  d:['Cubre el viewport completo y convierte el reporte en una experiencia, no en un aviso.',
+     'Reservado para un lead HOT o una campaña dedicada, donde el impacto compensa la interrupción.'],
+  use:'USO · lead HOT · alto impacto'}
+];
+let carIdx=0;
+function carRender(){
+  const f=FORMATS[carIdx];
+  document.getElementById('carTitle').textContent=f.name;
+  document.getElementById('carDesc').innerHTML=f.d.map(p=>`<p>${p}</p>`).join('')+`<div class="use">${f.use}</div>`;
+  document.getElementById('carDots').innerHTML=FORMATS.map((_,i)=>`<i class="${i===carIdx?'on':''}" onclick="carGo(${i})"></i>`).join('');
+}
+function carGo(i){carIdx=(i+FORMATS.length)%FORMATS.length;carRender();}
+function carNext(){carGo(carIdx+1);}
+function carPrev(){carGo(carIdx-1);}
+function carOpen(){openVariant(FORMATS[carIdx].id);}
+
+/* ============ TRACKING ============ */
+const S={consent:false,attn:0,lastTick:0,active:true,maxDepth:0,signals:0,exitIntent:false,sections:{},order:[],lead:null,_teased:false};
+document.querySelectorAll('[data-sec]').forEach(el=>{const n=el.getAttribute('data-sec');S.sections[n]={depth:0,dwell:0,entered:false,_in:0};S.order.push(n);});
+
+function setProg(b,p,dur){const pr=b.querySelector('.prog'),bar=b.querySelector('.bar');const t=dur?dur+'ms linear':'0s';
+  if(pr){pr.style.transition='transform '+t;pr.style.transform='scaleX('+(p/100)+')';}
+  if(bar){bar.style.transition='width '+t;bar.style.width=p+'%';}}
+function fillBtn(b,to,dur){return new Promise(res=>{b._p=to;setProg(b,to,dur);setTimeout(res,dur);});}
+function resetBtn(b){b._p=0;setProg(b,0);b.classList.remove('loading','confirm');}
+
+async function acceptConsent(btn){btn.classList.add('loading');const l=btn.querySelector('.lbl');if(l)l.textContent='Entrando…';
+  await fillBtn(btn,100,850);S.consent=true;S.lastTick=performance.now();closeModal('mConsent');startTracking();}
+function essential(){toast('Modo esencial · sin scoring conductual');closeModal('mConsent');}
+
+function startTracking(){
+  document.addEventListener('visibilitychange',()=>{S.active=!document.hidden;S.lastTick=performance.now();});
+  setInterval(tick,500);
+  const io=new IntersectionObserver(es=>es.forEach(e=>{const n=e.target.getAttribute('data-sec'),s=S.sections[n];
+    if(e.isIntersecting){if(!s.entered){s.entered=true;s._in=performance.now();S.signals++;}else s._in=performance.now();}
+    else if(s.entered&&s._in){s.dwell+=(performance.now()-s._in)/1000;s._in=0;}}),{threshold:[.25,.6]});
+  document.querySelectorAll('[data-sec]').forEach(el=>io.observe(el));
+  addEventListener('scroll',()=>{const d=Math.min(100,Math.round((scrollY+innerHeight)/document.body.scrollHeight*100));if(d>S.maxDepth)S.maxDepth=d;
+    document.querySelectorAll('[data-sec]').forEach(el=>{const r=el.getBoundingClientRect(),n=el.getAttribute('data-sec'),
+      seen=Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top)),pct=Math.round(Math.min(100,seen/Math.min(el.offsetHeight,innerHeight)*100));
+      if(pct>S.sections[n].depth)S.sections[n].depth=pct;});},{passive:true});
+  document.querySelectorAll('.plan').forEach(p=>{let t;p.addEventListener('mouseenter',()=>t=performance.now());
+    p.addEventListener('mouseleave',()=>{if(t&&performance.now()-t>2500)S.signals++;});});
+  addEventListener('mouseout',e=>{if(e.clientY<=0)S.exitIntent=true;});
+  const pt=setInterval(()=>{if(S.maxDepth>=55){document.getElementById('pill').classList.add('on');clearInterval(pt);}},800);
+  new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&!S._teased){S._teased=true;setTimeout(openBehavior,600);}}),{threshold:.4})
+    .observe(document.getElementById('contacto'));
+}
+function tick(){if(!S.consent)return;const now=performance.now();if(S.active)S.attn+=(now-S.lastTick)/1000;S.lastTick=now;
+  const sc=score();cSignals.textContent=S.signals;cAttn.textContent=Math.round(S.attn)+'s';cDepth.textContent=S.maxDepth+'%';
+  cBand.textContent=band(sc.total).split('·')[0].toUpperCase();pillScore.textContent=sc.total;}
+function score(){const pk=S.sections['Paquetes']||{},sy=S.sections['Sistema']||{};
+  const intent=Math.min(40,(pk.depth||0)*.16+Math.min(16,(pk.dwell||0)*.9)+(S.sections['Work']?.entered?4:0));
+  const eng=Math.min(25,Math.min(14,S.attn*.12)+S.maxDepth*.09+Math.min(4,S.signals*.5));
+  const fit=Math.min(20,8+Math.min(8,(sy.dwell||0)*.6)+(S.exitIntent?0:2));
+  const ident=S.lead?15:Math.min(6,S.maxDepth*.05);
+  return{total:Math.min(100,Math.round(intent+eng+fit+ident))};}
+function band(t){return t>=80?'SQL':t>=65?'HOT':t>=45?'WARM':t>=25?'MQL·warm':'COLD';}
+function bandShort(t){return t>=65?'HOT · llamar hoy':t>=45?'WARM':'COLD';}
+
+/* report body */
+function journeyHTML(){return S.order.filter(n=>n!=='Hero').map(n=>{const s=S.sections[n],d=s.depth||0,l=d>=70?'go':d>=40?'hold':'stop';
+  return `<div class="st"><div class="n"><span class="lens ${l}"></span>${n}</div><div class="d">${(s.dwell||0).toFixed(1)}s</div><div class="p">${d}%</div></div>`;}).join('');}
+function summaryText(){const sc=score(),pk=S.sections['Paquetes']||{},top=[...S.order].filter(n=>n!=='Hero').sort((a,b)=>(S.sections[b].dwell||0)-(S.sections[a].dwell||0))[0];
+  return `Visita de <b>${S.lead?S.lead.name:'un visitante'}</b> con <span class="hl">${sc.total}/100</span> (${band(sc.total)}). Máxima atención en <b>${top||'Sistema'}</b>; ${pk.dwell>6?`se detuvo <span class="hl">${pk.dwell.toFixed(0)}s en Paquetes</span>`:'recorrió el sistema'}. ${S.exitIntent?'Mostró intención de salida.':'Recorrido sostenido.'}`;}
+function needText(){const sc=score(),pk=S.sections['Paquetes']||{};
+  if(pk.dwell>6)return 'Alta intención. Necesita certeza (legal + ROAS real) y contacto de cero fricción. Encaja con <b>Engine</b>. Llamar &lt;15 min.';
+  if(sc.total>=45)return 'Interés real, aún evaluando. Nutrir con un caso de CAPI y abrir por WhatsApp con ángulo de prueba de resultados.';
+  return 'Descubrimiento. Retargeting de awareness y contenido de objeción antes de la llamada.';}
+function reportBody(compact){const sc=score(),C=282.7;
+  return `<div class="rep-top"><div class="ringbox"><svg width="100" height="100" viewBox="0 0 106 106"><circle cx="53" cy="53" r="45" fill="none" stroke="#e6e9f0" stroke-width="9"/><circle class="ring" cx="53" cy="53" r="45" fill="none" stroke="#2fc5b1" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg><div class="ctr"><b class="scoreN">0<small>/100</small></b></div></div>
+  <div class="rt"><div class="rl">Banda</div><div class="rep-band">${bandShort(sc.total)}</div><div class="rep-summary" style="margin:8px 0 0">${summaryText()}</div></div></div>
+  ${compact?'':`<div class="journey">${journeyHTML()}</div><div class="need"><div class="rl">Qué necesita</div><p>${needText()}</p></div>`}`;}
+function mountReport(el,compact){el.innerHTML=reportBody(compact);animRingEl(el.querySelector('.ring'),el.querySelector('.scoreN'),score().total,282.7);}
+function animRingEl(ring,num,target,C){const dur=1000;
+  if(ring){ring.style.transition='stroke-dashoffset '+dur+'ms cubic-bezier(.16,1,.3,1)';setTimeout(()=>{ring.style.strokeDashoffset=(C-C*(target/100)).toFixed(1);},50);}
+  if(num){const t0=Date.now();const iv=setInterval(()=>{const k=Math.min((Date.now()-t0)/dur,1);
+    num.firstChild.nodeValue=Math.round(target*(1-Math.pow(1-k,3)));if(k>=1)clearInterval(iv);},40);
+    setTimeout(()=>{num.firstChild.nodeValue=target;clearInterval(iv);},dur+150);}}
+
+function openVariant(id){const el=document.getElementById(id).querySelector('[data-variant]');if(el)mountReport(el,el.hasAttribute('data-compact'));open_(id);}
+function openBehavior(){mountReport(document.getElementById('teaserBody'),false);open_('mBehavior');}
+function openForm(){open_('mForm');}
+async function submitForm(e){e.preventDefault();const f=e.target,btn=document.getElementById('formBtn');
+  S.lead={name:f.name.value.trim(),wa:f.wa.value.replace(/[^0-9+]/g,''),email:f.email.value.trim()};
+  btn.classList.add('loading');btn.querySelector('.lbl').textContent='Generando reporte…';
+  await fillBtn(btn,100,700);closeModal('mForm');resetBtn(btn);btn.querySelector('.lbl').textContent='Enviar mi reporte por WhatsApp';openSpot();}
+function openSpot(){rHi.innerHTML=`Reporte de <b style="color:var(--teal-ink)">${S.lead.name.split(' ')[0]}</b>`;
+  mountReport(document.getElementById('spotBody'),false);dNum.textContent=maskWa(S.lead.wa);
+  ['step1','step2','step3','step4'].forEach(id=>document.getElementById(id).className='step');
+  dTrack.classList.remove('done');dFill.style.width='0%';
+  const wb=document.getElementById('rWaBtn');resetBtn(wb);wb.disabled=false;wb.querySelector('.lbl').textContent='Enviar reporte por WhatsApp';wb.querySelector('.tk').textContent='';
+  open_('mSpot');setTimeout(startDelivery,700);}
+function setStep(id,c){document.getElementById(id).className='step '+c;}
+async function startDelivery(){const btn=document.getElementById('rWaBtn');btn.disabled=true;btn.classList.add('loading');
+  const l=btn.querySelector('.lbl'),tk=btn.querySelector('.tk');setStep('step1','done');
+  l.textContent='Enviando…';tk.textContent=' ✓';setStep('step2','on');
+  try{fetch(CONFIG.reportEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:S.lead,report:reportText(),score:score().total})}).catch(()=>{});}catch(e){}
+  await fillBtn(btn,55,900);dFill.style.width='40%';await wait(500);
+  l.textContent='Entregado';tk.innerHTML=' <span class="ticks">✓✓</span>';setStep('step2','done');setStep('step3','on');
+  await fillBtn(btn,85,700);dFill.style.width='75%';await wait(1100);
+  setStep('step3','done');setStep('step4','done');dTrack.classList.add('done');dFill.style.width='100%';
+  btn.classList.remove('loading');btn.classList.add('confirm');l.textContent='Confirmado por el cliente';tk.innerHTML=' <span class="ticks">✓✓</span>';
+  await fillBtn(btn,100,400);toast('Reporte confirmado por WhatsApp · '+maskWa(S.lead.wa),true);}
+function reportText(){const sc=score();return `AISOLVES · Tu Lead Signal\nScore ${sc.total}/100 (${band(sc.total)})\n\n`+S.order.filter(n=>n!=='Hero').map(n=>`• ${n}: ${(S.sections[n].dwell||0).toFixed(0)}s · ${S.sections[n].depth||0}%`).join('\n');}
+function waLink(){return `https://wa.me/${(S.lead.wa||'').replace(/^\+/,'')}?text=${encodeURIComponent(reportText())}`;}
+function openWaLink(){if(S.lead)window.open(waLink(),'_blank');}
+function maskWa(w){w=(w||'').replace(/^\+/,'');return '+'+w.slice(0,4)+'•••'+w.slice(-2);}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+function tog(b){b.parentElement.classList.toggle('open');}
+function open_(id){document.getElementById(id).classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function toast(m,g){const t=document.getElementById('toast');t.innerHTML=m;t.className='toast on'+(g?' green':'');setTimeout(()=>t.classList.remove('on'),3400);}
+addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.scrim.on').forEach(s=>{if(s.id!=='mConsent')s.classList.remove('on');});
+  if(e.key==='ArrowRight')carNext();if(e.key==='ArrowLeft')carPrev();});
+
+/* ============ BOOT: spheres, gears, live CSS notes ============ */
+let heroS,workS,gears;
+addEventListener('load',()=>{
+  carRender();
+  heroS=particleSphere(document.getElementById('heroSphere'),{count:6000,mode:'blob',ink:'26,30,42',scale:.34});
+  workS=particleSphere(document.getElementById('workSphere'),{count:4200,mode:'wave',ink:'72,60,110',scale:.38,speed:.006});
+  gears=buildGears();
+  requestAnimationFrame(loopNotes);
+  open_('mConsent');
+});
+/* live CSS annotations — los valores reales de la animación, como en el template */
+let noteT=0;
+function loopNotes(){
+  noteT+=1/60;
+  // clip-path inset: respira 0 → 6px
+  const a=(Math.sin(noteT*.7)*3+3), b=(Math.sin(noteT*.7+1.6)*3+3), c=(Math.sin(noteT*.7+3.1)*3+3), d=(Math.sin(noteT*.7+4.6)*3+3);
+  const s=`clip-path: inset(${a.toFixed(0)}px ${b.toFixed(0)}px ${c.toFixed(0)}px ${d.toFixed(0)}px)`;
+  const nt=document.getElementById('nTop');
+  if(nt){nt.textContent=s;document.getElementById('nRight').textContent=s;document.getElementById('nBot').textContent=s;document.getElementById('nLeft').textContent=s;}
+  // gears rotate + live transform value
+  if(gears){gears.defs.forEach((g,i)=>{const deg=noteT*g.sp*36;
+    gears.els[i].setAttribute('transform',`translate(${g.cx} ${g.cy}) rotate(${deg.toFixed(0)})`);});
+    const gn=document.getElementById('gearNote');
+    if(gn)gn.textContent=`transform: translate3d(53px, 198px, 0) rotate(${(noteT*-36).toFixed(0)}deg)`;}
+  const wn=document.getElementById('waveNote');
+  if(wn){const sc=1+Math.sin(noteT*.9)*.06;wn.textContent=`transform: scale3d(${sc.toFixed(2)}, ${sc.toFixed(2)}, 1)`;}
+  requestAnimationFrame(loopNotes);
+}
+</script>
+</body>
+</html>

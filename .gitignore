@@ -1,0 +1,6 @@
+# Mirror de vanlent.dev — obra de terceros, sólo referencia local. No se publica.
+vanlent-template/
+
+# Sistema / herramientas
+.DS_Store
+.claude/
