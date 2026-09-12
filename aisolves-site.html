@@ -982,6 +982,106 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 }
 @media(prefers-reduced-motion:reduce){.be-wire i{animation:none}.bs-line{animation:none}}
 </style>
+<style>
+/* ===== Brain Stage: escenario negro a sangre, cerebro de fondo, paneles flotando ===== */
+#work{padding-bottom:0}
+#work>.wrap{padding-bottom:0}
+#work .sec-top{margin-bottom:0;border-bottom:1px solid var(--line)}
+
+.stage{
+  position:relative;width:100%;overflow:hidden;isolation:isolate;
+  /* negro con degradado hacia blanco, no un negro plano */
+  background:
+    radial-gradient(1100px 640px at 20% 14%, rgba(255,255,255,.11), transparent 62%),
+    radial-gradient(900px 560px at 84% 86%, rgba(255,255,255,.06), transparent 58%),
+    linear-gradient(180deg,#0c0e14 0%, #07080b 48%, #0a0c12 100%);
+  border-bottom:1px solid var(--line);
+  perspective:1200px;perspective-origin:50% 44%;
+  min-height:78vh;min-height:78svh;               /* svh con respaldo para iOS */
+}
+@media(min-width:1000px){.stage{min-height:100vh;min-height:100svh}}
+.stage .carousel{border:0;background:none;height:100%;position:absolute;inset:0}
+.stage .car-body{display:block;border:0;min-height:0;background:none;height:100%}
+.stage .car-cell.brain{position:absolute;inset:0;min-height:0;background:none;border:0;overflow:hidden}
+.stage #brainCanvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* capas flotantes */
+.stage-l{position:absolute;z-index:3;transform-style:preserve-3d;will-change:transform}
+.stage .glassy,.stage .car-desc,.stage .car-bar,.stage .brain-hud,.stage .car-foot,.stage .stack{
+  background:rgba(9,11,16,.52);border:1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter:blur(11px) saturate(1.15);backdrop-filter:blur(11px) saturate(1.15);
+  box-shadow:0 26px 64px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)}
+
+.stage .brain-hud{left:clamp(16px,3.2vw,52px);top:clamp(16px,3vw,46px);max-width:min(40ch,42%);
+  padding:17px 19px;z-index:4;pointer-events:auto;--z:72px}
+.stage .brain-hint{right:clamp(16px,3.2vw,52px);bottom:clamp(74px,9vh,104px);top:auto;z-index:3}
+.stage .note{left:clamp(16px,3.2vw,52px);bottom:clamp(16px,2.6vw,34px);z-index:3}
+.stage .brain-stream{left:clamp(16px,3.2vw,52px);bottom:clamp(56px,7vh,84px);max-width:min(48ch,46%);z-index:3}
+
+.stage .car-desc{left:clamp(16px,3.2vw,52px);top:clamp(212px,25vh,268px);width:min(380px,36%);
+  padding:18px 19px;min-height:0;--z:46px}
+.stage .car-desc p{color:rgba(255,255,255,.68);font-size:13px;line-height:1.55;margin-bottom:9px;max-width:none}
+.stage .car-desc .use{color:#fff;opacity:.55;margin-top:11px;font-size:10px}
+
+.stage .car-bar{right:clamp(16px,3.2vw,52px);top:clamp(16px,3vw,46px);display:grid;
+  grid-template-columns:repeat(3,44px) auto;width:auto;--z:82px;overflow:hidden}
+.stage .car-bar button{border:0;border-right:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.82);padding:12px 0;font-size:16px}
+.stage .car-bar button:hover{background:rgba(255,255,255,.1);color:#fff}
+.stage .car-bar .title{order:4;border-right:0;padding:0 16px;color:#fff;font-size:13px;
+  text-transform:uppercase;letter-spacing:.1em;font-weight:300;white-space:nowrap}
+.stage .car-bar .nx{border-left:0;order:3}
+
+.stage .car-foot{left:50%;bottom:clamp(16px,2.6vw,34px);border:1px solid rgba(255,255,255,.12);
+  padding:10px 12px;gap:18px;width:auto;--z:92px;z-index:5}
+.stage .car-foot .dots i{border-color:rgba(255,255,255,.4)}
+.stage .car-foot .dots i.on{background:var(--teal);border-color:var(--teal)}
+.stage .car-foot .btn.dark{background:#fff;color:#0b0d12}
+.stage .car-foot .btn.dark:hover{background:rgba(255,255,255,.87)}
+
+.stage .stack{right:clamp(16px,3.2vw,52px);bottom:clamp(16px,2.6vw,34px);flex-direction:row;
+  width:auto;--z:34px;overflow:hidden}
+.stage .stack .sq{border:0;border-right:1px solid rgba(255,255,255,.12);background:none;
+  color:rgba(255,255,255,.55);padding:9px 13px;flex:none;font-size:10px}
+.stage .stack .sq:last-child{border-right:0}
+.stage .stack .sq.hatch{display:none}
+
+/* el panel de emisión ya vive dentro de la celda; lo subimos de plano */
+.stage .brain-emit{z-index:6}
+.stage .be-panel{right:clamp(16px,3.2vw,52px);width:min(340px,34%)}
+
+/* ---- 1200px hacia abajo: menos aire ---- */
+@media(max-width:1199px){
+  .stage .car-desc{width:min(330px,42%);top:clamp(196px,24vh,240px)}
+  .stage .be-panel{width:min(320px,40%)}
+}
+/* ---- tablet / móvil: nada se solapa; lo accesorio se retira ---- */
+@media(max-width:859px){
+  .stage{perspective:none;min-height:86vh;min-height:86svh}
+  .stage-l{transform:none!important}
+  .stage .brain-hud{max-width:none;right:clamp(16px,3.2vw,52px);padding:14px 16px}
+  .stage .car-desc,.stage .stack,.stage .brain-hint{display:none}
+  /* el flujo va por encima de la barra del carrusel: si no, se solapan */
+  .stage .brain-stream{max-width:78%;bottom:clamp(170px,25vh,224px);font-size:9.5px}
+  .stage .brain-stream .bs-line:nth-last-child(n+4){display:none}
+  .stage .car-bar{left:clamp(16px,3.2vw,52px);right:clamp(16px,3.2vw,52px);top:auto;
+    bottom:clamp(74px,10vh,104px);grid-template-columns:44px 44px 1fr 44px}
+  .stage .car-bar .title{order:0;text-align:center;justify-content:center;font-size:12px}
+  .stage .car-bar .nx{order:0}
+  .stage .car-foot{left:clamp(16px,3.2vw,52px);right:clamp(16px,3.2vw,52px);width:auto;
+    justify-content:space-between;bottom:clamp(16px,2.6vw,34px)}
+  .stage .car-foot .btn{flex:1;min-height:46px}
+  .stage .note{display:none}
+}
+@media(max-width:480px){
+  .stage{min-height:92svh}
+  .stage .brain-hud .brain-name{font-size:16px}
+  .stage .brain-stream{max-width:88%;font-size:9px;bottom:clamp(164px,24vh,206px)}
+  .stage .brain-stream .bs-line:nth-last-child(n+3){display:none}
+  .stage .car-foot{padding:9px 10px;gap:10px}
+  .stage .car-foot .btn{font-size:12px;padding:12px 14px}
+}
+@media(prefers-reduced-motion:reduce){.stage-l{transform:none!important}}
+</style>
 </head>
 <body>
 
@@ -1030,20 +1130,17 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 </div></div>
 
 <!-- SELECTED WORK -->
-<section class="sec wrap" id="work" data-sec="Work">
+<section class="sec" id="work" data-sec="Work">
+  <div class="wrap">
   <div class="sec-top">
     <div class="st-l"><h2>Selected Work</h2><p class="sub2">Formatos de modal de comportamiento, de la señal a la conversación.</p></div>
     <a class="startbox" onclick="openForm()">Start a Project</a>
   </div>
+  </div>
 
-  <div class="carousel">
-    <div class="car-bar">
-      <button onclick="carPrev()" aria-label="anterior">‹</button>
-      <button onclick="carOpen()" aria-label="abrir formato" title="Abrir formato en vivo">⧉</button>
-      <div class="title" id="carTitle">center spotlight</div>
-      <button class="nx" onclick="carNext()" aria-label="siguiente">›</button>
-    </div>
-    <div class="car-desc" id="carDesc"></div>
+  <div class="stage"><div class="carousel">
+    
+    
     <div class="car-body">
       <div class="car-cell brain">
         <canvas id="brainCanvas"></canvas>
@@ -1068,17 +1165,26 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
           </div>
         </div>
         <div class="note">transform: rotateY(0deg)</div>
-      </div>
-      <div class="stack">
+<div data-bx="" style="--z:80px" class="stage-l car-bar">
+      <button onclick="carPrev()" aria-label="anterior">‹</button>
+      <button onclick="carOpen()" aria-label="abrir formato" title="Abrir formato en vivo">⧉</button>
+      <div class="title" id="carTitle">center spotlight</div>
+      <button class="nx" onclick="carNext()" aria-label="siguiente">›</button>
+    </div>
+<div data-bx="" style="--z:46px" class="stage-l car-desc" id="carDesc"></div>
+<div data-bx="" style="--z:34px" class="stage-l stack">
         <div class="sq hatch"></div>
         <div class="sq">META</div><div class="sq">CAPI</div><div class="sq">GA4</div><div class="sq">WA</div><div class="sq">GSAP</div>
       </div>
-    </div>
-    <div class="car-foot">
+<div data-bx="translateX(-50%)" style="--z:92px" class="stage-l car-foot">
       <div class="dots" id="carDots"></div>
       <button class="btn dark" onclick="carOpen()"><span>Ver este formato en vivo</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
     </div>
-  </div>
+      </div>
+      
+    </div>
+    
+  </div></div>
 </section>
 
 <!-- SISTEMA -->
@@ -1905,6 +2011,63 @@ function loopNotes(){
   tickStream();
 })();
 
+</script>
+<!-- ===== script stage-tilt ===== -->
+<script>
+/* Paralaje 3D de los paneles del escenario. Un solo rAF, detenido con la
+   pestaña oculta y cuando el escenario no se ve. */
+(function(){
+  var stage = document.querySelector('.stage');
+  if(!stage || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var layers = [], tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, on = false, vis = false;
+
+  function collect(){
+    layers = [].map.call(stage.querySelectorAll('.stage-l, .brain-hud'), function(el){
+      var z = getComputedStyle(el).getPropertyValue('--z').trim() || '0px';
+      return { el: el, z: z, bx: el.getAttribute('data-bx') || '' };
+    });
+  }
+  function apply(){
+    for(var i=0;i<layers.length;i++){
+      var L = layers[i];
+      L.el.style.transform = L.bx + ' rotateX(' + (cy*-4.5).toFixed(2) + 'deg) rotateY(' +
+        (cx*6).toFixed(2) + 'deg) translateZ(' + L.z + ')';
+    }
+  }
+  function frame(){
+    if(!on) return;
+    cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
+    apply();
+    if(Math.abs(tx-cx) < 0.001 && Math.abs(ty-cy) < 0.001){ on = false; raf = 0; return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function wake(){ if(on || document.hidden || !vis) return; on = true; raf = requestAnimationFrame(frame); }
+  function stop(){ on = false; if(raf) cancelAnimationFrame(raf); raf = 0; }
+
+  stage.addEventListener('pointermove', function(e){
+    if(e.pointerType === 'touch') return;            // en táctil manda el scroll, no el dedo
+    var r = stage.getBoundingClientRect();
+    tx = (e.clientX - r.left)/r.width*2 - 1;
+    ty = (e.clientY - r.top)/r.height*2 - 1;
+    wake();
+  }, {passive:true});
+  stage.addEventListener('pointerleave', function(){ tx = 0; ty = 0; wake(); });
+
+  // móvil: desfase suave ligado al paso del escenario por el viewport
+  addEventListener('scroll', function(){
+    if(!vis || innerWidth > 859) return;
+    var r = stage.getBoundingClientRect();
+    ty = Math.max(-1, Math.min(1, (innerHeight/2 - (r.top + r.height/2)) / innerHeight));
+    tx = 0; wake();
+  }, {passive:true});
+
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else wake(); });
+  new IntersectionObserver(function(es){ es.forEach(function(e){ vis = e.isIntersecting; if(vis) wake(); else stop(); }); },
+    {threshold:0.02}).observe(stage);
+
+  collect(); apply();
+  addEventListener('load', function(){ collect(); apply(); });
+})();
 </script>
 </body>.
      El script lo clona al montar el visor; si THREE no carga, no se usa y la celda queda como está. -->
