@@ -1082,6 +1082,111 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 }
 @media(prefers-reduced-motion:reduce){.stage-l{transform:none!important}}
 </style>
+<style>
+/* ===== mod-modal3d: los modales dejan de ser blancos planos =====
+   Vidrio oscuro + marco biselado + el cerebro detrás. Coherente con el HUD. */
+#m3d{position:fixed;inset:0;z-index:190;display:none;pointer-events:none;
+  background:
+    radial-gradient(900px 620px at 50% 42%, rgba(255,255,255,.07), transparent 64%),
+    linear-gradient(180deg,#0a0c11 0%,#06070a 55%,#090b10 100%)}
+#m3d.on{display:block}
+#m3dCanvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+#m3d .m3d-vig{position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 50% 50%, transparent 38%, rgba(4,5,8,.72) 100%)}
+
+/* el scrim ya no aporta fondo propio: lo pone el escenario del cerebro */
+.scrim{background:rgba(6,7,10,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);perspective:1400px}
+
+/* marco 3D biselado + vidrio oscuro */
+.scrim .shell{
+  background:linear-gradient(180deg,rgba(18,21,29,.93),rgba(10,12,17,.95));
+  border:1px solid rgba(255,255,255,.16);color:#fff;
+  -webkit-backdrop-filter:blur(14px) saturate(1.1);backdrop-filter:blur(14px) saturate(1.1);
+  box-shadow:
+    0 0 0 9px rgba(255,255,255,.028),          /* paspartú */
+    0 0 0 10px rgba(255,255,255,.10),          /* filo del marco */
+    0 70px 150px rgba(0,0,0,.72),
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(0,0,0,.5);
+  transition:transform .14s linear}
+#mFull .shell{box-shadow:none;border:0;background:linear-gradient(180deg,rgba(12,14,20,.96),rgba(7,9,13,.97))}
+#mFull .mpad{transform-style:preserve-3d;transform:rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg));transition:transform .14s linear}
+/* el tilt solo en los centrados: los deslizantes conservan su animación de entrada */
+#mSpot .shell,#mBehavior .shell,#mForm .shell{
+  transform:translate(-50%,-50%) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg));transform-style:preserve-3d}
+
+/* --- tipografía y bloques sobre oscuro --- */
+.scrim .mh{color:#fff}
+.scrim .mlead{color:rgba(255,255,255,.68)}
+.scrim .mlead b{color:#fff}
+.scrim .fine{color:rgba(255,255,255,.38)}
+.scrim .mclose{color:rgba(255,255,255,.55)}
+.scrim .mclose:hover{color:#fff}
+.scrim .fmt-tag{border-color:rgba(255,255,255,.18);color:var(--teal)}
+.scrim .glyph{border-color:var(--teal)}
+.scrim .tick{border-color:rgba(47,197,177,.6)}
+
+.scrim .rep-summary{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.scrim .rep-summary b{color:#fff}
+.scrim .rep-summary .hl{color:var(--teal)}
+.scrim .ringbox .ctr b{color:#fff}
+.scrim .ringbox .ctr b small{color:rgba(255,255,255,.42)}
+.scrim .ringbox svg circle:first-child{stroke:rgba(255,255,255,.13)}
+.scrim .rep-top .rt .rl{color:rgba(255,255,255,.40)}
+
+.scrim .journey{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
+.scrim .st{background:transparent;border-bottom-color:rgba(255,255,255,.08)}
+.scrim .st .n{color:rgba(255,255,255,.88)}
+.scrim .st .d{color:rgba(255,255,255,.66)}
+.scrim .st .p{color:rgba(255,255,255,.40)}
+
+.scrim .need{background:rgba(47,197,177,.10);border-color:rgba(47,197,177,.42)}
+.scrim .need p{color:rgba(255,255,255,.86)}
+
+.scrim .delivery{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+.scrim .delivery .num{color:#fff}
+.scrim .track-line{background:rgba(255,255,255,.12)}
+.scrim .step{color:rgba(255,255,255,.40)}
+.scrim .step:before{background:#11141b;border-color:rgba(255,255,255,.22)}
+
+.scrim .field label{color:rgba(255,255,255,.42)}
+.scrim .field input{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);color:#fff}
+.scrim .field input::placeholder{color:rgba(255,255,255,.32)}
+.scrim .field input:focus{background:rgba(255,255,255,.09);border-color:var(--teal)}
+.scrim .consent-row label{color:rgba(255,255,255,.62)}
+.scrim .consent-row a{color:var(--teal)}
+.scrim .measures{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.12)}
+.scrim .measures .mhh{border-bottom-color:rgba(255,255,255,.12);color:rgba(255,255,255,.42)}
+.scrim .mrow+.mrow{border-top-color:rgba(255,255,255,.08)}
+.scrim .mrow p{color:rgba(255,255,255,.66)}
+.scrim .mrow p b{color:#fff}
+.scrim .ghostlink{color:rgba(255,255,255,.6)}
+.scrim .ghostlink:hover{color:#fff}
+
+.scrim .btn.ghost{border-color:rgba(255,255,255,.28);color:#fff}
+.scrim .btn.ghost:hover{background:#fff;color:#0b0d12}
+.scrim .btn.dark{background:#fff;color:#0b0d12}
+.scrim .btn.dark:hover{background:rgba(255,255,255,.87)}
+
+/* bloques del reporte ampliado (mod-report) */
+.scrim .rep3-blk{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.12)}
+.scrim .rep3-blk table,.scrim .rep3-blk tr,.scrim .rep3-blk td,.scrim .rep3-blk th{border-color:rgba(255,255,255,.09)}
+.scrim .rep3-bh,.scrim .rep3-mk,.scrim .rep3-nn,.scrim .rep3-np,.scrim .rep3-legend,.scrim .rep3-lip{color:rgba(255,255,255,.44)}
+.scrim .rep3-bv,.scrim .rep3-bv b,.scrim .rep3-mv,.scrim .rep3-mn,.scrim .rep3-mt{color:#fff}
+.scrim .rep3-mv.rep3-teal{color:var(--teal)}
+.scrim .rep3-chip{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff}
+.scrim .rep3-empty{color:rgba(255,255,255,.34)}
+/* el anillo traía un disco y un bisel pensados para fondo claro: en oscuro
+   tapaban el número. Se invierten a pozo oscuro con filo tenue. */
+.scrim .rep3-well{background:radial-gradient(circle at 50% 32%,#161a23,#0c0e14 86%);
+  box-shadow:0 2px 8px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.10)}
+.scrim .rep3-lip{box-shadow:inset 0 2px 7px rgba(0,0,0,.7),inset 0 -1px 2px rgba(255,255,255,.14)}
+.scrim .rep3-halo{background:radial-gradient(circle,rgba(47,197,177,.34),rgba(47,197,177,0) 66%)}
+.scrim .rep3-micro{color:rgba(255,255,255,.6)}
+
+@media(max-width:760px){.scrim .shell{box-shadow:0 0 0 5px rgba(255,255,255,.03),0 0 0 6px rgba(255,255,255,.10),0 40px 90px rgba(0,0,0,.7)}}
+@media(prefers-reduced-motion:reduce){.scrim .shell,#mFull .mpad{transition:none}}
+</style>
 </head>
 <body>
 
@@ -2067,6 +2172,98 @@ function loopNotes(){
 
   collect(); apply();
   addEventListener('load', function(){ collect(); apply(); });
+})();
+</script>
+<!-- ===== script mod-modal3d ===== -->
+<script>
+/* El cerebro de fondo en todos los modales + inclinación 3D del panel.
+   Una sola capa compartida y un solo rAF: abrir seis modales no cuesta seis cerebros. */
+(function(){
+  var stage = document.createElement('div');
+  stage.id = 'm3d';
+  stage.innerHTML = '<canvas id="m3dCanvas"></canvas><div class="m3d-vig"></div>';
+  document.body.insertBefore(stage, document.body.firstChild);
+  var canvas = stage.querySelector('#m3dCanvas'), ctx = canvas.getContext('2d');
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* --- nube de puntos con forma de cerebro (versión ligera del módulo grande) --- */
+  function fold(x,y,z){
+    var u=x*.62+y*.48+z*.62, v=-x*.55+y*.70+z*.45, w=x*.45-y*.55+z*.70;
+    return .038*Math.sin(u*9.5)+.030*Math.sin(v*12)+.022*Math.sin(w*15.5);
+  }
+  function build(n){
+    var p=[],i;
+    for(i=0;i<n;i++){
+      var t=(i+.5)/n, y0=1-t*2, r0=Math.sqrt(Math.max(0,1-y0*y0)), th=i*2.399963229;
+      var x=Math.cos(th)*r0, z=Math.sin(th)*r0, y=y0;
+      x*=.86; y*=.60; z*=1;
+      if(y<-.18) y=-.18+(y+.18)*.55;
+      z+=.06*Math.sin(y*2.2);
+      var f=fold(x,y,z), L=Math.sqrt(x*x+y*y+z*z)||1;
+      x+=x/L*f; y+=y/L*f; z+=z/L*f;
+      var sg=x>=0?1:-1; x=sg*(Math.abs(x)*.90+.052);
+      p.push(x,y,z);
+    }
+    var nc=Math.round(n*.16);
+    for(i=0;i<nc;i++){
+      var t2=(i+.5)/nc, y2=1-t2*2, r2=Math.sqrt(Math.max(0,1-y2*y2)), a2=i*2.399963229;
+      p.push(Math.cos(a2)*r2*.42, y2*.26-.52, Math.sin(a2)*r2*.34-.62);
+    }
+    return new Float32Array(p);
+  }
+  var pts = build(2400), t = 0, raf = 0, run = false, dpr = Math.min(devicePixelRatio||1, 2);
+
+  function size(){ var r=canvas.getBoundingClientRect();
+    canvas.width=Math.max(1,r.width*dpr); canvas.height=Math.max(1,r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); }
+  function frame(){
+    if(!run) return;
+    var r=canvas.getBoundingClientRect(), w=r.width, h=r.height;
+    t += reduced ? 0 : .0022;
+    ctx.clearRect(0,0,w,h);
+    var cx=w/2, cy=h*.47, R=Math.min(w,h)*.46, ca=Math.cos(t), sa=Math.sin(t);
+    for(var i=0;i<pts.length;i+=3){
+      var x=pts[i], y=pts[i+1], z=pts[i+2];
+      var X=x*ca-z*sa, Z=x*sa+z*ca;
+      var d=(Z+1)/2;
+      ctx.fillStyle='rgba(255,255,255,'+(0.05+d*0.33).toFixed(3)+')';
+      ctx.fillRect(cx+X*R, cy-y*R, 1, 1);
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function start(){ if(run||document.hidden) return; run=true; size(); raf=requestAnimationFrame(frame); }
+  function stop(){ run=false; if(raf) cancelAnimationFrame(raf); raf=0; }
+  addEventListener('resize', function(){ if(run) size(); }, {passive:true});
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else if(anyOpen()) start(); });
+
+  /* --- mostrar el escenario cuando hay algún modal abierto --- */
+  var scrims = [].slice.call(document.querySelectorAll('.scrim'));
+  function anyOpen(){ for(var i=0;i<scrims.length;i++) if(scrims[i].classList.contains('on')) return true; return false; }
+  function sync(){
+    var open = anyOpen();
+    stage.classList.toggle('on', open);
+    if(open) start(); else { stop(); reset(); }
+  }
+  var mo = new MutationObserver(sync);
+  scrims.forEach(function(s){ mo.observe(s, {attributes:true, attributeFilter:['class']}); });
+
+  /* --- inclinación 3D del panel abierto --- */
+  var tx=0, ty=0;
+  function reset(){ scrims.forEach(function(s){ s.style.setProperty('--tx','0deg'); s.style.setProperty('--ty','0deg'); }); }
+  function tilt(e){
+    if(reduced || !anyOpen() || e.pointerType==='touch') return;
+    tx = ((e.clientY/innerHeight)*2-1) * -3.2;
+    ty = ((e.clientX/innerWidth)*2-1) * 4.2;
+    for(var i=0;i<scrims.length;i++){
+      var s=scrims[i];
+      if(!s.classList.contains('on')) continue;
+      s.style.setProperty('--tx', tx.toFixed(2)+'deg');
+      s.style.setProperty('--ty', ty.toFixed(2)+'deg');
+    }
+  }
+  addEventListener('pointermove', tilt, {passive:true});
+
+  sync();
 })();
 </script>
 </body>.
