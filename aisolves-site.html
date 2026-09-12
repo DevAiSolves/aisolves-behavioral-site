@@ -298,6 +298,610 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes marquee{to{transform:translateX(-50%)}}
 </style>
+<!-- ===== mod-core ===== -->
+<style></style>
+<!-- ===== mod-3d ===== -->
+<style>
+/* ===== MOD:3d — esfera hero (Three.js) · 3D por scroll · turntable 360/180 ===== */
+
+/* (b) rejilla con parallax: body:before recibe translate por variables.
+   inset:-100px = múltiplo de la celda (100px), así la trama no se desalinea al crecer. */
+html.t3d-fx body:before{inset:-100px;transform:translate3d(var(--t3d-gx,0px),var(--t3d-gy,0px),0)}
+/* secciones: bisagra en el borde inferior; el transform se aplica inline según progreso y se retira al asentarse */
+html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
+/* paneles con tilt (.plan/.phase/.cell/.member) */
+.t3d-tilt{transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.t3d-tilt.t3d-live{transition:transform .09s linear;will-change:transform;position:relative;z-index:2}
+
+/* (a) esfera hero: hereda .sphere-box canvas{position:absolute;inset:0;width:100%;height:100%} */
+.sphere-box canvas.t3d-hero{display:block}
+
+/* (c) turntable dentro de la .car-cell de #workSphere */
+.t3d-tt{position:relative;height:100%;min-height:330px;display:flex;flex-direction:column;background:var(--card)}
+.t3d-view{position:relative;flex:1;min-height:200px;overflow:hidden;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;
+  background:radial-gradient(ellipse at 50% 62%,rgba(47,197,177,.07),transparent 62%)}
+.t3d-view.t3d-drag{cursor:grabbing}
+.car-cell .t3d-view canvas.t3d-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.t3d-hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none;z-index:2}
+.t3d-mode{pointer-events:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+  background:rgba(255,255,255,.84);border:1px solid var(--line);padding:6px 10px;cursor:pointer;line-height:1;transition:.15s;backdrop-filter:blur(4px)}
+.t3d-mode:hover{border-color:var(--teal);color:var(--teal-ink)}
+.t3d-mode[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.t3d-hint{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--note)}
+/* la nota en vivo hereda .car-cell .note{position:absolute;left:16px;bottom:14px} relativa a .t3d-view */
+.t3d-strip{display:flex;flex:none;height:70px;border-top:1px solid var(--line);background:var(--paper);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.t3d-strip::-webkit-scrollbar{display:none}
+.t3d-fr{flex:1 0 auto;min-width:58px;border:0;border-right:1px solid var(--line);background:none;padding:0 4px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.04em;color:var(--ink-3);transition:background .15s,color .15s}
+.t3d-fr:last-child{border-right:0}
+.t3d-fr:hover{background:var(--card);color:var(--ink-2)}
+.t3d-fr.on{color:var(--teal-ink);background:var(--card);box-shadow:inset 0 -2px 0 var(--teal)}
+.car-cell .t3d-fr canvas{display:block;width:52px;height:39px}
+/* fallback sin WebGL: nota arriba, la de abajo sigue siendo la del canvas 2D */
+.car-cell .note.t3d-nowebgl{top:14px;bottom:auto}
+@media(max-width:760px){.t3d-strip{height:60px}.t3d-fr{min-width:52px}.car-cell .t3d-fr canvas{width:44px;height:33px}.t3d-hint{display:none}}
+@media(prefers-reduced-motion:reduce){.t3d-tilt,.t3d-tilt.t3d-live{transition:none}}
+</style>
+<!-- ===== mod-hud ===== -->
+<style>
+  /* ===== MOD:hud — HUD 3D de consentimiento (sustituye a #mConsent) ===== */
+  /* --hud-p registrado como número para que el anillo conic-gradient transicione suave */
+  @property --hud-p{syntax:'<number>';inherits:false;initial-value:0}
+
+  .hud-scrim{position:fixed;inset:0;z-index:210;display:none;padding:20px;background:rgba(13,16,23,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background-color .5s,opacity .35s,backdrop-filter .5s,-webkit-backdrop-filter .5s}
+  /* fill backwards: si la entrada dejara fijada opacity:1 (both), el fundido de salida .hud-fade nunca se vería */
+  .hud-scrim.hud-on{display:flex;align-items:center;justify-content:center;animation:hudFade .4s ease backwards}
+  .hud-scrim.hud-leave{background-color:rgba(13,16,23,0);backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
+  .hud-scrim.hud-fade{opacity:0}
+
+  .hud-stage{position:relative;perspective:1200px;perspective-origin:50% 45%;width:min(980px,100%);max-height:100%}
+  .hud-tilt{position:relative;transform-style:preserve-3d;will-change:transform;transform-origin:50% 50%}
+  /* sombra proyectada: hermana del panel a z<0, se desplaza opuesta al foco del cursor */
+  .hud-shadow{position:absolute;left:4%;right:4%;top:8%;bottom:-2%;background:rgba(5,7,11,.62);filter:blur(34px);transform:translate3d(0,34px,-70px);pointer-events:none;will-change:transform;transition:opacity .3s}
+
+  .hud-panel{position:relative;transform-style:preserve-3d;display:flex;flex-direction:column;max-height:calc(100vh - 40px);outline:none;color:#eef1f6;
+    background:linear-gradient(158deg,#151b27 0%,#0f131c 46%,#0a0d13 100%);border:1px solid rgba(255,255,255,.09);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 40px 120px rgba(6,8,12,.35)}
+  .hud-scrim.hud-on .hud-panel{animation:hudUnfold .95s cubic-bezier(.16,1,.3,1) both}
+  /* capas con profundidad: --hz = translateZ, --hd = retardo de entrada */
+  .hud-l{transform:translateZ(var(--hz,0px))}
+  .hud-scrim.hud-on .hud-l{animation:hudLayer .9s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--hd,0s)}
+  /* brillo especular: contenedor recortado + blob que se mueve por transform (solo composición) */
+  .hud-glosswrap{position:absolute;inset:0;overflow:hidden;pointer-events:none;transform:translateZ(64px)}
+  .hud-glossblob{position:absolute;left:0;top:0;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.13) 0%,rgba(255,255,255,.045) 30%,rgba(255,255,255,0) 62%);transform:translate3d(-9999px,-9999px,0);will-change:transform}
+
+  /* morph al aceptar: se aplana, se recorta y el contenido se funde mientras el wrapper viaja (FLIP) */
+  .hud-panel.hud-morph{overflow:hidden;transform-style:flat}
+  .hud-panel.hud-morph .hud-head,.hud-panel.hud-morph .hud-body,.hud-panel.hud-morph .hud-foot,.hud-panel.hud-morph .hud-glosswrap{opacity:0;transition:opacity .28s ease}
+  .hud-scrim.hud-on .hud-panel.hud-morph .hud-l{animation:none;transform:none}
+  .hud-tilt.hud-morphing .hud-shadow{opacity:0}
+
+  /* ---- tipografía base del módulo ---- */
+  .hud-k{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6f7889;line-height:1.5}
+  .hud-k em{font-style:normal;color:#4f5869;letter-spacing:.08em;text-transform:none}
+  .hud-eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+  .hud-v{font-family:"IBM Plex Mono",monospace;font-size:16px;color:#fff;font-variant-numeric:tabular-nums;line-height:1;text-align:right}
+  .hud-v small{font-size:10px;color:#7c8598;margin-left:4px;letter-spacing:.04em}
+  /* anotación CSS en vivo, como las .note del sitio */
+  .hud-note{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.02em;color:#4f5869;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  /* ---- cabecera ---- */
+  .hud-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:24px 30px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .hud-title{font-weight:200;text-transform:uppercase;letter-spacing:.04em;font-size:clamp(18px,2.1vw,25px);line-height:1.14;margin-top:8px;max-width:32ch}
+  .hud-title b{font-weight:400;color:var(--teal)}
+  .hud-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .hud-chip{max-width:100%;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;color:#aeb6c6;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);padding:5px 9px;display:inline-flex;gap:7px;align-items:center;line-height:1.3}
+  .hud-chip i{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);flex:none}
+  .hud-chip.hud-mem i{background:var(--hold);box-shadow:0 0 8px var(--hold)}
+  .hud-chip.hud-mem.hud-saved i{background:var(--confirm);box-shadow:0 0 8px var(--confirm)}
+  .hud-chip.hud-perm{display:none;cursor:pointer;color:#eef1f6;border-color:rgba(47,197,177,.5);font-family:"IBM Plex Mono",monospace}
+  .hud-scrim.hud-needperm .hud-chip.hud-perm{display:inline-flex}
+  .hud-clockbox{text-align:right;flex:none}
+  .hud-clock{font-family:"IBM Plex Mono",monospace;font-size:clamp(34px,4.4vw,52px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#fff;margin:6px 0 4px}
+  .hud-clock small{font-size:.42em;color:#7c8598;margin-left:3px}
+
+  /* ---- cuerpo: rejilla de cajas (cada caja es una capa 3D) ---- */
+  .hud-body{padding:18px 30px 6px;display:grid;grid-template-columns:250px 1fr 1fr;grid-template-areas:"score rail metrics" "know rail metrics" "hon hon hon";gap:16px 22px;min-height:0;align-items:stretch}
+  .hud-box{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);padding:14px 16px;min-width:0}
+  .hud-box>.hud-k{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .hud-empty{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#5c6475}
+
+  /* anillo de score + semáforo (lenguaje mini-dash, paleta del sitio) */
+  .hud-ringwrap{display:flex;align-items:center;gap:14px}
+  .hud-ring{--hud-p:0;--hud-c:#3a4252;width:104px;height:104px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:conic-gradient(from -90deg,var(--hud-c) calc(var(--hud-p)*1%),rgba(255,255,255,.07) 0);box-shadow:0 0 0 6px #0b0e15,0 0 34px rgba(47,197,177,.10);transition:--hud-p .5s ease,box-shadow .4s}
+  .hud-ringin{width:82px;height:82px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#1d2431,#0a0d13 72%);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;text-align:center}
+  .hud-score{font-weight:200;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+  .hud-score small{font-size:11px;color:#6f7889;font-weight:400}
+  .hud-band{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:#7c8598;margin-top:5px}
+  .hud-lamps{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+  .hud-lamp{display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.22);opacity:.42;transition:opacity .3s}
+  .hud-lamp.hud-lit{opacity:1}
+  .hud-lamp p{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#8b93a5;white-space:nowrap}
+  .hud-lamp.hud-lit p{color:#eef1f6}
+  .hud-lens{width:20px;height:20px;border-radius:50%;position:relative;flex:none;border:1px solid rgba(255,255,255,.12);background:#171c26;
+    box-shadow:inset 0 2px 4px rgba(255,255,255,.14),inset 0 -3px 6px rgba(0,0,0,.6),0 0 0 3px #0a0d13}
+  .hud-lens:before{content:"";position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4252,#232a37 70%)}
+  .hud-lit .hud-lens.hud-go{background:#062a24;box-shadow:inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #0a0d13,0 0 16px rgba(47,197,177,.42)}
+  .hud-lit .hud-lens.hud-go:before{background:radial-gradient(circle at 35% 30%,#c8fff5,var(--teal) 45%,var(--teal-ink) 82%);animation:hudPulse 2.4s ease-in-out infinite}
+  .hud-lit .hud-lens.hud-hold{background:#2a1e05;box-shadow:inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #0a0d13,0 0 16px rgba(224,164,0,.4)}
+  .hud-lit .hud-lens.hud-hold:before{background:radial-gradient(circle at 35% 30%,#ffe7a8,var(--hold) 48%,#8a5a00 82%);animation:hudPulse 2.2s ease-in-out infinite}
+  .hud-lit .hud-lens.hud-stop{background:#2a0a0c;box-shadow:inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #0a0d13,0 0 16px rgba(229,72,77,.45)}
+  .hud-lit .hud-lens.hud-stop:before{background:radial-gradient(circle at 35% 30%,#ffb3b3,var(--stop) 48%,#8f1c22 82%);animation:hudPulse 1.8s ease-in-out infinite}
+
+  /* micro-métricas */
+  .hud-m{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:end;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+  .hud-m:first-of-type{border-top:0;padding-top:0}
+  .hud-m>.hud-k{margin:0;align-self:end}
+  .hud-viz{grid-column:1/-1}
+  .hud-spark{width:100%;height:22px;display:block;overflow:visible}
+  .hud-spark polyline{fill:none;stroke:var(--teal);stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+  .hud-spark line{stroke:rgba(255,255,255,.08);stroke-width:1;vector-effect:non-scaling-stroke}
+  .hud-bar{height:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:4px}
+  .hud-bar i{display:block;height:100%;width:100%;background:var(--teal);transform-origin:left;transform:scaleX(0);transition:transform .25s linear}
+  .hud-bar.hud-amber i{background:var(--hold)}
+
+  /* rail de etapas */
+  .hud-rail{display:flex;flex-direction:column}
+  .hud-st{display:grid;grid-template-columns:18px minmax(0,1fr) auto 42px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px}
+  .hud-st:first-child{border-top:0;padding-top:0}
+  .hud-dot{width:9px;height:9px;border-radius:50%;justify-self:center;background:#2a3140;box-shadow:inset 0 1px 2px rgba(255,255,255,.18),0 0 0 2px #0a0d13}
+  .hud-st.hud-pending .hud-dot{background:var(--hold);box-shadow:inset 0 1px 2px rgba(255,255,255,.3),0 0 0 2px #0a0d13,0 0 8px rgba(224,164,0,.4)}
+  .hud-st.hud-visited .hud-dot{background:var(--teal);box-shadow:inset 0 1px 2px rgba(255,255,255,.3),0 0 0 2px #0a0d13,0 0 10px rgba(47,197,177,.6)}
+  .hud-st.hud-current .hud-dot{background:#fff;box-shadow:0 0 0 3px rgba(47,197,177,.3),0 0 14px var(--teal);animation:hudHere 1.6s ease-in-out infinite}
+  .hud-n{display:flex;align-items:center;gap:8px;min-width:0;color:#d9dee8;font-weight:300}
+  .hud-n .hud-i{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:#4f5869;flex:none}
+  .hud-n .hud-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hud-st.hud-pending .hud-n{color:#8b93a5}
+  .hud-st.hud-current .hud-n{color:#fff;font-weight:400}
+  .hud-here{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:#06110f;background:var(--teal);padding:2px 6px;display:none;flex:none}
+  .hud-st.hud-current .hud-here{display:inline-block}
+  .hud-d{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#7c8598;text-align:right;font-variant-numeric:tabular-nums}
+  .hud-p{font-family:"IBM Plex Mono",monospace;font-size:11px;color:#aeb6c6;text-align:right;font-variant-numeric:tabular-nums}
+  .hud-st.hud-visited .hud-p{color:var(--teal)}
+
+  /* bloque "solo con tu scroll" */
+  .hud-know{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+  .hud-know .hud-v{text-align:left;font-size:19px;margin-top:5px}
+  .hud-know .hud-v small{display:inline-block}
+  .hud-live{color:var(--teal)}
+
+  /* honestidad */
+  .hud-hon{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+  .hud-hon ul{list-style:none;display:flex;flex-direction:column;gap:5px;margin-top:6px}
+  .hud-hon li{font-family:"IBM Plex Mono",monospace;font-size:10.5px;line-height:1.45;color:#aeb6c6;padding-left:14px;position:relative}
+  .hud-hon li b{color:#eef1f6;font-weight:500}
+  .hud-hon li:before{content:"◆";position:absolute;left:0;top:2px;color:var(--teal);font-size:8px}
+  .hud-hon .hud-never li{color:#8b93a5}
+  .hud-hon .hud-never li:before{content:"○";color:#5c6475;font-size:9px;top:1px}
+
+  /* ---- pie: aviso de memoria + CTA ---- */
+  .hud-foot{padding:14px 30px 20px;border-top:1px solid rgba(255,255,255,.07);display:grid;grid-template-columns:1fr auto;gap:12px 24px;align-items:center}
+  .hud-memo{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#aeb6c6;line-height:1.65;max-width:52ch}
+  .hud-memo b{color:var(--hold);font-weight:500}
+  .hud-memo.hud-saved b{color:var(--confirm)}
+  .hud-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:280px}
+  .btn.hud-cta{background:var(--teal);color:#06110f;border-color:var(--teal);padding:17px 24px;font-weight:500}
+  .btn.hud-cta:hover{background:#3fd6c2}
+  .btn.hud-cta .prog{background:rgba(0,0,0,.14)}
+  .btn.hud-cta .bar{background:rgba(0,0,0,.38)}
+  .btn.hud-cta .spin{border-color:rgba(0,0,0,.22);border-top-color:#06110f}
+  .hud-ess{background:none;border:0;cursor:pointer;color:#8b93a5;font-family:"IBM Plex Mono",monospace;font-size:11px;text-decoration:underline;text-underline-offset:3px;padding:4px 0;align-self:center}
+  .hud-ess:hover{color:#eef1f6}
+  .hud-fine{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:#5c6475;line-height:1.6;text-align:center}
+
+  /* ---- móvil: casi pantalla completa, scroll interno, CTA fijo abajo ---- */
+  @media(max-width:760px){
+    .hud-scrim{padding:0}
+    .hud-stage{width:100%;height:100%;max-height:none;perspective:900px}
+    .hud-tilt{height:100%}
+    .hud-panel{height:100%;max-height:none;border-left:0;border-right:0;border-bottom:0}
+    .hud-shadow{display:none}
+    .hud-head{padding:16px 18px 12px;gap:12px;flex-wrap:wrap}
+    .hud-title{font-size:18px;max-width:none}
+    .hud-clockbox{text-align:left;width:100%;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+    .hud-clockbox .hud-k{order:2}
+    .hud-clockbox .hud-note{order:3;width:100%}
+    .hud-clock{font-size:36px;margin:0}
+    /* overflow:auto aplana las capas internas del cuerpo; el panel entero sigue inclinándose por deviceorientation */
+    .hud-body{grid-template-columns:1fr;grid-template-areas:"score" "rail" "metrics" "know" "hon";gap:12px;padding:14px 18px;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;flex:1 1 auto}
+    .hud-box{padding:12px 14px}
+    .hud-st{font-size:14px;padding:9px 0}
+    .hud-v{font-size:17px}
+    .hud-hon li{font-size:11px}
+    .hud-foot{grid-template-columns:1fr;gap:8px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));background:#0d1017}
+    .hud-memo{max-width:none;font-size:10px}
+    .hud-actions{min-width:0}
+    .btn.hud-cta{width:100%;padding:18px}
+  }
+  /* pantallas bajas en escritorio: el cuerpo asume el scroll para no cortar el CTA */
+  @media(min-width:761px) and (max-height:820px){
+    .hud-body{overflow:auto;flex:1 1 auto;overscroll-behavior:contain}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    .hud-scrim.hud-on,.hud-scrim.hud-on .hud-panel,.hud-scrim.hud-on .hud-l{animation:none}
+    .hud-lit .hud-lens:before,.hud-st.hud-current .hud-dot{animation:none!important}
+    .hud-tilt,.hud-shadow,.hud-glossblob{transition:none!important;transform:none!important}
+    .hud-glosswrap{display:none}
+  }
+
+  /* ---- complementos de estructura ---- */
+  .hud-a-score{grid-area:score}.hud-a-rail{grid-area:rail}.hud-a-metrics{grid-area:metrics}.hud-a-know{grid-area:know}.hud-a-hon{grid-area:hon}
+  /* sin preserve-3d en los contenedores intermedios los translateZ de las capas se aplanan */
+  .hud-head,.hud-body,.hud-foot{transform-style:preserve-3d}
+  .hud-box>.hud-k+.hud-m{border-top:0;padding-top:0}
+  .hud-chip>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hud-x{position:absolute;top:2px;right:6px;z-index:6;background:none;border:0;color:#8b93a5;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:13px;padding:5px 7px;transform:translateZ(80px)}
+  .hud-x:hover{color:#fff}
+  /* FLIP: el wrapper viaja con transición; origen 0 0 para que translate+scale coincidan con el rect de destino */
+  .hud-tilt.hud-morphing{transition:transform .62s cubic-bezier(.16,1,.3,1);transform-origin:0 0}
+  .hud-scrim{touch-action:none}
+  .hud-body,.hud-foot{touch-action:pan-y}
+  .hud-panel:focus-visible{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 0 2px var(--teal),0 40px 120px rgba(6,8,12,.35)}
+  .btn.hud-cta:focus-visible,.hud-ess:focus-visible,.hud-x:focus-visible,.hud-chip.hud-perm:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+  @keyframes hudFade{from{opacity:0}to{opacity:1}}
+  @keyframes hudUnfold{0%{transform:rotateX(-16deg) translateY(28px) scale(.94)}100%{transform:none}}
+  @keyframes hudLayer{0%{opacity:0;transform:translateZ(0) translateY(10px)}100%{opacity:1;transform:translateZ(var(--hz,0px))}}
+  @keyframes hudPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+  @keyframes hudHere{0%,100%{box-shadow:0 0 0 3px rgba(47,197,177,.3),0 0 14px var(--teal)}50%{box-shadow:0 0 0 6px rgba(47,197,177,.12),0 0 22px var(--teal)}}
+</style>
+<!-- ===== mod-widget ===== -->
+<style>
+  /* mod-widget · "lupa": mini dashboard flotante que sustituye a #pill.
+     z-index 150: sobre nav (60) y bajo cualquier .scrim (200) para no tapar modales. */
+  .lupa{position:fixed;right:20px;bottom:20px;z-index:150;display:none;font-family:Montserrat,system-ui,sans-serif;color:#fff;
+    --lupa-mono:"IBM Plex Mono",monospace;
+    --lupa-go:var(--teal,#2fc5b1);--lupa-hold:var(--hold,#e0a400);--lupa-stop:var(--stop,#e5484d);--lupa-ok:var(--confirm,#1faa5a);
+    --lupa-navy:var(--navy,#0d1017);--lupa-line:rgba(255,255,255,.09);--lupa-mute:rgba(255,255,255,.5);--lupa-dim:rgba(255,255,255,.3)}
+  .lupa.is-shown{display:block}
+  .lupa *{box-sizing:border-box}
+  .lupa [hidden]{display:none!important}
+  .lupa-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* panel navy 3D: degradado + borde hairline + highlight interior; barrido de luz como en mini-dash */
+  .lupa-card{position:relative;overflow:hidden;color:#fff;
+    background:linear-gradient(160deg,#182030 0%,var(--lupa-navy) 52%,#090c12 100%);
+    border:1px solid var(--lupa-line);
+    box-shadow:0 26px 60px rgba(13,16,23,.32),inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.5)}
+  .lupa-card:before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.035) 50%,transparent 58%);animation:lupaSweep 6s ease-in-out infinite}
+
+  /* ---------- colapsado ---------- */
+  .lupa-mini{display:flex;flex-direction:column;gap:9px;width:316px;max-height:92px;padding:11px 14px 10px;cursor:pointer;text-align:left;
+    font:inherit;color:#fff;appearance:none;-webkit-appearance:none;border-radius:0;touch-action:manipulation;transition:transform .25s cubic-bezier(.16,1,.3,1);animation:lupaIn .3s cubic-bezier(.16,1,.3,1)}
+  .lupa-mini:hover{transform:translateY(-2px)}
+  .lupa.is-open .lupa-mini{display:none}
+  .lupa-mini:focus-visible,.lupa-x:focus-visible,.lupa-go:focus-visible,.lupa-cta:focus-visible,.lupa-link:focus-visible,.lupa-panel:focus-visible{outline:2px solid var(--lupa-go);outline-offset:2px}
+  .lupa-mini-top{display:flex;align-items:center;gap:12px}
+  /* lente: cristal con reflejo y mango */
+  .lupa-lens{width:30px;height:30px;border-radius:50%;flex:none;position:relative;border:1px solid rgba(47,197,177,.55);
+    background:radial-gradient(circle at 36% 32%,rgba(255,255,255,.3),rgba(47,197,177,.12) 40%,rgba(13,16,23,.25) 75%);
+    box-shadow:0 0 14px rgba(47,197,177,.25),inset 0 -3px 6px rgba(0,0,0,.5),inset 0 2px 3px rgba(255,255,255,.18)}
+  .lupa-lens:after{content:"";position:absolute;width:9px;height:2px;background:rgba(47,197,177,.75);right:-7px;bottom:0;transform:rotate(45deg);transform-origin:left center}
+  .lupa-stage{display:flex;flex-direction:column;flex:1;min-width:0}
+  .lupa-stage-k{font-family:var(--lupa-mono);font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--lupa-dim);margin-bottom:3px}
+  /* efecto de aumento: la etapa actual escala 1.15 con brillo; max-width 87% para que 1.15× quepa en el hueco */
+  .lupa-stage-n{display:block;max-width:87%;font-weight:200;font-size:19px;letter-spacing:.06em;text-transform:uppercase;line-height:1;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:scale(1.15);transform-origin:left center;
+    text-shadow:0 0 14px rgba(47,197,177,.45)}
+  .lupa-stage-n.lupa-flash{animation:lupaFlash .6s cubic-bezier(.16,1,.3,1)}
+  .lupa-mini-score{display:flex;align-items:center;gap:8px;font-family:var(--lupa-mono);flex:none}
+  .lupa-mini-score b{font-weight:400;font-size:20px;line-height:1}
+  .lupa-mini-score small{font-size:9px;color:var(--lupa-dim);margin-left:-5px}
+  .lupa-mini-bot{display:flex;align-items:center;gap:10px}
+  .lupa-bar{position:relative;flex:1;height:15px;background:rgba(255,255,255,.06);border:1px solid var(--lupa-line);overflow:hidden}
+  .lupa-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(47,197,177,.3),var(--lupa-go));transition:width .25s linear}
+  .lupa-bar.cur{flex:0 0 78px}
+  .lupa-bar.cur i{background:linear-gradient(90deg,rgba(255,255,255,.1),rgba(255,255,255,.55));transition:width .2s linear}
+  .lupa-bar em{position:absolute;inset:0;display:flex;align-items:center;padding:0 6px;font-style:normal;font-family:var(--lupa-mono);
+    font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.88);text-shadow:0 0 4px rgba(0,0,0,.6)}
+  .lupa-mini-sec{font-family:var(--lupa-mono);font-size:11px;color:var(--lupa-mute);flex:none;min-width:46px;text-align:right}
+
+  /* lámparas (semáforo) — lente con cristal, núcleo radial y brillo pulsante */
+  .lupa-lamp{display:inline-block;width:14px;height:14px;border-radius:50%;flex:none;position:relative;border:1px solid rgba(255,255,255,.12);
+    background:#171a22;box-shadow:inset 0 2px 3px rgba(255,255,255,.14),inset 0 -3px 5px rgba(0,0,0,.6),0 0 0 2px #0a0d13}
+  .lupa-lamp:before{content:"";position:absolute;inset:2px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4f5a,#23262e 70%)}
+  .lupa-lamp.go{box-shadow:0 0 14px rgba(47,197,177,.5),inset 0 2px 3px rgba(255,255,255,.14),0 0 0 2px #0a0d13}
+  .lupa-lamp.go:before{background:radial-gradient(circle at 35% 30%,#c6fff5,var(--lupa-go) 45%,#0f8577 85%);animation:lupaPulse 2.4s ease-in-out infinite}
+  .lupa-lamp.hold{box-shadow:0 0 14px rgba(224,164,0,.5),inset 0 2px 3px rgba(255,255,255,.14),0 0 0 2px #0a0d13}
+  .lupa-lamp.hold:before{background:radial-gradient(circle at 35% 30%,#ffe7a8,var(--lupa-hold) 48%,#8a5a00 85%);animation:lupaPulse 2.2s ease-in-out infinite}
+  .lupa-lamp.stop{box-shadow:0 0 14px rgba(229,72,77,.55),inset 0 2px 3px rgba(255,255,255,.14),0 0 0 2px #0a0d13}
+  .lupa-lamp.stop:before{background:radial-gradient(circle at 35% 30%,#ffb3b5,var(--lupa-stop) 48%,#7a0010 85%);animation:lupaPulse 1.8s ease-in-out infinite}
+  .lupa-lamp.big{width:36px;height:36px;box-shadow:inset 0 2px 4px rgba(255,255,255,.16),inset 0 -4px 7px rgba(0,0,0,.6),0 0 0 3px #0a0d13}
+  .lupa-lamp.big:before{inset:4px}
+  .lupa-lamp.big.go{box-shadow:0 0 22px rgba(47,197,177,.5),inset 0 2px 4px rgba(255,255,255,.16),0 0 0 3px #0a0d13}
+  .lupa-lamp.big.hold{box-shadow:0 0 22px rgba(224,164,0,.5),inset 0 2px 4px rgba(255,255,255,.16),0 0 0 3px #0a0d13}
+  .lupa-lamp.big.stop{box-shadow:0 0 22px rgba(229,72,77,.55),inset 0 2px 4px rgba(255,255,255,.16),0 0 0 3px #0a0d13}
+
+  /* ---------- expandido ---------- */
+  .lupa-panel{display:none;flex-direction:column;width:380px;max-height:min(560px,calc(100vh - 40px));transform-origin:100% 100%}
+  .lupa.is-open .lupa-panel{display:flex;animation:lupaIn .38s cubic-bezier(.16,1,.3,1);will-change:transform}
+  .lupa-handle{display:none}
+  .lupa-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px 12px;border-bottom:1px solid var(--lupa-line);flex:none}
+  .lupa-eyebrow{font-family:var(--lupa-mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--lupa-go)}
+  /* anotación CSS en vivo: el transform real del tilt, como las notas del sitio */
+  .lupa-note{font-family:var(--lupa-mono);font-size:10px;letter-spacing:.02em;color:var(--lupa-dim);margin-top:5px;white-space:nowrap}
+  .lupa-x{background:none;border:0;color:var(--lupa-mute);cursor:pointer;font-family:var(--lupa-mono);font-size:15px;padding:2px 4px;line-height:1;touch-action:manipulation}
+  .lupa-x:hover{color:#fff}
+  .lupa-body{overflow:auto;overscroll-behavior:contain;padding:14px 16px 16px;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+
+  .lupa-sem{display:flex;align-items:center;gap:16px;padding:12px 14px;border:1px solid var(--lupa-line);background:rgba(255,255,255,.03);margin-bottom:14px}
+  .lupa-sem-t b{font-weight:200;font-size:38px;line-height:.9}
+  .lupa-sem-t small{font-family:var(--lupa-mono);font-size:10px;color:var(--lupa-dim);margin-left:4px}
+  .lupa-sem-b{display:flex;gap:12px;margin-top:6px;font-family:var(--lupa-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  .lupa-sem-band{color:#fff}
+  .lupa-sem-go{color:var(--lupa-mute)}
+  .lupa-sem.go .lupa-sem-go{color:var(--lupa-go)}.lupa-sem.hold .lupa-sem-go{color:var(--lupa-hold)}.lupa-sem.stop .lupa-sem-go{color:var(--lupa-stop)}
+
+  .lupa-sec{margin-bottom:14px}
+  .lupa-sec-h{display:flex;justify-content:space-between;gap:10px;font-family:var(--lupa-mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--lupa-dim);
+    padding-bottom:6px;border-bottom:1px solid var(--lupa-line);margin-bottom:8px}
+
+  /* rail vertical de etapas */
+  .lupa-rail{list-style:none;position:relative;display:flex;flex-direction:column}
+  .lupa-rail:before{content:"";position:absolute;left:6px;top:10px;bottom:10px;width:1px;background:var(--lupa-line)}
+  .lupa-st{display:grid;grid-template-columns:13px 1fr auto auto;gap:10px;align-items:center;padding:5px 0;min-height:30px;position:relative}
+  .lupa-dot{width:9px;height:9px;border-radius:50%;background:#2b3140;justify-self:center;position:relative;z-index:1;box-shadow:0 0 0 2px var(--lupa-navy)}
+  .lupa-st.visited .lupa-dot{background:var(--lupa-ok);box-shadow:0 0 0 2px var(--lupa-navy),0 0 8px rgba(31,170,90,.6)}
+  .lupa-st.pending .lupa-dot{background:var(--lupa-hold);box-shadow:0 0 0 2px var(--lupa-navy),0 0 6px rgba(224,164,0,.4)}
+  .lupa-st.current .lupa-dot{width:13px;height:13px;border:1px solid rgba(47,197,177,.85);
+    background:radial-gradient(circle at 36% 32%,rgba(255,255,255,.55),rgba(47,197,177,.35) 45%,rgba(13,16,23,.4) 80%);
+    box-shadow:0 0 0 2px var(--lupa-navy),0 0 12px rgba(47,197,177,.55)}
+  .lupa-nm{font-weight:300;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--lupa-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transform-origin:left center;transition:transform .3s cubic-bezier(.16,1,.3,1),color .2s}
+  .lupa-st.visited .lupa-nm{color:rgba(255,255,255,.82)}
+  .lupa-st.current .lupa-nm{color:#fff;font-weight:400;transform:scale(1.15);text-shadow:0 0 12px rgba(47,197,177,.5)}
+  .lupa-pc{font-family:var(--lupa-mono);font-size:10.5px;color:var(--lupa-dim);min-width:60px;text-align:right}
+  .lupa-st.current .lupa-pc{color:var(--lupa-go)}
+  .lupa-go{background:none;border:1px solid rgba(47,197,177,.5);color:var(--lupa-go);font-family:var(--lupa-mono);font-size:9px;letter-spacing:.16em;
+    text-transform:uppercase;padding:4px 9px;cursor:pointer;opacity:0;transition:opacity .15s,background .15s;touch-action:manipulation}
+  .lupa-st:hover .lupa-go,.lupa-st:focus-within .lupa-go{opacity:1}
+  .lupa-go:hover{background:rgba(47,197,177,.12)}
+  @media(hover:none){.lupa-go{opacity:.85}} /* sin hover: el botón siempre visible */
+
+  .lupa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--lupa-line);border:1px solid var(--lupa-line)}
+  .lupa-m{background:var(--lupa-navy);padding:9px 10px;min-width:0}
+  .lupa-m span{display:block;font-family:var(--lupa-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--lupa-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lupa-m span i{font-style:normal;color:rgba(255,255,255,.18)}
+  .lupa-m b{display:block;font-family:var(--lupa-mono);font-weight:400;font-size:15px;margin-top:4px;white-space:nowrap}
+  .lupa-m em{display:block;font-style:normal;font-family:var(--lupa-mono);font-size:8.5px;color:var(--lupa-dim);margin-top:2px;white-space:nowrap}
+
+  .lupa-trust{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border:1px solid rgba(47,197,177,.35);background:rgba(47,197,177,.07);margin-bottom:8px}
+  .lupa-trust span{font-family:var(--lupa-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--lupa-go)}
+  .lupa-trust b{font-weight:200;font-size:30px;line-height:1}
+  .lupa-reads,.lupa-log{list-style:none;font-family:var(--lupa-mono);font-size:11px}
+  .lupa-reads li,.lupa-log li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);color:rgba(255,255,255,.82)}
+  .lupa-reads li:last-child,.lupa-log li:last-child{border-bottom:0}
+  .lupa-reads em,.lupa-log em{font-style:normal;color:var(--lupa-dim);white-space:nowrap}
+  .lupa-reads li.live,.lupa-reads li.live em{color:var(--lupa-go)}
+  .lupa-reads em b{font-weight:400;margin-left:6px}
+  .lupa-ev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lupa-ev i{font-style:normal;color:var(--lupa-go);letter-spacing:.08em;text-transform:uppercase;font-size:9px;margin-right:2px}
+  .lupa-empty{color:var(--lupa-dim)!important;grid-template-columns:1fr!important}
+
+  .lupa-attr{display:flex;flex-direction:column;gap:6px}
+  /* host del chip de mod-attribution (se pinta solo); si ese módulo no existe se usa .lupa-chip */
+  .lupa-chip-host{display:inline-flex;align-self:flex-start;max-width:100%;min-width:0}
+  .lupa-chip{display:inline-block;align-self:flex-start;max-width:100%;font-family:var(--lupa-mono);font-size:10px;letter-spacing:.06em;color:#fff;
+    border:1px solid rgba(255,255,255,.16);padding:5px 9px;background:rgba(255,255,255,.04);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lupa-ip{font-family:var(--lupa-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--lupa-dim)}
+
+  .lupa-foot{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .lupa-cta{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--lupa-go);color:#06201c;border:0;padding:14px 18px;
+    font-family:Montserrat,system-ui,sans-serif;font-weight:500;font-size:13px;cursor:pointer;transition:background .2s;touch-action:manipulation}
+  .lupa-cta:hover{background:#4ad6c3}
+  .lupa-ar{font-family:var(--lupa-mono)}
+  .lupa-link{background:none;border:0;cursor:pointer;color:var(--lupa-mute);font-family:var(--lupa-mono);font-size:10.5px;text-decoration:underline;text-underline-offset:3px;touch-action:manipulation}
+  .lupa-link:hover{color:#fff}
+
+  /* ---------- móvil: colapsado a todo el ancho (≤ 92px), expandido como sheet ---------- */
+  @media(max-width:760px){
+    .lupa{left:0;right:0;bottom:0;padding-bottom:env(safe-area-inset-bottom);background:var(--lupa-navy)}
+    .lupa-mini{width:100%;max-height:92px;border-left:0;border-right:0;border-bottom:0;padding:10px 16px}
+    .lupa-mini:hover{transform:none}
+    .lupa-stage-n{font-size:18px}
+    .lupa-panel{width:100%;max-height:88vh;border-left:0;border-right:0;border-bottom:0;transform-origin:50% 100%}
+    .lupa-handle{display:block;width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:8px auto 0;flex:none}
+    .lupa-grid{grid-template-columns:repeat(2,1fr)}
+    /* la barra fija taparía el pie de página: hueco solo mientras la lupa está visible */
+    html.lupa-shown body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+  }
+  /* medición para el morph del HUD: la mini se pinta invisible un instante para leer su rect de destino */
+  .lupa.lupa-measure{display:block;visibility:hidden;pointer-events:none}
+  .lupa.lupa-measure .lupa-mini{display:flex;animation:none;transition:none;transform:none}
+  .lupa.lupa-measure .lupa-panel{display:none}
+
+  @keyframes lupaIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes lupaPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+  @keyframes lupaSweep{0%,100%{transform:translateX(-30%)}50%{transform:translateX(30%)}}
+  @keyframes lupaFlash{0%{transform:scale(1.15)}40%{transform:scale(1.32)}100%{transform:scale(1.15)}}
+  @media(prefers-reduced-motion:reduce){
+    .lupa *,.lupa *:before{animation:none!important;transition:none!important}
+    .lupa-stage-n,.lupa-st.current .lupa-nm{transform:scale(1.15)}
+  }
+</style>
+<!-- ===== mod-attribution ===== -->
+<style>
+  /* ===== mod-attribution · origen de la visita (utm + click id), honesto ===== */
+  .attr-panel{border:1px solid var(--line);background:var(--card);margin:0 0 14px;font-family:Montserrat,system-ui,sans-serif;color:var(--ink)}
+  .attr-panel[hidden],.attr-chip-host[hidden]{display:none}
+  .attr-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+  .attr-head span{display:inline-flex;align-items:center;gap:8px}
+  .attr-body{display:grid;grid-template-columns:168px 1fr}
+  /* insignia: panel navy con lente (referencia mini-dash) sobre la tarjeta clara del sitio */
+  .attr-badge{position:relative;overflow:hidden;border-right:1px solid var(--line);background:radial-gradient(120% 90% at 30% 20%,#182030 0%,var(--navy) 70%);color:#fff;padding:18px 16px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;min-height:132px}
+  .attr-badge:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.05) 48%,transparent 56%);animation:attr-sweep 6s ease-in-out infinite}
+  .attr-lens{width:18px;height:18px;border-radius:50%;position:relative;flex:none;border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 2px 4px rgba(255,255,255,.18),inset 0 -3px 6px rgba(0,0,0,.55),0 0 0 3px #070a10}
+  .attr-lens:before{content:"";position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7c8290,#2c313c 70%)}
+  .attr-lens.attr-go{box-shadow:0 0 16px rgba(47,197,177,.35),inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #070a10}
+  .attr-lens.attr-go:before{background:radial-gradient(circle at 35% 30%,#d6fff8,var(--teal) 45%,var(--teal-ink) 80%);animation:attr-pulse 2.4s ease-in-out infinite}
+  .attr-lens.attr-hold{box-shadow:0 0 16px rgba(224,164,0,.32),inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #070a10}
+  .attr-lens.attr-hold:before{background:radial-gradient(circle at 35% 30%,#ffe7a8,var(--hold) 48%,#a67600 80%);animation:attr-pulse 2.2s ease-in-out infinite}
+  .attr-pf{position:relative;font-weight:200;font-size:24px;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+  .attr-sig{position:relative;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-top:8px}
+  .attr-kv{display:grid;grid-template-columns:repeat(3,1fr);min-width:0}
+  .attr-cell{padding:11px 14px;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);min-width:0}
+  .attr-cell:nth-child(3n){border-right:0}
+  .attr-cell:nth-last-child(-n+3){border-bottom:0}
+  .attr-k{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+  .attr-v{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .attr-v.attr-dim{color:var(--note)}
+  .attr-sub{font-size:9.5px;color:var(--ink-3);margin-left:7px}
+  .attr-not{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line);background:var(--paper);font-size:12px;line-height:1.45;color:var(--ink-2)}
+  .attr-not .attr-ic{color:var(--ink-3);font-size:11px;margin-top:2px;flex:none}
+  .attr-not b{color:var(--ink);font-weight:500}
+  .attr-srv{padding:8px 14px;border-top:1px solid var(--line-2);background:var(--paper);font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;color:var(--ink-3)}
+  .attr-test{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+  .attr-tag{font-family:"IBM Plex Mono",monospace;font-style:normal;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#8a6500;border:1px solid var(--hold);padding:2px 6px;line-height:1.2;flex:none}
+  .attr-link{background:none;border:0;cursor:pointer;padding:0;color:var(--ink-2);font-family:"IBM Plex Mono",monospace;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+  .attr-link:hover{color:var(--teal-ink)}
+  .attr-link:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .attr-wait{padding:16px 14px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+  /* chip compacto (widget lupa): una línea, 22px de alto */
+  .attr-chip-host{display:inline-flex;max-width:100%;min-width:0}
+  .attr-chip{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-width:0;height:22px;padding:0 9px;border:1px solid var(--line);background:var(--card);font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.02em;line-height:1;color:var(--ink-2);white-space:nowrap}
+  .attr-chip>span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .attr-chip b{font-weight:500;color:var(--ink)}
+  .attr-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--note)}
+  .attr-dot.attr-go{background:var(--teal);box-shadow:0 0 8px rgba(47,197,177,.55)}
+  .attr-dot.attr-hold{background:var(--hold);box-shadow:0 0 8px rgba(224,164,0,.45)}
+  /* variante para hosts navy (el widget pone class="attr-dark"; también vale data-attr-theme="dark") */
+  .attr-dark .attr-chip,[data-attr-theme="dark"] .attr-chip{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);color:rgba(255,255,255,.72)}
+  .attr-dark .attr-chip b,[data-attr-theme="dark"] .attr-chip b{color:#fff}
+  .attr-dark .attr-tag,[data-attr-theme="dark"] .attr-tag{color:var(--hold)}
+  /* campo instagram en #mForm */
+  .attr-hint{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+  @keyframes attr-pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.32)}}
+  @keyframes attr-sweep{0%,100%{transform:translateX(-30%)}50%{transform:translateX(30%)}}
+  @media(max-width:760px){
+    .attr-body{grid-template-columns:1fr}
+    .attr-badge{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;min-height:0;padding:14px 16px}
+    .attr-sig{margin-top:5px}
+    .attr-kv{grid-template-columns:1fr 1fr}
+    .attr-cell:nth-child(3n){border-right:1px solid var(--line-2)}
+    .attr-cell:nth-child(2n){border-right:0}
+    .attr-cell:nth-last-child(-n+3){border-bottom:1px solid var(--line-2)}
+    .attr-cell:nth-last-child(-n+2){border-bottom:0}
+  }
+  @media(prefers-reduced-motion:reduce){.attr-badge:after,.attr-lens:before{animation:none}}
+</style>
+<!-- ===== mod-report ===== -->
+<style>
+/* ===== mod-report · prefijo rep3- · reporte claro, navy solo en el semáforo ===== */
+:root{--rep3-mono:"IBM Plex Mono",monospace}
+
+/* línea de sesión en la cabecera de #mSpot (bajo el h2#rHi) */
+.rep3-session{font-family:var(--rep3-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);margin:-2px 0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+
+/* --- bloque superior (.rep-top) en 3D: capas con translateZ, perspective en el propio contenedor --- */
+.rep3-top{transform-style:preserve-3d;transform:perspective(900px) rotateX(var(--rep3-rx,0deg)) rotateY(var(--rep3-ry,0deg));transition:transform .22s ease-out}
+.rep3-top>.rep3-ring{transform:translateZ(28px);isolation:isolate}
+.rep3-top>.rep3-sem{transform:translateZ(12px)}
+/* el texto queda en Z=0: con perspective() cualquier translateZ escala la capa y Safari emborrona el texto pequeño */
+.rep3-top>.rep3-rt{transform:translateZ(0)}
+/* anillo: halo detrás (z -1 dentro del contexto aislado de .ringbox), labio con sombra interior y pozo central elevado */
+.rep3-halo{position:absolute;inset:-12px;border-radius:50%;z-index:-1;pointer-events:none;background:radial-gradient(circle,rgba(47,197,177,.26),rgba(47,197,177,0) 64%);filter:blur(5px)}
+.rep3-lip{position:absolute;inset:2px;border-radius:50%;pointer-events:none;box-shadow:inset 0 2px 6px rgba(13,16,23,.16),inset 0 -1px 2px rgba(255,255,255,.9)}
+.rep3-well{position:absolute;inset:13px;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 50% 30%,#fff,#f3f5f9 85%);box-shadow:0 2px 6px rgba(13,16,23,.10),inset 0 1px 0 #fff}
+
+/* --- semáforo de banda (estilo mini-dash, adaptado a tokens del sitio) --- */
+.rep3-sem{position:relative;overflow:hidden;flex:0 1 auto;min-width:168px;display:flex;align-items:center;gap:12px;padding:12px 14px;color:#fff;
+  background:radial-gradient(120% 90% at 20% 0%,#1a2130 0%,var(--navy) 70%);border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 18px 40px rgba(13,16,23,.22),inset 0 1px 0 rgba(255,255,255,.06)}
+.rep3-sem:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.05) 48%,transparent 56%);animation:rep3Sweep 5.5s ease-in-out infinite}
+.rep3-lamps{display:flex;flex-direction:column;gap:9px;padding:8px 7px;border-radius:14px;flex:none;
+  background:linear-gradient(180deg,#080b10,#131822);border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 14px rgba(0,0,0,.35)}
+.rep3-lens{display:block;width:16px;height:16px;border-radius:50%;position:relative;border:1px solid rgba(255,255,255,.10);
+  background:#141922;box-shadow:inset 0 2px 4px rgba(255,255,255,.14),inset 0 -3px 6px rgba(0,0,0,.6),0 0 0 3px #080b10}
+.rep3-lens:before{content:"";position:absolute;inset:3px;border-radius:50%}
+/* apagadas: tinte tenue del color, como una lámpara real sin corriente */
+.rep3-stop .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#4a2224,#24100f 75%)}
+.rep3-hold .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#4a3d1d,#241c0c 75%)}
+.rep3-go .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#254a36,#0f2419 75%)}
+/* encendidas: lente con núcleo, brillo exterior y pulso */
+.rep3-lamp.rep3-on.rep3-stop .rep3-lens{background:#2a0608;box-shadow:0 0 16px rgba(229,72,77,.5),inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #080b10}
+.rep3-lamp.rep3-on.rep3-stop .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#ffb3b5,#ff5a5f 48%,#9a1c22 82%);animation:rep3PulseStop 1.8s ease-in-out infinite}
+.rep3-lamp.rep3-on.rep3-hold .rep3-lens{background:#2a1a05;box-shadow:0 0 16px rgba(224,164,0,.5),inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #080b10}
+.rep3-lamp.rep3-on.rep3-hold .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#ffe9a8,#ffb800 48%,#9a6a00 82%);animation:rep3PulseHold 2.2s ease-in-out infinite}
+.rep3-lamp.rep3-on.rep3-go .rep3-lens{background:#05210e;box-shadow:0 0 16px rgba(31,170,90,.55),inset 0 2px 4px rgba(255,255,255,.18),0 0 0 3px #080b10}
+.rep3-lamp.rep3-on.rep3-go .rep3-lens:before{background:radial-gradient(circle at 35% 30%,#b9ffd0,#33d47a 45%,#127a3e 82%);animation:rep3PulseGo 2.4s ease-in-out infinite}
+.rep3-sem-t{min-width:0;position:relative}
+.rep3-sem-k{font-family:var(--rep3-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal)}
+.rep3-sem-band{font-weight:300;font-size:19px;letter-spacing:.08em;text-transform:uppercase;line-height:1.1;margin-top:4px}
+.rep3-sem-act{font-family:var(--rep3-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-top:2px;color:#9aa3b5}
+.rep3-sem-stop .rep3-sem-act{color:#ff8a8e}.rep3-sem-hold .rep3-sem-act{color:#ffcf5a}.rep3-sem-go .rep3-sem-act{color:#6fe39f}
+.rep3-sem-trust{font-family:var(--rep3-mono);font-size:10px;color:#9aa3b5;margin-top:8px;padding-top:7px;border-top:1px solid rgba(255,255,255,.08);white-space:nowrap}
+.rep3-sem-trust b{color:#fff;font-weight:500;font-variant-numeric:tabular-nums}.rep3-sem-trust span{color:#6b7385}
+
+/* --- bloques del reporte (claros, misma retícula que .journey) --- */
+.rep3-blk{border:1px solid var(--line);margin-bottom:14px;background:var(--card)}
+.rep3-bh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line-2);font-family:var(--rep3-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.rep3-bh em{font-style:normal;color:var(--teal-ink);letter-spacing:.1em}
+.rep3-bv{letter-spacing:.06em;text-transform:none}
+.rep3-bv b{color:var(--ink);font-weight:500}
+.rep3-empty{padding:12px 14px;font-family:var(--rep3-mono);font-size:11px;color:var(--ink-3)}
+
+/* rail horizontal de etapas: nodos de ancho idéntico para que la línea coincida con los centros */
+.rep3-rail{overflow-x:auto;padding:14px 10px 8px;-webkit-overflow-scrolling:touch}
+.rep3-rail-in{position:relative;display:flex;min-width:max(100%,calc(var(--rep3-n,1)*64px))}
+.rep3-rail-line,.rep3-rail-fill{position:absolute;top:6px;height:2px;left:calc(100%/var(--rep3-n,1)/2);pointer-events:none}
+.rep3-rail-line{right:calc(100%/var(--rep3-n,1)/2);background:var(--line)}
+.rep3-rail-fill{width:calc((100% - 100%/var(--rep3-n,1))*var(--rep3-f,0));background:var(--confirm)}
+.rep3-node{flex:1 1 0;min-width:0;position:relative;text-align:center;padding:22px 2px 0}
+.rep3-node i{position:absolute;top:0;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--hold);background:#fff}
+.rep3-visited i,.rep3-current i{border-color:var(--confirm);background:var(--confirm)}
+.rep3-current i{box-shadow:0 0 0 3px rgba(31,170,90,.2)}
+.rep3-nn{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep3-np{display:block;font-family:var(--rep3-mono);font-size:10px;color:var(--ink-3);margin-top:2px;font-variant-numeric:tabular-nums}
+.rep3-pending .rep3-nn{color:var(--ink-3)}.rep3-pending .rep3-np{color:var(--hold)}
+.rep3-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 14px 10px;border-top:1px solid var(--line-2);font-family:var(--rep3-mono);font-size:9.5px;color:var(--ink-3)}
+.rep3-lg{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.rep3-lg-go{background:var(--confirm)}.rep3-lg-hold{background:var(--hold)}
+
+/* lectura y retención */
+.rep3-read-g{display:grid;grid-template-columns:1fr 180px}
+.rep3-reads{min-width:0}
+.rep3-rr{display:grid;grid-template-columns:minmax(80px,1fr) auto auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line-2);font-size:12.5px}
+.rep3-rr:last-child{border-bottom:0}
+.rep3-rr.rep3-empty{display:block}
+.rep3-rc{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.rep3-chip{font-family:var(--rep3-mono);font-size:10px;color:var(--teal-ink);background:var(--teal-wash);padding:2px 6px;font-style:normal;white-space:nowrap}
+.rep3-chip-live{color:var(--confirm);background:rgba(31,170,90,.10)}
+.rep3-rt2{font-family:var(--rep3-mono);font-size:12px;color:var(--ink-2);text-align:right;min-width:44px;font-variant-numeric:tabular-nums}
+.rep3-trust{border-left:1px solid var(--line-2);background:var(--paper);display:flex;flex-direction:column;justify-content:center;text-align:center;padding:16px 14px}
+.rep3-tl{font-family:var(--rep3-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-ink)}
+.rep3-trust b{display:block;font-weight:200;font-size:40px;line-height:1;margin:8px 0 6px;font-variant-numeric:tabular-nums}
+.rep3-trust b small{font-size:14px;color:var(--ink-3);font-weight:400}
+.rep3-tn{font-family:var(--rep3-mono);font-size:9.5px;color:var(--ink-3);line-height:1.5}
+
+/* micro-métricas: auto-fit porque el mismo bloque vive en modales de 900, 560 y 370 px (la media query mira el viewport, no el modal);
+   el margen negativo esconde los bordes sobrantes de la última columna y fila */
+.rep3-micro-blk{overflow:hidden;container-type:inline-size}
+.rep3-micro{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));margin:0 -1px -1px 0}
+/* drawer (460px) y móvil: 2×2 en vez de 3+1; sin soporte de @container queda el auto-fit */
+@container (max-width:479px){.rep3-micro{grid-template-columns:1fr 1fr}}
+.rep3-mt{padding:12px 14px;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);min-width:0}
+.rep3-mk{font-family:var(--rep3-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.rep3-mv{font-family:var(--rep3-mono);font-size:17px;color:var(--ink);margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rep3-mv.rep3-teal{color:var(--teal-ink)}
+.rep3-mn{font-family:var(--rep3-mono);font-size:9px;color:var(--note);margin-top:4px;line-height:1.4}
+
+@keyframes rep3PulseGo{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+@keyframes rep3PulseHold{0%,100%{filter:brightness(.95)}50%{filter:brightness(1.25)}}
+@keyframes rep3PulseStop{0%,100%{filter:brightness(.9)}50%{filter:brightness(1.4)}}
+@keyframes rep3Sweep{0%,100%{transform:translateX(-30%)}50%{transform:translateX(30%)}}
+
+@media(max-width:600px){
+  .rep3-read-g{grid-template-columns:1fr}.rep3-trust{border-left:0;border-top:1px solid var(--line-2)}
+}
+@media(max-width:480px){.rep3-sem{flex-basis:100%}.rep3-session{white-space:normal;line-height:1.6}}
+@media(prefers-reduced-motion:reduce){
+  .rep3-top{transition:none}.rep3-sem:after{animation:none}.rep3-lens:before{animation:none!important}
+}
+</style>
 </head>
 <body>
 
@@ -445,22 +1049,10 @@
   <footer><div class="fx"><span>© 2026 AISOLVES · Behavioral Growth OS</span><span>Privacidad · Cómo revocar · Consent Mode v2</span></div></footer>
 </section>
 
-<div class="float-pill" id="pill" onclick="openBehavior()"><span class="d"></span><span>Tu comportamiento · <b id="pillScore">0</b>/100</span></div>
+
 
 <!-- CONSENT -->
-<div class="scrim" id="mConsent"><div class="shell">
-  <div class="mpad"><div class="glyph"></div><div class="eyebrow">AISOLVES · Consentimiento de visita</div>
-    <h2 class="mh">Esta web lee tu comportamiento para atenderte mejor.</h2>
-    <p class="mlead">Al entrar medimos <b>cómo navegas</b> —no lo que escribes— para saber qué te interesa. Es de primera parte y revocable cuando quieras.</p>
-    <div class="measures"><div class="mhh"><span>Qué medimos</span><span>transparente · revocable</span></div>
-      <div class="mrow"><span class="ic">◆</span><p><b>Tu recorrido:</b> scroll, tiempo de atención, hover y clics — como señal, no grabación.</p></div>
-      <div class="mrow"><span class="ic">◆</span><p><b>Contexto técnico:</b> IP (ciudad/empresa), dispositivo y campaña de origen.</p></div>
-      <div class="mrow"><span class="ic">◆</span><p><b>Sólo si tú lo inicias:</b> tu WhatsApp cuando pides el reporte.</p></div>
-      <div class="mrow no"><span class="ic">○</span><p><b>Nunca:</b> lo que escribes, tus redes privadas, ni datos de terceros sin tu acción.</p></div></div>
-    <div class="btns"><button class="btn dark" id="consentBtn" style="padding:16px" onclick="acceptConsent(this)"><span class="lbl">Aceptar y entrar</span><span class="spin"></span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
-      <div class="minor"><button class="ghostlink" onclick="essential()">Sólo lo esencial</button><button class="ghostlink" onclick="acceptConsent(document.getElementById('consentBtn'))">Preferencias</button></div></div>
-    <p class="fine">Sin registro. Sin contraseña. GDPR/LOPDGDD · Consent Mode v2.</p>
-  </div></div></div>
+
 
 <div class="scrim" id="mBehavior"><div class="shell"><button class="mclose" onclick="closeModal('mBehavior')">✕</button>
   <div class="mpad"><div class="fmt-tag">Formato · Center Spotlight (teaser)</div><div class="eyebrow">Lead Signal · en vivo</div>
@@ -647,7 +1239,7 @@ function startTracking(){
 }
 function tick(){if(!S.consent)return;const now=performance.now();if(S.active)S.attn+=(now-S.lastTick)/1000;S.lastTick=now;
   const sc=score();cSignals.textContent=S.signals;cAttn.textContent=Math.round(S.attn)+'s';cDepth.textContent=S.maxDepth+'%';
-  cBand.textContent=band(sc.total).split('·')[0].toUpperCase();pillScore.textContent=sc.total;}
+  cBand.textContent=band(sc.total).split('·')[0].toUpperCase();}
 function score(){const pk=S.sections['Paquetes']||{},sy=S.sections['Sistema']||{};
   const intent=Math.min(40,(pk.depth||0)*.16+Math.min(16,(pk.dwell||0)*.9)+(S.sections['Work']?.entered?4:0));
   const eng=Math.min(25,Math.min(14,S.attn*.12)+S.maxDepth*.09+Math.min(4,S.signals*.5));
@@ -721,7 +1313,6 @@ addEventListener('load',()=>{
   workS=particleSphere(document.getElementById('workSphere'),{count:4200,mode:'wave',ink:'72,60,110',scale:.38,speed:.006});
   gears=buildGears();
   requestAnimationFrame(loopNotes);
-  open_('mConsent');
 });
 /* live CSS annotations — los valores reales de la animación, como en el template */
 let noteT=0;
@@ -741,6 +1332,2121 @@ function loopNotes(){
   if(wn){const sc=1+Math.sin(noteT*.9)*.06;wn.textContent=`transform: scale3d(${sc.toFixed(2)}, ${sc.toFixed(2)}, 1)`;}
   requestAnimationFrame(loopNotes);
 }
+</script>
+<!-- MOUNT:3D -->
+<!-- Fragmento inerte (<template>): colocarlo dentro de la .car-cell de #workSphere o antes de </body>.
+     El script lo clona al montar el visor; si THREE no carga, no se usa y la celda queda como está. -->
+<template id="t3d-tpl">
+  <div class="t3d-tt">
+    <div class="t3d-view">
+      <canvas class="t3d-cv" aria-label="Módulo de señal · visor 3D"></canvas>
+      <div class="t3d-hud">
+        <button type="button" class="t3d-mode" aria-pressed="false" title="Alternar barrido 360° / 180°">360°</button>
+        <span class="t3d-hint">arrastra · orbita</span>
+      </div>
+      <div class="note t3d-note">transform: rotateY(0deg)</div>
+    </div>
+    <div class="t3d-strip" aria-label="Frames del turntable"></div>
+  </div>
+</template>
+<!-- MOUNT:HUD -->
+<div class="hud-scrim" id="hud" role="dialog" aria-modal="true" aria-labelledby="hud-title">
+  <div class="hud-stage" id="hud-stage">
+    <div class="hud-tilt" id="hud-tilt">
+      <div class="hud-shadow" id="hud-shadow" aria-hidden="true"></div>
+      <div class="hud-panel" id="hud-panel" tabindex="-1">
+        <button class="hud-x" id="hud-x" type="button" aria-label="Cerrar HUD" hidden>✕</button>
+        <div class="hud-glosswrap" aria-hidden="true"><div class="hud-glossblob" id="hud-gloss"></div></div>
+
+        <header class="hud-head">
+          <div class="hud-l" style="--hz:40px;--hd:.05s">
+            <div class="hud-eyebrow">AISOLVES · consentimiento de visita</div>
+            <h2 class="hud-title" id="hud-title">Esta web lee <b>cómo navegas</b>, no lo que escribes.</h2>
+            <div class="hud-chips">
+              <span class="hud-chip hud-mem" id="hud-mem"><i></i><span id="hud-memtext">solo memoria · nada se guarda hasta que aceptes</span></span>
+              <span class="hud-chip" title="UTM · click IDs · nombres de campaña que llegan en la URL"><i></i><span id="hud-origin">origen · —</span></span>
+              <span class="hud-chip"><i></i><span id="hud-device">dispositivo · —</span></span>
+              <span class="hud-chip" title="La IP no se lee en el navegador"><i></i><span>IP · se resuelve en servidor</span></span>
+              <button class="hud-chip hud-perm" id="hud-perm" type="button">activar tilt por giroscopio</button>
+            </div>
+          </div>
+          <div class="hud-clockbox hud-l" style="--hz:70px;--hd:.12s">
+            <div class="hud-k">desde que entraste</div>
+            <div class="hud-clock" id="hud-clock">—<small>s</small></div>
+            <div class="hud-note" id="hud-tiltnote">transform: rotateX(0.0deg) rotateY(0.0deg)</div>
+          </div>
+        </header>
+
+        <div class="hud-body">
+          <section class="hud-box hud-l hud-a-score" style="--hz:50px;--hd:.18s" aria-label="Score provisional">
+            <div class="hud-k"><span>score provisional</span><em id="hud-scorenote">tras aceptar</em></div>
+            <div class="hud-ringwrap">
+              <div class="hud-ring" id="hud-ring"><div class="hud-ringin"><div>
+                <div class="hud-score" id="hud-score">—<small>/100</small></div>
+                <div class="hud-band" id="hud-band">sin datos</div>
+              </div></div></div>
+              <div class="hud-lamps">
+                <div class="hud-lamp" id="hud-lamp-go"><span class="hud-lens hud-go"></span><p>verde · llamar hoy</p></div>
+                <div class="hud-lamp" id="hud-lamp-hold"><span class="hud-lens hud-hold"></span><p>ámbar · nutrir</p></div>
+                <div class="hud-lamp" id="hud-lamp-stop"><span class="hud-lens hud-stop"></span><p>rojo · aún no</p></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="hud-box hud-l hud-a-rail" style="--hz:36px;--hd:.22s" aria-label="Etapas de la página">
+            <div class="hud-k"><span>etapas</span><em id="hud-railmeta">—</em></div>
+            <div class="hud-rail" id="hud-rail"><div class="hud-empty">Sin etapas aún</div></div>
+          </section>
+
+          <section class="hud-box hud-l hud-a-metrics" style="--hz:56px;--hd:.26s" aria-label="Micro-métricas en vivo">
+            <div class="hud-k"><span>micro-métricas</span><em>en vivo · estimación</em></div>
+            <div class="hud-m">
+              <div class="hud-k">velocidad del cursor <em>· últimos 20 ticks</em></div><div class="hud-v" id="hud-cv">—<small>px/s</small></div>
+              <div class="hud-viz"><svg class="hud-spark" id="hud-spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="21" x2="100" y2="21"/><polyline id="hud-sparkline" points=""/></svg></div>
+            </div>
+            <div class="hud-m">
+              <div class="hud-k">velocidad de scroll <em>· &lt;40 px/s = lectura</em></div><div class="hud-v" id="hud-sv">—<small>px/s</small></div>
+              <div class="hud-viz hud-bar" id="hud-svbar"><i id="hud-svfill"></i></div>
+            </div>
+            <div class="hud-m">
+              <div class="hud-k">scroll actual</div><div class="hud-v" id="hud-sc">—<small>%</small></div>
+              <div class="hud-viz hud-bar"><i id="hud-scfill"></i></div>
+            </div>
+            <div class="hud-m"><div class="hud-k">atención <em>· pestaña visible</em></div><div class="hud-v" id="hud-attn">—<small>s</small></div></div>
+            <div class="hud-m"><div class="hud-k">movimientos del cursor</div><div class="hud-v" id="hud-moves">—</div></div>
+          </section>
+
+          <section class="hud-box hud-l hud-a-know" style="--hz:44px;--hd:.30s" aria-label="Solo con tu scroll">
+            <div class="hud-k"><span>solo con tu scroll ya sabemos</span></div>
+            <div class="hud-know">
+              <div><div class="hud-k">profundidad máx.</div><div class="hud-v" id="hud-depth">—</div></div>
+              <div><div class="hud-k">etapas vistas <em>/ pendientes</em></div><div class="hud-v" id="hud-stages">—</div></div>
+              <div><div class="hud-k">momentos de lectura <em>· estimación</em></div><div class="hud-v" id="hud-reads">—</div></div>
+              <div><div class="hud-k">tiempo de confianza</div><div class="hud-v" id="hud-trust">—</div></div>
+            </div>
+          </section>
+
+          <section class="hud-box hud-l hud-a-hon" style="--hz:28px;--hd:.34s" aria-label="Qué medimos y qué nunca">
+            <div class="hud-k"><span>honestidad</span><em>comportamiento, nunca contenido</em></div>
+            <div class="hud-hon">
+              <div><div class="hud-k">qué medimos</div><ul>
+                <li><b>Recorrido:</b> scroll, tiempo por etapa y relecturas, como señal, no como grabación.</li>
+                <li><b>Cursor:</b> velocidad y número de movimientos. La posición no se guarda.</li>
+                <li><b>Origen:</b> UTM, click IDs (gclid, fbclid, ttclid) y nombres de campaña que vengan en la URL.</li>
+                <li><b>Solo si tú lo inicias:</b> tu WhatsApp al pedir el reporte.</li>
+              </ul></div>
+              <div class="hud-never"><div class="hud-k">nunca</div><ul>
+                <li><b>Lo que escribes:</b> sin keylogging ni lectura de campos.</li>
+                <li><b>Tu usuario de Google, Meta o TikTok:</b> no llega a esta página y no se simula.</li>
+                <li><b>IP o empresa en el navegador:</b> solo en servidor.</li>
+                <li><b>Cookies o envíos antes de aceptar:</b> hasta entonces todo vive en memoria.</li>
+              </ul></div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="hud-foot">
+          <p class="hud-memo hud-l" id="hud-memo" style="--hz:30px;--hd:.38s"><b>Nada se guarda hasta que aceptes.</b> Lo que ves se calcula en memoria y desaparece al cerrar la pestaña. Primera parte · revocable en un clic.</p>
+          <div class="hud-actions hud-l" style="--hz:60px;--hd:.42s">
+            <button class="btn hud-cta" id="hud-accept" type="button"><span class="lbl" id="hud-acceptlbl">Aceptar y entrar</span><span class="spin"></span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+            <button class="hud-ess" id="hud-ess" type="button">Sólo lo esencial</button>
+            <div class="hud-fine">Sin registro. Sin contraseña. GDPR/LOPDGDD · Consent Mode v2.</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MOUNT:WIDGET -->
+<div class="lupa" id="lupa">
+  <button class="lupa-mini lupa-card" id="lupa-toggle" type="button" aria-expanded="false" aria-controls="lupa-panel">
+    <span class="lupa-sr">Lupa de comportamiento · abrir ·</span>
+    <span class="lupa-mini-top">
+      <span class="lupa-lens" aria-hidden="true"></span>
+      <span class="lupa-stage"><span class="lupa-stage-k">etapa</span><span class="lupa-stage-n" id="lupa-m-stage">—</span></span>
+      <span class="lupa-mini-score"><i class="lupa-lamp off" id="lupa-m-lamp" aria-hidden="true"></i><b id="lupa-m-score">—</b><small>/100</small></span>
+    </span>
+    <span class="lupa-mini-bot">
+      <span class="lupa-bar" title="scroll actual"><i id="lupa-m-scrollfill"></i><em id="lupa-m-scroll">scroll —</em></span>
+      <span class="lupa-mini-sec" id="lupa-m-sec" title="segundos de sesión">—</span>
+      <span class="lupa-bar cur" title="velocidad del cursor · estimación"><i id="lupa-m-curfill"></i><em>cursor</em></span>
+    </span>
+  </button>
+
+  <section class="lupa-panel lupa-card" id="lupa-panel" role="dialog" aria-label="Lupa · lectura en vivo" aria-hidden="true" tabindex="-1">
+    <span class="lupa-handle" aria-hidden="true"></span>
+    <header class="lupa-head">
+      <div><div class="lupa-eyebrow">Lupa · lectura en vivo</div><div class="lupa-note" id="lupa-tilt-note">transform: rotateX(0.00deg) rotateY(0.00deg)</div></div>
+      <button class="lupa-x" id="lupa-close" type="button" aria-label="Cerrar lupa">✕</button>
+    </header>
+    <div class="lupa-body">
+      <div class="lupa-sem off" id="lupa-sem">
+        <i class="lupa-lamp big off" id="lupa-p-lamp" aria-hidden="true"></i>
+        <div class="lupa-sem-t"><b id="lupa-p-score">—</b><small>/100</small>
+          <div class="lupa-sem-b"><span class="lupa-sem-band" id="lupa-p-band">—</span><span class="lupa-sem-go" id="lupa-p-go">—</span></div></div>
+      </div>
+
+      <div class="lupa-sec">
+        <div class="lupa-sec-h"><span>Etapas</span><span id="lupa-p-railmeta">—</span></div>
+        <ol class="lupa-rail" id="lupa-rail"><li class="lupa-st lupa-empty">Sin etapas aún</li></ol>
+      </div>
+
+      <div class="lupa-sec">
+        <div class="lupa-sec-h"><span>En vivo</span><span>cada 250 ms</span></div>
+        <div class="lupa-grid">
+          <div class="lupa-m"><span>segundos</span><b id="lupa-p-sec">—</b></div>
+          <div class="lupa-m"><span>atención</span><b id="lupa-p-attn">—</b></div>
+          <div class="lupa-m"><span>scroll</span><b id="lupa-p-scroll">—</b><em id="lupa-p-depth">máx —</em></div>
+          <div class="lupa-m"><span>vel. scroll <i>· est.</i></span><b id="lupa-p-sv">—</b></div>
+          <div class="lupa-m"><span>vel. cursor <i>· est.</i></span><b id="lupa-p-cv">—</b></div>
+          <div class="lupa-m"><span>señales</span><b id="lupa-p-sig">—</b></div>
+        </div>
+      </div>
+
+      <div class="lupa-sec">
+        <div class="lupa-sec-h"><span>Momentos de lectura</span><span>estimación</span></div>
+        <div class="lupa-trust"><span>tiempo real de confianza</span><b id="lupa-p-trust">—</b></div>
+        <ul class="lupa-reads" id="lupa-reads"><li class="lupa-empty">Sin lecturas aún</li></ul>
+      </div>
+
+      <div class="lupa-sec">
+        <div class="lupa-sec-h"><span>Actividad</span><span>últimos 6</span></div>
+        <ul class="lupa-log" id="lupa-log"><li class="lupa-empty">Sin eventos aún</li></ul>
+      </div>
+
+      <div class="lupa-sec">
+        <div class="lupa-attr">
+          <span class="lupa-chip-host attr-dark" id="lupa-p-attrhost" data-attr-chip hidden></span>
+          <span class="lupa-chip" id="lupa-p-attr" title="plataforma · campaña · anuncio">—</span>
+          <span class="lupa-ip">IP · se resuelve en servidor</span>
+        </div>
+      </div>
+
+      <div class="lupa-foot">
+        <button class="lupa-cta" id="lupa-cta" type="button"><span>Recibir mi reporte por WhatsApp</span><span class="lupa-ar">→</span></button>
+        <button class="lupa-link" id="lupa-hud" type="button" hidden>ver HUD completo</button>
+      </div>
+    </div>
+  </section>
+</div>
+<!-- MOUNT:ATTRIBUTION -->
+<!-- FULL: el script deja #attr-panel dentro de #mSpot .mpad, justo antes de .delivery, esté donde esté el marcador.
+     CHIP: cualquier <span data-attr-chip></span> se pinta y refresca solo (el widget ya trae uno con class="attr-dark");
+     #attr-chip queda de reserva y oculto por si el integrador prefiere moverlo. También AIS.attr.render(el,'chip') / AIS.attr.chip(). -->
+<div id="attr-panel" class="attr-panel" aria-label="Origen de la visita"></div>
+<span id="attr-chip" data-attr-chip hidden></span>
+<!-- ===== script mod-core ===== -->
+<script>
+/* ==========================================================================
+   mod-core · window.AIS
+   Reloj de sesión, scroll, cursor, etapas, lectura, señales, atribución, score.
+   Solo memoria: sin localStorage, sin cookies, sin red. Un único setInterval de
+   250 ms (rAF se pausa en pestañas ocultas y descuadraría la contabilidad).
+   Antes de accept(): solo segundos, atención, scroll, cursor y etapa actual.
+   Tras accept(): recorrido, lectura, eventos, señales y score.
+   Globales del sitio que toca: espeja S en cada tick, envuelve score() para
+   que #mSpot/#mBehavior/cBand muestren el mismo número que AIS, y llama a
+   startTracking() una sola vez al aceptar.
+   ========================================================================== */
+(function(){
+'use strict';
+if(window.AIS) return;                                   // doble inserción: manda la primera
+
+const TICK=250, EMA=0.25;
+const IDLE_DECAY=Math.pow(1-EMA,5);                       // un tick sin muestras = 5 muestras a cero en la rejilla de 50 ms
+const READ_MIN=1.5, READ_V=40, READ_BREAK=120;            // lectura: |v|<40 px/s durante ≥1.5 s; se rompe a >120 px/s
+const HOVER_MS=2500, RAGE_N=3, RAGE_MS=600, MAX_EVENTS=200;
+const now=()=>performance.now();
+const r1=n=>Math.round(n*10)/10;
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const coarse=typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches;
+const isTouch=coarse||('ontouchstart' in window);
+
+/* ---------- atribución: solo lo que llega en la URL, el referrer (host) y el UA ---------- */
+function parseAttribution(){
+  const q=new URLSearchParams(location.search);
+  const g=k=>{const v=q.get(k);return v?String(v).trim().slice(0,120):'';};
+  const gclid=g('gclid'),fbclid=g('fbclid'),ttclid=g('ttclid'),source=g('utm_source');
+  let referrer='';
+  try{ if(document.referrer){const h=new URL(document.referrer).hostname; if(h&&h!==location.hostname) referrer=h;} }catch(e){}
+  const MAP={google:'google',meta:'meta',facebook:'meta',fb:'meta',instagram:'meta',ig:'meta',tiktok:'tiktok'};
+  const src=source.toLowerCase();
+  // click id > utm_source conocido > utm_source desconocido o referrer externo (referral) > direct
+  const platform=gclid?'google':fbclid?'meta':ttclid?'tiktok':(MAP[src]||((src||referrer)?'referral':'direct'));
+  const ua=navigator.userAgent||'';
+  const device=(/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||(coarse&&innerWidth<=760))?'mobile':'desktop';
+  return {platform,source,medium:g('utm_medium'),campaign:g('utm_campaign')||g('campaign_name'),content:g('utm_content'),term:g('utm_term'),
+    adName:g('ad_name'),adsetName:g('adset_name'),placement:g('placement'),gclid,fbclid,ttclid,referrer,
+    landing:location.pathname,device,firstTouch:new Date().toISOString()};
+}
+
+/* ---------- estado público ---------- */
+const st={
+  t0:now(), consent:false, consentAt:null, seconds:0, attention:0,
+  scroll:{current:0,depth:0,velocity:0},
+  cursor:{speed:0,x:null,y:null,moves:0},
+  stages:[], current:null,
+  reading:{active:false,stage:null,since:null},
+  trustSeconds:0, signals:0, events:[],
+  attribution:parseAttribution(),
+  lead:null,
+  score:{total:0,intent:0,eng:0,fit:0,ident:0,band:'COLD'}
+};
+const secs=()=>r1((now()-st.t0)/1000);
+
+/* acumuladores internos (coma flotante; el estado expone valores redondeados) */
+let tracking=false, exitIntent=false, legacyStarted=false;
+let attnRaw=0, vel=0, readQuiet=0, clicks=[], ignoreClicksUntil=0, lastTick=now();
+const meta=[];                                            // paralelo a st.stages: {el, dwell}
+
+/* ---------- bus de eventos ---------- */
+const subs=new Map();
+function on(ev,fn){ if(typeof fn!=='function') return ()=>{}; if(!subs.has(ev)) subs.set(ev,new Set()); subs.get(ev).add(fn); return ()=>off(ev,fn); }
+function off(ev,fn){ const s=subs.get(ev); if(s) s.delete(fn); }
+function emit(ev,data){
+  const s=subs.get(ev); if(!s||!s.size) return;
+  // un error en un consumidor se relanza fuera del tick para no parar el reloj
+  [...s].forEach(fn=>{ try{ fn(data); }catch(e){ setTimeout(()=>{ throw e; }); } });
+}
+
+/* ---------- etapas ---------- */
+function buildStages(){
+  st.stages.length=0; meta.length=0;
+  document.querySelectorAll('[data-sec]').forEach((el,i)=>{
+    const id=el.getAttribute('data-sec');
+    st.stages.push({id,name:id,index:i,status:'pending',enteredAt:null,dwell:0,depth:0,reads:[]});
+    meta.push({el,dwell:0});
+  });
+}
+const stageById=id=>st.stages.find(s=>s.id===id)||null;
+
+// etapa actual = la que contiene el centro del viewport (o la más cercana); depth solo cuenta con tracking
+function measure(){
+  const mid=innerHeight/2; let best=null,bestD=Infinity;
+  meta.forEach((m,i)=>{
+    const r=m.el.getBoundingClientRect(), s=st.stages[i];
+    if(tracking){
+      const seen=Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top));
+      const d=Math.round(clamp(seen/Math.max(1,Math.min(r.height,innerHeight))*100,0,100));
+      if(d>s.depth) s.depth=d;
+    }
+    const dist=(r.top<=mid&&r.bottom>=mid)?0:Math.min(Math.abs(r.top-mid),Math.abs(r.bottom-mid));
+    if(dist<bestD){ bestD=dist; best=s; }
+  });
+  return best;
+}
+function setCurrent(s){
+  if(!s||s.id===st.current) return;
+  const prev=st.current, ps=stageById(prev);
+  if(ps&&ps.status==='current') ps.status='visited';
+  const first=s.status==='pending';
+  if(tracking) endRead();                                 // la lectura pertenece a la etapa que se abandona
+  s.status='current'; st.current=s.id; readQuiet=0;
+  if(first) s.enteredAt=secs();
+  if(tracking) logEvent(first?'stage':'return',s.name,first);
+  emit('stage',{stage:s.id,prev});
+}
+
+/* ---------- eventos y señales ---------- */
+function logEvent(type,label,count){
+  const e={t:secs(),type,label:String(label||'').replace(/\s+/g,' ').trim().slice(0,80),stage:st.current};
+  st.events.push(e); if(st.events.length>MAX_EVENTS) st.events.splice(0,st.events.length-MAX_EVENTS);
+  if(count) st.signals++;
+  emit('signal',e);
+  return e;
+}
+function signal(type,label){ return tracking?logEvent(type,label,true):null; }
+function markExit(){ if(exitIntent||!tracking) return; exitIntent=true; logEvent('exit','intención de salida',true); }
+
+/* ---------- lectura (estimación) ---------- */
+function startRead(){
+  const s=stageById(st.current); if(!s) return;
+  Object.assign(st.reading,{active:true,stage:s.id,since:r1(secs()-readQuiet)});
+  logEvent('read',s.name+' · estimación',true);
+  emit('read:start',{stage:s.id});
+}
+function endRead(){
+  if(!st.reading.active) return;
+  const s=stageById(st.reading.stage), dur=r1(Math.max(0,secs()-st.reading.since));
+  if(s) s.reads.push({start:st.reading.since,seconds:dur});
+  st.trustSeconds=r1(st.trustSeconds+dur);
+  Object.assign(st.reading,{active:false,stage:null,since:null}); readQuiet=0;
+  logEvent('read:end',(s?s.name:'—')+' · '+util.fmt(dur)+' · estimación',false);
+  emit('read:end',{stage:s?s.id:null,seconds:dur});
+}
+function readTick(dt,visible){
+  if(!tracking||!visible||!st.current){ endRead(); readQuiet=0; return; }
+  const v=Math.abs(vel);
+  if(st.reading.active){ if(v>READ_BREAK) endRead(); return; }   // histéresis 40 → 120
+  if(v<READ_V){ readQuiet+=dt; if(readQuiet>=READ_MIN) startRead(); } else readQuiet=0;
+}
+
+/* ---------- scroll: muestreo ≈20 Hz en el evento, decaimiento en el tick ---------- */
+const sc={y:scrollY,t:now(),dirty:false};
+addEventListener('scroll',()=>{
+  const t=now(), dt=(t-sc.t)/1000, y=scrollY;
+  if(dt>=0.05){
+    if(dt<0.5){ vel+=EMA*((y-sc.y)/dt-vel); }             // tras >0.5 s parado solo se rebasa la base: el salto no es velocidad
+    sc.y=y; sc.t=t;
+  }
+  sc.dirty=true;
+},{passive:true});
+
+/* ---------- cursor: mousemove / touchmove con throttle de 50 ms ---------- */
+const cu={x:0,y:0,t:0,raw:0,dirty:false};
+function curSample(x,y){
+  const t=now(); st.cursor.x=x; st.cursor.y=y; st.cursor.moves++;
+  if(cu.t){ const dt=(t-cu.t)/1000; if(dt<0.05) return; if(dt<0.5) cu.raw+=EMA*(Math.hypot(x-cu.x,y-cu.y)/dt-cu.raw); }
+  cu.x=x; cu.y=y; cu.t=t; cu.dirty=true;
+}
+addEventListener('mousemove',e=>curSample(e.clientX,e.clientY),{passive:true});
+addEventListener('touchmove',e=>{ const p=e.touches&&e.touches[0]; if(p) curSample(p.clientX,p.clientY); },{passive:true});
+
+/* ---------- señales automáticas ---------- */
+function labelOf(b){ const l=b.querySelector('.lbl')||b.querySelector('span')||b; return (l.textContent||'').replace(/\s+/g,' ').trim().slice(0,40)||'cta'; }
+function describe(el){
+  const e=el.closest('.btn,button,a,.plan,input,select,textarea,[data-sec]')||el;
+  let s=e.tagName.toLowerCase(); if(e.id) s+='#'+e.id; else if(e.classList.length) s+='.'+e.classList[0];
+  return s.slice(0,40);
+}
+// capture: se registra aunque otro handler corte la propagación; el clic que acepta llega con tracking=false y no cuenta
+document.addEventListener('click',e=>{
+  if(!tracking) return; const t=now(); if(t<ignoreClicksUntil) return;
+  const target=e.target instanceof Element?e.target:null; if(!target) return;
+  clicks.push(t); clicks=clicks.filter(c=>t-c<=RAGE_MS);
+  if(clicks.length>=RAGE_N){ clicks=[]; logEvent('rage','rage click · '+describe(target),true); }
+  const b=target.closest('.btn'); if(b) logEvent('cta',labelOf(b),true);
+},{passive:true,capture:true});
+
+if(!isTouch){                                             // en táctil mouseover emula taps: hover y exit-intent no son fiables
+  let hov=null,hovT=0;
+  document.addEventListener('mouseover',e=>{ const p=e.target instanceof Element?e.target.closest('.plan'):null; if(!p||p===hov) return; hov=p; hovT=now(); },{passive:true});
+  document.addEventListener('mouseout',e=>{
+    const rel=e.relatedTarget instanceof Node?e.relatedTarget:null;
+    if(hov&&!(rel&&hov.contains(rel))){
+      const ms=now()-hovT, p=hov; hov=null;
+      if(tracking&&ms>=HOVER_MS){ const n=p.querySelector('.pn'); logEvent('hover',(n?n.textContent:'plan')+' · '+util.fmt(ms/1000),true); }
+    }
+    if(!rel&&e.clientY<=0) markExit();                    // el cursor sale por la barra del navegador
+  },{passive:true});
+}
+
+document.addEventListener('visibilitychange',()=>{
+  lastTick=now();                                         // el tiempo oculto no se acredita a atención ni dwell
+  if(document.hidden) endRead(); readQuiet=0;
+});
+
+/* ---------- score ---------- */
+function bandOf(t){ return t>=80?'SQL':t>=65?'HOT':t>=45?'WARM':t>=25?'MQL·warm':'COLD'; }
+function calcScore(){
+  if(!tracking){ Object.assign(st.score,{total:0,intent:0,eng:0,fit:0,ident:0,band:'COLD'}); return st.score; }
+  const g=id=>stageById(id)||{dwell:0,depth:0,status:'pending'};
+  const pk=g('Paquetes'), wk=g('Work'), sy=g('Sistema');
+  const intent=clamp(pk.depth*.20+Math.min(16,pk.dwell*.9)+(wk.status!=='pending'?4:0),0,40);
+  const eng=clamp(Math.min(14,st.attention*.12)+Math.min(7,st.scroll.depth*.07)+Math.min(4,st.signals*.5),0,25);
+  const fit=clamp(6+Math.min(10,sy.dwell*.7)+(exitIntent?0:4),0,20);
+  const L=st.lead, ident=L?clamp(9+(L.email?3:0)+(L.instagram?3:0),0,15):0;
+  const total=clamp(Math.round(intent+eng+fit+ident),0,100);
+  Object.assign(st.score,{total,intent:r1(intent),eng:r1(eng),fit:r1(fit),ident:r1(ident),band:bandOf(total)});
+  return st.score;
+}
+
+/* ---------- espejo hacia el tracker legado S (#mSpot, startDelivery, openForm, reportBody) ---------- */
+function legacyS(){ try{ return (typeof S!=='undefined'&&S&&S.sections)?S:null; }catch(e){ return null; } }
+let mirroredConsent=false;                                // último S.consent escrito por el espejo
+function mirror(){
+  const L=legacyS(); if(!L) return;
+  // S.consent pasó a true sin que lo escribiera el espejo: acceptConsent legado (si #mConsent sigue en el DOM) ya llamó a
+  // startTracking; se adopta sin arrancarlo dos veces. Tras essential() el true residual es nuestro y no cuenta.
+  if(L.consent===true&&!st.consent&&!mirroredConsent){ legacyStarted=true; accept(); return; }
+  st.stages.forEach(s=>{ const o=L.sections[s.id]; if(o){ o.dwell=s.dwell; o.depth=s.depth; o.entered=s.status!=='pending'; } });
+  L.attn=st.attention; L.maxDepth=st.scroll.depth; L.signals=st.signals; L.consent=mirroredConsent=st.consent;
+  if(L.exitIntent&&!exitIntent) markExit(); L.exitIntent=exitIntent;
+  // submitForm legado escribe S.lead (objeto nuevo en cada envío): se adopta por identidad; nunca se pisa con null
+  if(L.lead&&L.lead!==st.lead) setLead(L.lead); else if(st.lead&&!L.lead) L.lead=st.lead;
+  if(legacyStarted&&!st.consent) syncLegacyCounters();     // revocado: el tick legado se detiene y dejaría números viejos en el hero
+}
+function syncLegacyCounters(){
+  const put=(id,v)=>{ const e=document.getElementById(id); if(e&&e.textContent!==v) e.textContent=v; };
+  put('cSignals',String(st.signals)); put('cAttn',Math.round(st.attention)+'s'); put('cDepth',st.scroll.depth+'%');
+  put('cBand',st.score.band.split('·')[0].toUpperCase()); put('pillScore',String(st.score.total));
+}
+// tick/startTracking legados referencian por ID los contadores del hero, #pill y #pillScore;
+// si otro módulo los sustituyó, un stub oculto evita el ReferenceError cada 500 ms
+const LEGACY_IDS=['pill','pillScore','cSignals','cAttn','cDepth','cBand'];
+function shimLegacyIds(){
+  const missing=LEGACY_IDS.filter(id=>!document.getElementById(id)); if(!missing.length) return;
+  const box=document.createElement('span'); box.hidden=true; box.setAttribute('data-ais-shim','');
+  missing.forEach(id=>{ const e=document.createElement('b'); e.id=id; e.textContent='0'; box.appendChild(e); });
+  document.body.appendChild(box);
+}
+function startLegacy(){
+  if(legacyStarted||typeof startTracking!=='function') return; legacyStarted=true;
+  const L=legacyS(); if(L){ L.consent=true; L.lastTick=now(); }
+  shimLegacyIds();
+  try{ startTracking(); }catch(e){ setTimeout(()=>{ throw e; }); }
+}
+// score() legado usa otra fórmula: envuelto, #mSpot/#mBehavior/cBand muestran el mismo número que el HUD (.total y más)
+function wrapLegacyScore(){
+  const f=window.score; if(typeof f!=='function'||f._ais) return;
+  const w=function(){ return Object.assign({},st.score); }; w._ais=true; w._legacy=f;
+  try{ window.score=w; }catch(e){}
+}
+
+/* ---------- consentimiento ---------- */
+function resetJourney(){                                  // el recorrido cuenta desde la decisión; el reloj de sesión no se toca
+  st.stages.forEach((s,i)=>{ s.status='pending'; s.enteredAt=null; s.dwell=0; s.depth=0; s.reads=[]; meta[i].dwell=0; });
+  st.current=null; st.events.length=0; st.signals=0; st.trustSeconds=0;
+  Object.assign(st.reading,{active:false,stage:null,since:null}); readQuiet=0; exitIntent=false; clicks=[];
+}
+function accept(){
+  if(st.consent) return;
+  st.consent=true; st.consentAt=secs(); tracking=true;
+  ignoreClicksUntil=now()+400;
+  resetJourney();
+  logEvent('consent','consentimiento aceptado',false);   // primer evento del log; la entrada en etapa va después
+  if(!document.hidden) setCurrent(measure());
+  calcScore(); mirror();
+  emit('consent',{essential:false});
+  startLegacy();
+}
+function essential(){                                     // sin scoring; también sirve para revocar tras aceptar
+  const was=st.consent;
+  st.consent=false; st.consentAt=null; tracking=false;
+  resetJourney(); if(!document.hidden) setCurrent(measure());
+  calcScore(); mirror();
+  emit('consent',{essential:true,revoked:was});
+}
+
+/* ---------- lead ---------- */
+function setLead(lead){
+  if(!lead||typeof lead!=='object') return null;
+  const s=v=>(v==null?'':String(v)).trim().slice(0,120);
+  const L={name:s(lead.name),wa:s(lead.wa).replace(/[^0-9+]/g,''),email:s(lead.email),instagram:s(lead.instagram).replace(/^@/,'')};
+  st.lead=L; const LS=legacyS(); if(LS) LS.lead=L;
+  if(tracking) logEvent('lead','lead registrado',true);
+  calcScore(); emit('lead',L); return L;
+}
+
+/* ---------- util ---------- */
+const util={
+  fmt(s){ if(s==null||!isFinite(s)) return '—'; s=Math.max(0,s); if(s<60) return s.toFixed(1)+'s'; const m=Math.floor(s/60), r=Math.floor(s%60); return m+'m '+(r<10?'0':'')+r+'s'; },
+  pct(n){ return (n==null||!isFinite(n))?'—':Math.round(n)+'%'; },
+  maskWa(w){ w=String(w||'').replace(/[^0-9]/g,''); if(!w) return '—'; if(w.length<6) return '+'+w.slice(0,2)+'•••'; return '+'+w.slice(0,4)+'•••'+w.slice(-2); },
+  wait(ms){ return new Promise(r=>setTimeout(r,ms)); },
+  clamp
+};
+
+/* ---------- el único reloj ---------- */
+let lastScrollKey='', lastSpeed=-1, lastMoves=0;
+function tick(){
+  const t=now(), dt=Math.min(2,(t-lastTick)/1000); lastTick=t;
+  const vis=!document.hidden;
+  st.seconds=secs();
+  if(vis){ attnRaw+=dt; st.attention=r1(attnRaw); }
+
+  if(!sc.dirty){ vel*=IDLE_DECAY; if(Math.abs(vel)<1) vel=0; } sc.dirty=false;
+  if(vis){
+    const cur=Math.round(clamp((scrollY+innerHeight)/Math.max(1,document.documentElement.scrollHeight)*100,0,100));
+    st.scroll.current=cur; if(cur>st.scroll.depth) st.scroll.depth=cur;
+  }
+  st.scroll.velocity=Math.round(vel);
+  const sk=st.scroll.current+'|'+st.scroll.depth+'|'+st.scroll.velocity;
+  if(sk!==lastScrollKey){ lastScrollKey=sk; emit('scroll',{current:st.scroll.current,depth:st.scroll.depth,velocity:st.scroll.velocity}); }
+
+  if(!cu.dirty){ cu.raw*=IDLE_DECAY; if(cu.raw<1) cu.raw=0; } cu.dirty=false;
+  let speed=cu.raw; if(isTouch&&speed<Math.abs(vel)) speed=Math.abs(vel);   // táctil: la inercia del scroll también es movimiento
+  st.cursor.speed=Math.round(speed);
+  if(st.cursor.speed!==lastSpeed||st.cursor.moves!==lastMoves){ lastSpeed=st.cursor.speed; lastMoves=st.cursor.moves; emit('cursor',{speed:st.cursor.speed}); }
+
+  if(vis) setCurrent(measure());
+  if(tracking&&vis&&st.current){ const i=st.stages.findIndex(s=>s.id===st.current); if(i>=0){ meta[i].dwell+=dt; st.stages[i].dwell=r1(meta[i].dwell); } }
+  readTick(dt,vis);
+  calcScore();
+  mirror();
+  emit('tick',st);
+}
+
+/* ---------- arranque ---------- */
+const AIS={state:st,on,off,emit,accept,essential,score:calcScore,signal,setLead,util};
+buildStages();
+if(!st.stages.length&&document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ buildStages(); if(!document.hidden) setCurrent(measure()); },{once:true});
+if(!document.hidden) setCurrent(measure());
+wrapLegacyScore();                                        // el script del sitio ya corrió; por si se inserta antes, se reintenta en load
+addEventListener('load',wrapLegacyScore,{once:true});
+setInterval(tick,TICK);
+window.AIS=AIS;
+document.dispatchEvent(new CustomEvent('ais:ready',{detail:AIS}));
+})();
+</script>
+<!-- ===== script mod-3d ===== -->
+<script>
+(function () {
+'use strict';
+if (window.T3D) return;
+
+const TAU = Math.PI * 2, DEG = Math.PI / 180;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const FINE = matchMedia('(pointer: fine)');
+const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js';
+const scenes = [];
+
+const T3D = { version: '1.0.0', three: null, hero: null, turntable: null, fx: null, stats, pause, resume };
+window.T3D = T3D;
+
+/* ---------- AIS: opcional, se comprueba en cada uso ---------- */
+function ais() { const a = window.AIS; return a && a.state ? a : null; }
+function signal(type, label) {
+  const a = ais();
+  if (a && typeof a.signal === 'function') { try { a.signal(type, label); } catch (e) { /* módulo ajeno: nunca romper por él */ } }
+}
+let lastSig = 0;
+function signalThrottled(type, label) { const n = performance.now(); if (n - lastSig < 1500) return; lastSig = n; signal(type, label); }
+document.addEventListener('ais:ready', () => { hero.dirty = true; wake(); }, { once: true });
+
+/* ---------- Un solo loop rAF para todo el módulo ----------
+   Cada tarea devuelve true mientras necesite otro frame. Sin tareas vivas, el loop se apaga. */
+const tasks = [];
+let running = false, paused = false, last = 0, rafId = 0;
+function wake() { if (running || paused || document.hidden) return; running = true; last = performance.now(); rafId = requestAnimationFrame(frame); }
+function halt() { running = false; cancelAnimationFrame(rafId); }
+function frame(now) {
+  if (!running) return;
+  const dt = clamp((now - last) / 1000, 0, 0.05); last = now;
+  let more = false;
+  for (let i = 0; i < tasks.length; i++) { if (tasks[i](dt, now)) more = true; }
+  if (more) rafId = requestAnimationFrame(frame); else running = false;
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) halt(); else wake(); });
+function pause() { paused = true; halt(); }
+function resume() { paused = false; wake(); }
+
+/* ======================= (b) 3D POR SCROLL ======================= */
+const fx = { on: false, dirty: true, secs: [], cards: [], gx: '', gy: '', tiltB: 0, tiltG: 0, oBase: null };
+const hero = { px: 0, py: 0, tx: 0, ty: 0, dirty: true, vis: false, spin: 0, amp: 1, t: 0 };
+
+function docTop(el) { let t = 0, n = el; while (n) { t += n.offsetTop; n = n.offsetParent; } return t; }
+
+function initFx() {
+  fx.secs = Array.from(document.querySelectorAll('section.sec'));
+  fx.cards = Array.from(document.querySelectorAll('.plan,.phase,.cell,.member'));
+  T3D.fx = { get enabled() { return fx.on; }, sections: fx.secs.length, cards: fx.cards.length };
+  addEventListener('scroll', () => { fx.dirty = true; hero.dirty = true; wake(); }, { passive: true });
+  addEventListener('resize', () => { fx.dirty = true; hero.dirty = true; wake(); }, { passive: true });
+  addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    hero.tx = clamp(e.clientX / innerWidth * 2 - 1, -1, 1); hero.ty = clamp(e.clientY / innerHeight * 2 - 1, -1, 1);
+    hero.dirty = true; fx.dirty = true; wake();
+  }, { passive: true });
+  if ('DeviceOrientationEvent' in window) {
+    // escucha pasiva: en iOS sin permiso simplemente no llega nada. La primera lectura es el reposo.
+    addEventListener('deviceorientation', e => {
+      if (typeof e.beta !== 'number' || typeof e.gamma !== 'number') return;
+      if (!fx.oBase) fx.oBase = { b: e.beta, g: e.gamma };
+      const g = clamp((e.gamma - fx.oBase.g) / 30, -1, 1), b = clamp((e.beta - fx.oBase.b) / 30, -1, 1);
+      if (Math.abs(g - fx.tiltG) < 0.02 && Math.abs(b - fx.tiltB) < 0.02) return;
+      fx.tiltG = g; fx.tiltB = b; fx.dirty = true; hero.dirty = true; wake();
+    }, { passive: true });
+  }
+  fx.cards.forEach(c => { if (FINE.matches) bindTilt(c); });
+  tasks.push(fxTask);
+  setFx(!RM.matches);
+  if (RM.addEventListener) RM.addEventListener('change', () => setFx(!RM.matches));
+}
+
+function setFx(on) {
+  fx.on = on;
+  document.documentElement.classList.toggle('t3d-fx', on);
+  fx.cards.forEach(c => c.classList.toggle('t3d-tilt', on));
+  if (!on) {
+    fx.secs.concat(fx.cards).forEach(el => { el.style.transform = ''; el.style.opacity = ''; el._t3d = false; });
+    document.documentElement.style.removeProperty('--t3d-gx'); document.documentElement.style.removeProperty('--t3d-gy'); fx.gx = fx.gy = '';
+  }
+  fx.dirty = true; wake();
+}
+
+function fxTask() {
+  if (!fx.on || !fx.dirty) return false;
+  fx.dirty = false;
+  const vh = innerHeight, sy = scrollY, root = document.documentElement.style;
+  // rejilla: deriva al 8% del scroll (módulo 100 = una celda, el salto es invisible) + cursor/giroscopio
+  const gy = (-((sy * 0.08) % 100)).toFixed(1) + 'px', gx = (hero.tx * 6 + fx.tiltG * 8).toFixed(1) + 'px';
+  if (gy !== fx.gy) { root.setProperty('--t3d-gy', gy); fx.gy = gy; }
+  if (gx !== fx.gx) { root.setProperty('--t3d-gx', gx); fx.gx = gx; }
+  // secciones: entrada progresiva desde abajo. offsetTop ignora el transform (getBoundingClientRect realimentaría).
+  for (const el of fx.secs) {
+    const top = docTop(el) - sy;
+    if (top >= vh + 60 || top <= vh * 0.42) { if (el._t3d) { el.style.transform = ''; el.style.opacity = ''; el._t3d = false; } continue; }
+    const e = clamp((vh - top) / (vh * 0.58), 0, 1), k = 1 - e * e * (3 - 2 * e);
+    el.style.transform = 'perspective(1100px) rotateX(' + (k * 7).toFixed(2) + 'deg) translateZ(' + (-k * 90).toFixed(1) + 'px)';
+    el.style.opacity = (1 - k * 0.7).toFixed(3);
+    el._t3d = true;
+  }
+  // táctil: tilt sutil por posición en pantalla (+ giroscopio si llega). El centro del rect no se mueve con rotateX.
+  if (!FINE.matches) {
+    for (const c of fx.cards) {
+      const r = c.getBoundingClientRect();
+      if (r.bottom < -40 || r.top > vh + 40) { if (c._t3d) { c.style.transform = ''; c._t3d = false; } continue; }
+      const p = clamp(((r.top + r.bottom) / 2 - vh / 2) / (vh / 2), -1, 1);
+      c.style.transform = 'perspective(900px) rotateX(' + (-p * 4 + fx.tiltB * 2).toFixed(2) + 'deg) rotateY(' + (fx.tiltG * 3).toFixed(2) + 'deg)';
+      c._t3d = true;
+    }
+  }
+  return false;
+}
+
+function bindTilt(el) {
+  let rect = null;
+  el.addEventListener('pointerenter', e => { if (!fx.on || e.pointerType !== 'mouse') return; rect = el.getBoundingClientRect(); el.classList.add('t3d-live'); });
+  el.addEventListener('pointermove', e => {
+    if (!rect) return;
+    const nx = clamp((e.clientX - rect.left) / rect.width, 0, 1), ny = clamp((e.clientY - rect.top) / rect.height, 0, 1);
+    // ≤ 8°: el panel sigue al cursor sin despegarse de la rejilla
+    el.style.transform = 'perspective(900px) rotateX(' + ((0.5 - ny) * 8).toFixed(2) + 'deg) rotateY(' + ((nx - 0.5) * 8).toFixed(2) + 'deg) translateZ(6px)';
+  });
+  el.addEventListener('pointerleave', () => { rect = null; el.style.transform = ''; setTimeout(() => { if (!rect) el.classList.remove('t3d-live'); }, 420); });
+}
+
+/* ======================= (a) ESFERA DEL HERO ======================= */
+const HERO_N = 8000, HERO_CAMD = 4.4;
+const heroVert = [
+  'uniform float uTime, uAmp, uPx, uCamD;',
+  'attribute float aSeed;',
+  'varying float vDepth, vSeed;',
+  'void main(){',
+  '  vec3 w = (modelMatrix * vec4(position, 1.0)).xyz;',
+  // ruido en direcciones DIAGONALES: senos alineados a los ejes abultan en ±X/±Y/±Z y cuadran la esfera
+  '  float u = dot(w, vec3(0.60, 0.50, 0.62));',
+  '  float v = dot(w, vec3(-0.52, 0.71, 0.48));',
+  '  float n = 0.042*sin(u*4.5 + uTime) + 0.032*sin(v*5.5 - uTime*1.15) + 0.016*sin((u+v)*8.5 + uTime*2.0);',
+  '  vec4 mv = modelViewMatrix * vec4(position * (1.0 + n*uAmp), 1.0);',
+  '  vDepth = clamp((mv.z + uCamD + 1.0) * 0.5, 0.0, 1.0);',
+  '  vSeed = aSeed;',
+  '  gl_Position = projectionMatrix * mv;',
+  '  gl_PointSize = uPx * (0.9 + 1.4*vDepth);',
+  '}'].join('\n');
+const heroFrag = [
+  'uniform vec3 uInk, uTeal;',
+  'varying float vDepth, vSeed;',
+  'void main(){',
+  '  vec2 c = gl_PointCoord - 0.5; float d = dot(c, c);',
+  '  if (d > 0.25) discard;',
+  '  float soft = 1.0 - smoothstep(0.10, 0.25, d);',
+  '  vec3 col = mix(uInk, uTeal, step(0.86, vSeed));',
+  '  gl_FragColor = vec4(col, (0.08 + 0.72*vDepth*vDepth) * soft);',
+  '  #include <colorspace_fragment>',
+  '}'].join('\n');
+
+function initHero(THREE) {
+  const old = document.getElementById('heroSphere');
+  const box = old && old.closest('.sphere-box');
+  if (!box) return null;
+  const canvas = document.createElement('canvas'); canvas.className = 't3d-hero'; canvas.setAttribute('aria-hidden', 'true');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'low-power' }); }
+  catch (e) { return null; }                                   // sin WebGL: el particleSphere existente sigue
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const pos = new Float32Array(HERO_N * 3), seed = new Float32Array(HERO_N);
+  for (let i = 0; i < HERO_N; i++) {
+    const y = 1 - (i / (HERO_N - 1)) * 2, r = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399963229;
+    const j = () => (Math.random() - 0.5) * 0.035;            // jitter: rompe el moiré de la espiral de Fibonacci
+    pos[i * 3] = Math.cos(th) * r + j(); pos[i * 3 + 1] = y + j(); pos[i * 3 + 2] = Math.sin(th) * r + j();
+    seed[i] = Math.random();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+  const u = {
+    uTime: { value: 0 }, uAmp: { value: 1 }, uPx: { value: 2 }, uCamD: { value: HERO_CAMD },
+    uInk: { value: new THREE.Color(0x1a1e2a) }, uTeal: { value: new THREE.Color(0x12907f) }
+  };
+  const mat = new THREE.ShaderMaterial({ uniforms: u, vertexShader: heroVert, fragmentShader: heroFrag, transparent: true, depthWrite: false, depthTest: false });
+  const pts = new THREE.Points(geo, mat);
+  const scene = new THREE.Scene(); scene.add(pts); scenes.push(scene);
+  const cam = new THREE.PerspectiveCamera(36, 1, 0.1, 20); cam.position.set(0, 0, HERO_CAMD);
+
+  function resize() {
+    const w = box.clientWidth, h = box.clientHeight; if (w < 2 || h < 2) return;
+    const pr = Math.min(devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
+    cam.aspect = w / h; cam.updateProjectionMatrix();
+    u.uPx.value = pr * 1.9 * clamp(h / 600, 0.7, 1.3);
+    hero.dirty = true; wake();
+  }
+
+  // relevo del canvas 2D: se para y se oculta (su IntersectionObserver lo verá no visible y no volverá a arrancar)
+  if (typeof heroS !== 'undefined' && heroS && typeof heroS.stop === 'function') { try { heroS.stop(); } catch (e) { /* ya parado */ } }
+  old.style.display = 'none';
+  box.insertBefore(canvas, old.nextSibling);
+  resize();
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(box); else addEventListener('resize', resize, { passive: true });
+  new IntersectionObserver(es => es.forEach(e => { hero.vis = e.isIntersecting; hero.dirty = true; wake(); }), { threshold: 0.05 }).observe(canvas);
+
+  tasks.push(function heroTask(dt) {
+    if (!hero.vis) return false;
+    const reduce = RM.matches;
+    // parallax: el cursor arrastra la esfera con inercia
+    hero.px += (hero.tx - hero.px) * Math.min(1, dt * 4);
+    hero.py += (hero.ty - hero.py) * Math.min(1, dt * 4);
+    // reactividad conductual (si el core está): cursor rápido → más turbulencia; scroll rápido → gira más
+    let turb = 0, boost = 0; const a = ais();
+    if (a) {
+      turb = clamp(((a.state.cursor && a.state.cursor.speed) || 0) / 1800, 0, 1);
+      boost = clamp(Math.abs((a.state.scroll && a.state.scroll.velocity) || 0) / 2500, 0, 1);
+    }
+    hero.amp += ((1 + turb * 0.9) - hero.amp) * Math.min(1, dt * 2);
+    if (!reduce) { hero.t += dt * (0.3 + boost * 0.6); hero.spin += dt * (0.10 + boost * 0.5); }
+    pts.rotation.y = hero.spin + scrollY * 0.0016 + hero.px * 0.35;
+    pts.rotation.x = -hero.py * 0.28 + fx.tiltB * 0.12;
+    u.uTime.value = hero.t; u.uAmp.value = hero.amp;
+    renderer.render(scene, cam);
+    if (reduce) { const settled = Math.abs(hero.tx - hero.px) < 0.003 && Math.abs(hero.ty - hero.py) < 0.003; const again = hero.dirty || !settled; hero.dirty = false; return again; }
+    return true;
+  });
+  return { canvas, points: HERO_N, get visible() { return hero.vis; } };
+}
+
+/* ======================= (c) TURNTABLE 360/180 ======================= */
+const tt = { rot: 0, vel: 0, target: null, drag: false, mode: 360, dir: 1, idleUntil: 0, vis: false, dirty: true, w: 0, h: 0, lastNote: '', frames: [], dragged: false };
+const norm = r => ((r % TAU) + TAU) % TAU;
+const normDeg = r => Math.round(norm(r) / DEG) % 360;
+
+function roundedRect(THREE, w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+function signalTexture(THREE) {
+  // 256×128 (potencias de 2: sin aviso de redimensionado en WebGL1). Sin texto: no depende de fuentes.
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#0a131c'; g.fillRect(0, 0, 256, 128);
+  g.strokeStyle = 'rgba(47,197,177,.14)'; g.lineWidth = 1;
+  for (let x = 16; x < 256; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); }
+  for (let y = 16; y < 128; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+  g.strokeStyle = '#2fc5b1'; g.lineWidth = 3; g.lineJoin = 'round'; g.shadowColor = '#2fc5b1'; g.shadowBlur = 8;
+  g.beginPath();
+  for (let x = 0; x <= 256; x += 2) { const y = 60 + Math.sin(x * 0.075) * 20 * Math.sin(x * 0.014 + 0.6) + Math.sin(x * 0.31) * 4; if (x) g.lineTo(x, y); else g.moveTo(x, y); }
+  g.stroke();
+  g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.5)';
+  for (let i = 0; i < 7; i++) g.fillRect(18 + i * 31, 110, 14, 3);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function shadowTexture(THREE) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 32, 2, 64, 32, 62);
+  gr.addColorStop(0, 'rgba(13,16,23,.6)'); gr.addColorStop(1, 'rgba(13,16,23,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 64);
+  return new THREE.CanvasTexture(c);
+}
+function makeEnv(THREE, renderer) {
+  // "sala" de estudio procedural para reflejos (clearcoat, metal). Sin RoomEnvironment (no está en el UMD).
+  const s = new THREE.Scene(), geos = [], mats = [];
+  const add = (geo, color, pos, rot, side) => {
+    const m = new THREE.MeshBasicMaterial({ color, side: side || THREE.DoubleSide }), mesh = new THREE.Mesh(geo, m);
+    mesh.position.set(pos[0], pos[1], pos[2]); if (rot) mesh.rotation.set(rot[0], rot[1], rot[2]);
+    s.add(mesh); geos.push(geo); mats.push(m);
+  };
+  add(new THREE.BoxGeometry(14, 14, 14), 0x2b3140, [0, 0, 0], null, THREE.BackSide);
+  add(new THREE.PlaneGeometry(6, 3.5), 0xffffff, [0, 6.5, 0], [Math.PI / 2, 0, 0]);       // techo: softbox
+  add(new THREE.PlaneGeometry(3, 5), 0xe6eefc, [-6.5, 1, 1.5], [0, Math.PI / 2, 0]);      // izquierda: frío
+  add(new THREE.PlaneGeometry(2.5, 4), 0xbde9e1, [6.5, 0.5, -1], [0, -Math.PI / 2, 0]);   // derecha: teal tenue
+  add(new THREE.PlaneGeometry(5, 2), 0xffffff, [0, 1.5, -6.5], null);                       // fondo
+  const pm = new THREE.PMREMGenerator(renderer), rt = pm.fromScene(s, 0.04);
+  pm.dispose(); geos.forEach(g => g.dispose()); mats.forEach(m => m.dispose());
+  return rt.texture;
+}
+function buildProduct(THREE, g) {
+  // "módulo de señal": placa navy biselada, anillo teal luminoso, pantalla de vidrio, pines metálicos
+  const ZF = 0.078;                                              // cara frontal de la placa (depth/2 + bisel)
+  const navy = new THREE.MeshPhysicalMaterial({ color: 0x0d1017, roughness: 0.38, metalness: 0.2, clearcoat: 0.7, clearcoatRoughness: 0.25, envMapIntensity: 0.9 });
+  const plateGeo = new THREE.ExtrudeGeometry(roundedRect(THREE, 1.6, 1.08, 0.12), { depth: 0.1, bevelEnabled: true, bevelThickness: 0.028, bevelSize: 0.026, bevelSegments: 3, curveSegments: 6 });
+  plateGeo.center();
+  g.add(new THREE.Mesh(plateGeo, navy));
+
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.028, 14, 72),
+    new THREE.MeshStandardMaterial({ color: 0x2fc5b1, emissive: 0x2fc5b1, emissiveIntensity: 1.8, roughness: 0.35, metalness: 0 }));
+  ring.position.set(-0.42, 0.03, ZF + 0.02); g.add(ring);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.262, 40),
+    new THREE.MeshPhysicalMaterial({ color: 0x0a1d24, emissive: 0x0f8577, emissiveIntensity: 0.25, roughness: 0.1, metalness: 0, clearcoat: 1 }));
+  lens.position.set(-0.42, 0.03, ZF + 0.006); g.add(lens);
+  const glow = new THREE.PointLight(0x2fc5b1, 2.2, 1.4, 2); glow.position.set(-0.42, 0.03, ZF + 0.25); g.add(glow);
+
+  const tex = signalTexture(THREE);
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.44, 0.02),
+    new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.75, roughness: 0.3, metalness: 0 }));
+  screen.position.set(0.38, 0.04, ZF + 0.01); g.add(screen);
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.50, 0.014),
+    new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.28, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.2, depthWrite: false }));
+  glass.position.set(0.38, 0.04, ZF + 0.028); g.add(glass);
+
+  const steel = new THREE.MeshStandardMaterial({ color: 0xc9d0dd, metalness: 1, roughness: 0.28, envMapIntensity: 1.1 });
+  const pinGeo = new THREE.CylinderGeometry(0.022, 0.018, 0.22, 12, 1);
+  for (let i = 0; i < 6; i++) { const p = new THREE.Mesh(pinGeo, steel); p.position.set(-0.5 + i * 0.2, -0.64, 0); g.add(p); }
+  const screwGeo = new THREE.CylinderGeometry(0.034, 0.034, 0.016, 10, 1); screwGeo.rotateX(Math.PI / 2);
+  [[-0.7, -0.44], [0.7, -0.44], [-0.7, 0.44], [0.7, 0.44]].forEach(c => { const s = new THREE.Mesh(screwGeo, steel); s.position.set(c[0], c[1], ZF + 0.004); g.add(s); });
+}
+
+function buildMarkup() {
+  // mismo árbol que #t3d-tpl, por si el integrador omite el template
+  const root = document.createElement('div'); root.className = 't3d-tt';
+  root.innerHTML = '<div class="t3d-view"><canvas class="t3d-cv" aria-label="Módulo de señal · visor 3D"></canvas>' +
+    '<div class="t3d-hud"><button type="button" class="t3d-mode" aria-pressed="false" title="Alternar barrido 360° / 180°">360°</button>' +
+    '<span class="t3d-hint">arrastra · orbita</span></div><div class="note t3d-note">transform: rotateY(0deg)</div></div>' +
+    '<div class="t3d-strip" aria-label="Frames del turntable"></div>';
+  return root;
+}
+
+function initTurntable(THREE) {
+  const ws = document.getElementById('workSphere');
+  const cell = ws && ws.closest('.car-cell');
+  if (!cell) return null;
+  // renderer primero: si WebGL falla, la celda queda intacta
+  const canvas = document.createElement('canvas'); canvas.className = 't3d-cv'; canvas.setAttribute('aria-label', 'Módulo de señal · visor 3D');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' }); }
+  catch (e) { return null; }
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+
+  const tpl = document.getElementById('t3d-tpl');
+  const root = (tpl && tpl.content && tpl.content.firstElementChild) ? tpl.content.firstElementChild.cloneNode(true) : buildMarkup();
+  const view = root.querySelector('.t3d-view'), strip = root.querySelector('.t3d-strip'), note = root.querySelector('.t3d-note'), btn = root.querySelector('.t3d-mode');
+  const tplCanvas = view.querySelector('canvas.t3d-cv'); if (tplCanvas) tplCanvas.replaceWith(canvas); else view.prepend(canvas);
+
+  const scene = new THREE.Scene(); scenes.push(scene);
+  const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 30); cam.position.set(0, 0.55, 3.35); cam.lookAt(0, -0.04, 0);
+  scene.environment = makeEnv(THREE, renderer);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xcfd6e4, 0.8));
+  const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(2.4, 3.2, 2.6); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xdfe9ff, 0.8); fill.position.set(-3, 1.2, 2); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.6); rim.position.set(0, 2, -3); scene.add(rim);
+  const group = new THREE.Group(); scene.add(group); buildProduct(THREE, group);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.3), new THREE.MeshBasicMaterial({ map: shadowTexture(THREE), transparent: true, opacity: 0.55, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = -0.80; scene.add(shadow);
+
+  // relevo del canvas 2D de onda y montaje
+  if (typeof workS !== 'undefined' && workS && typeof workS.stop === 'function') { try { workS.stop(); } catch (e) { /* ya parado */ } }
+  cell.innerHTML = ''; cell.appendChild(root);
+
+  function resize() {
+    const w = view.clientWidth, h = view.clientHeight; if (w < 2 || h < 2) return;
+    tt.w = w; tt.h = h;
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.setSize(w, h, false);
+    cam.aspect = w / h; cam.updateProjectionMatrix();
+    tt.dirty = true; wake();
+  }
+  function limit(r) { return tt.mode === 180 ? clamp(r, -Math.PI / 2, Math.PI / 2) : r; }
+  function bounce() {
+    // 180°: barre solo el hemisferio frontal e invierte al llegar al borde
+    const L = Math.PI / 2;
+    if (tt.rot > L) { tt.rot = L; tt.dir = -1; tt.vel = -Math.abs(tt.vel) * 0.35; }
+    else if (tt.rot < -L) { tt.rot = -L; tt.dir = 1; tt.vel = Math.abs(tt.vel) * 0.35; }
+  }
+  function updateNote() {
+    const deg = normDeg(tt.rot), s = 'transform: rotateY(' + deg + 'deg)';
+    if (s === tt.lastNote) return;
+    tt.lastNote = s; note.textContent = s;
+    let best = -1, bd = 1e9;
+    tt.frames.forEach((b, i) => { let d = Math.abs(b._deg - deg); d = Math.min(d, 360 - d); if (d < bd) { bd = d; best = i; } });
+    tt.frames.forEach((b, i) => b.classList.toggle('on', i === best));
+  }
+  function angles() { return tt.mode === 360 ? Array.from({ length: 12 }, (_, i) => i * 30) : [-90, -60, -30, 0, 30, 60, 90]; }
+  function disposeFrames() {
+    tt.frames.forEach(b => { const c = b.firstChild; if (c && c.tagName === 'CANVAS') { c.width = 0; c.height = 0; } b.remove(); });
+    tt.frames.length = 0;
+  }
+  function renderFrames() {
+    disposeFrames();
+    // mismo renderer: se encoge, renderiza cada ángulo y se copia en caliente (mismo task, el buffer aún es válido)
+    const pr = Math.min(devicePixelRatio || 1, 2), FW = 52, FH = 39;
+    const saveRot = group.rotation.y, saveAspect = cam.aspect;
+    renderer.setPixelRatio(pr); renderer.setSize(FW, FH, false); cam.aspect = FW / FH; cam.updateProjectionMatrix();
+    const frag = document.createDocumentFragment();
+    angles().forEach(a => {
+      group.rotation.y = a * DEG; renderer.render(scene, cam);
+      const c = document.createElement('canvas'); c.width = FW * pr; c.height = FH * pr;
+      c.getContext('2d').drawImage(renderer.domElement, 0, 0, c.width, c.height);
+      const lab = ((a % 360) + 360) % 360;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 't3d-fr'; b.setAttribute('aria-label', 'Ver a ' + lab + '°'); b._deg = lab;
+      const s = document.createElement('span'); s.textContent = lab + '°';
+      b.appendChild(c); b.appendChild(s);
+      b.addEventListener('click', () => goTo(a));
+      tt.frames.push(b); frag.appendChild(b);
+    });
+    strip.appendChild(frag);
+    group.rotation.y = saveRot; cam.aspect = saveAspect; cam.updateProjectionMatrix();
+    if (tt.w > 1 && tt.h > 1) { renderer.setSize(tt.w, tt.h, false); renderer.render(scene, cam); }
+    tt.lastNote = ''; updateNote();
+  }
+  function goTo(a) {
+    const t = a * DEG;
+    if (tt.mode === 360) { const cur = norm(tt.rot); let d = norm(t) - cur; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; tt.rot = cur; tt.target = cur + d; }
+    else tt.target = clamp(t, -Math.PI / 2, Math.PI / 2);
+    tt.vel = 0; tt.idleUntil = performance.now() + 2600;
+    signalThrottled('3d', 'frame ' + (((a % 360) + 360) % 360) + '°');
+    wake();
+  }
+  function setMode(m) {
+    m = (m === 180 || m === '180') ? 180 : 360;
+    if (m === tt.mode) return;
+    tt.mode = m; btn.textContent = m + '°'; btn.setAttribute('aria-pressed', m === 180 ? 'true' : 'false');
+    if (m === 180) {
+      let r = norm(tt.rot); if (r > Math.PI) r -= TAU; tt.rot = r;                 // al hemisferio frontal por el camino corto
+      if (Math.abs(r) > Math.PI / 2) tt.target = r > 0 ? Math.PI / 2 : -Math.PI / 2;
+      tt.dir = r >= 0 ? -1 : 1;
+    } else { tt.rot = norm(tt.rot); tt.target = null; tt.dir = 1; }
+    tt.vel = 0; tt.idleUntil = performance.now() + 1200;
+    renderFrames();
+    signal('3d', 'modo ' + m + '°');
+    tt.dirty = true; wake();
+  }
+
+  // arrastre: pointer events cubren ratón y táctil; touch-action:pan-y deja pasar el scroll vertical
+  let lx = 0, lt = 0;
+  view.addEventListener('pointerdown', e => {
+    if (e.target.closest('.t3d-mode')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    tt.drag = true; tt.target = null; tt.vel = 0; lx = e.clientX; lt = e.timeStamp;
+    view.classList.add('t3d-drag');
+    try { view.setPointerCapture(e.pointerId); } catch (x) { /* sin captura: sigue funcionando */ }
+    if (!tt.dragged) { tt.dragged = true; signal('3d', 'orbit turntable'); }
+    wake();
+  });
+  view.addEventListener('pointermove', e => {
+    if (!tt.drag) return;
+    const dx = e.clientX - lx, ms = Math.max(1, e.timeStamp - lt); lx = e.clientX; lt = e.timeStamp;
+    const d = dx * 0.0085;
+    tt.rot = limit(tt.rot + d);
+    tt.vel = clamp(tt.vel * 0.6 + (d / (ms / 1000)) * 0.4, -8, 8);
+    tt.dirty = true; wake();
+  });
+  const up = () => { if (!tt.drag) return; tt.drag = false; view.classList.remove('t3d-drag'); tt.idleUntil = performance.now() + 1800; if (Math.abs(tt.vel) < 0.15) tt.vel = 0; wake(); };
+  view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up); view.addEventListener('lostpointercapture', up);
+  btn.addEventListener('click', e => { e.stopPropagation(); setMode(tt.mode === 360 ? 180 : 360); });
+
+  resize();
+  renderFrames();
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(view); else addEventListener('resize', resize, { passive: true });
+  new IntersectionObserver(es => es.forEach(e => { tt.vis = e.isIntersecting; tt.dirty = true; wake(); }), { threshold: 0.1 }).observe(view);
+
+  tasks.push(function ttTask(dt, now) {
+    if (!tt.vis) return false;
+    let moving = false;
+    if (tt.drag) moving = true;
+    else if (tt.target !== null) {
+      const d = tt.target - tt.rot;
+      if (Math.abs(d) < 0.0008) { tt.rot = tt.target; tt.target = null; } else { tt.rot += d * Math.min(1, dt * 7); moving = true; }
+    } else if (Math.abs(tt.vel) > 0.002) {
+      tt.rot += tt.vel * dt; tt.vel *= Math.pow(0.08, dt);            // inercia: pierde ~92% por segundo
+      if (tt.mode === 180) bounce();
+      moving = true;
+    } else if (!RM.matches && now >= tt.idleUntil) {
+      tt.rot += tt.dir * 0.42 * dt; if (tt.mode === 180) bounce();     // autorrotación
+      moving = true;
+    }
+    if (tt.mode === 360 && tt.target === null && !tt.drag) tt.rot = norm(tt.rot);
+    if (tt.dirty || moving) { group.rotation.y = tt.rot; renderer.render(scene, cam); updateNote(); tt.dirty = false; }
+    return moving;
+  });
+
+  return {
+    element: root,
+    setAngle: deg => goTo(Number(deg) || 0),
+    getAngle: () => normDeg(tt.rot),
+    setMode,
+    getMode: () => tt.mode,
+    refreshFrames: renderFrames
+  };
+}
+
+function fallbackTurntable() {
+  const ws = document.getElementById('workSphere');
+  const cell = ws && ws.closest('.car-cell');
+  if (!cell || cell.querySelector('.t3d-nowebgl')) return;
+  const n = document.createElement('div'); n.className = 'note t3d-nowebgl'; n.textContent = 'WebGL no disponible';
+  cell.appendChild(n);
+}
+
+/* ---------- stats para el integrador ---------- */
+function stats() {
+  let v = 0;
+  scenes.forEach(s => s.traverse(o => { if ((o.isMesh || o.isPoints) && o.geometry && o.geometry.attributes.position) v += o.geometry.attributes.position.count; }));
+  return { three: T3D.three, vertices: v, activeScenes: scenes.length, loop: running, reducedMotion: RM.matches, mode: tt.mode, angle: normDeg(tt.rot) };
+}
+
+/* ---------- carga de Three.js: script tag con onerror → fallback ----------
+   Dinámico y async: un CDN colgado no retrasa el load del sitio (particleSphere, consentimiento). */
+function loadThree(done) {
+  if (window.THREE) { done(true); return; }
+  let settled = false; const fin = ok => { if (settled) return; settled = true; clearTimeout(tm); done(ok && !!window.THREE); };
+  const s = document.createElement('script'); s.src = THREE_URL; s.async = true;
+  s.onload = () => fin(true); s.onerror = () => fin(false);
+  const tm = setTimeout(() => fin(false), 15000);
+  document.head.appendChild(s);
+}
+
+/* ---------- arranque: necesita load (heroS/workS ya creados) y el resultado de THREE ---------- */
+let loaded = false, threeState = null, booted = false;
+function boot() {
+  if (!loaded || threeState === null || booted) return;
+  booted = true;
+  if (threeState && window.THREE) {
+    const THREE = window.THREE;
+    T3D.three = true;
+    T3D.hero = initHero(THREE);
+    T3D.turntable = initTurntable(THREE);
+    if (!T3D.turntable) fallbackTurntable();
+  } else { T3D.three = false; fallbackTurntable(); }
+}
+function onLoad() { if (loaded) return; loaded = true; initFx(); boot(); }
+if (document.readyState === 'complete') onLoad(); else addEventListener('load', onLoad);
+loadThree(ok => { threeState = ok; boot(); });
+})();
+</script>
+<!-- ===== script mod-hud ===== -->
+<script>
+/* ==========================================================================
+   mod-hud · HUD 3D de consentimiento (sustituye a #mConsent)
+   Todo dato visible sale de AIS.state en 'tick'; antes de aceptar solo hay memoria
+   y la UI lo dice. Un único rAF para el tilt, que se detiene sin input, con la
+   pestaña oculta o con el panel fuera de vista. La barra del botón va por
+   transición CSS + setTimeout (rAF se pausa en pestañas ocultas y colgaría el
+   estado). Globales que toca: envuelve open_/closeModal SOLO para 'mConsent'
+   (el load del sitio sigue llamando open_('mConsent')); añade AIS.hud={open,close}.
+   Emite document 'hud:collapsed' (y AIS.emit) al cerrarse.
+   ========================================================================== */
+(function(){
+'use strict';
+function boot(){
+  const root=document.getElementById('hud');
+  if(!root||root.hasAttribute('data-hud-boot')) return;
+  root.setAttribute('data-hud-boot','1');
+
+  const q=id=>document.getElementById(id);
+  const el={
+    stage:q('hud-stage'),tilt:q('hud-tilt'),shadow:q('hud-shadow'),panel:q('hud-panel'),gloss:q('hud-gloss'),x:q('hud-x'),
+    clock:q('hud-clock'),note:q('hud-tiltnote'),mem:q('hud-mem'),memText:q('hud-memtext'),origin:q('hud-origin'),device:q('hud-device'),perm:q('hud-perm'),
+    ring:q('hud-ring'),score:q('hud-score'),band:q('hud-band'),scoreNote:q('hud-scorenote'),
+    lampGo:q('hud-lamp-go'),lampHold:q('hud-lamp-hold'),lampStop:q('hud-lamp-stop'),
+    railMeta:q('hud-railmeta'),rail:q('hud-rail'),
+    cv:q('hud-cv'),sparkline:q('hud-sparkline'),sv:q('hud-sv'),svBar:q('hud-svbar'),svFill:q('hud-svfill'),sc:q('hud-sc'),scFill:q('hud-scfill'),attn:q('hud-attn'),moves:q('hud-moves'),
+    depth:q('hud-depth'),stages:q('hud-stages'),reads:q('hud-reads'),trust:q('hud-trust'),
+    memo:q('hud-memo'),accept:q('hud-accept'),acceptLbl:q('hud-acceptlbl'),ess:q('hud-ess')
+  };
+  for(const k in el){ if(!el[k]) return; }                  // markup incompleto: no arrancar antes que romper
+
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const reduced=()=>matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const mqMobile=matchMedia('(max-width:760px)');
+  const mobile=()=>mqMobile.matches;
+  const finePointer=matchMedia('(hover:hover) and (pointer:fine)');
+  const FALLBACK_UTIL={fmt:s=>(s==null||!isFinite(s))?'—':(s<60?s.toFixed(1)+'s':Math.floor(s/60)+'m '+String(Math.floor(s%60)).padStart(2,'0')+'s'),pct:n=>(n==null||!isFinite(n))?'—':Math.round(n)+'%'};
+
+  let A=null;                                               // window.AIS cuando exista
+  let isOpen=false, morphing=false, busy=false, dismissible=false, autoOpened=false;
+  let clockIv=0, raf=0, inView=false, lastFocus=null, tickBound=false;
+
+  /* ---------- escritura mínima en el DOM ---------- */
+  function put(node,text){ if(node.textContent!==text) node.textContent=text; }
+  function setNum(node,text){ const n=node.firstChild; if(n&&n.nodeType===3){ if(n.nodeValue!==text) n.nodeValue=text; } else put(node,text); }
+  const util=()=>(A&&A.util&&typeof A.util.fmt==='function')?A.util:FALLBACK_UTIL;
+
+  /* ---------- tilt: un solo rAF, lerp hacia el objetivo, se apaga al converger ---------- */
+  const MAX_DESK=7, MAX_MOB=9;
+  const T={rx:0,ry:0,rxT:0,ryT:0,gx:-9999,gy:-9999,gxT:-9999,gyT:-9999};
+  let gSnap=false, sRect=null, lastNote='';
+  const stageRect=()=>sRect||(sRect=el.stage.getBoundingClientRect());
+  function apply(){
+    el.tilt.style.transform='rotateX('+T.rx.toFixed(2)+'deg) rotateY('+T.ry.toFixed(2)+'deg)';
+    // la sombra se desplaza en sentido opuesto al foco: el panel "se levanta" hacia el cursor
+    el.shadow.style.transform='translate3d('+(-T.ry*2.4).toFixed(1)+'px,'+(34+T.rx*2).toFixed(1)+'px,-70px)';
+    el.gloss.style.transform='translate3d('+T.gx.toFixed(1)+'px,'+T.gy.toFixed(1)+'px,0)';
+    const n='transform: rotateX('+T.rx.toFixed(1)+'deg) rotateY('+T.ry.toFixed(1)+'deg)';
+    if(n!==lastNote){ lastNote=n; el.note.textContent=n; }
+  }
+  function frame(){
+    raf=0;
+    if(!isOpen||morphing||document.hidden||!inView) return;
+    let moving=false;
+    const step=(k,t)=>{ const d=T[t]-T[k]; if(Math.abs(d)>0.015){ T[k]+=d*0.14; moving=true; } else T[k]=T[t]; };
+    step('rx','rxT'); step('ry','ryT'); step('gx','gxT'); step('gy','gyT');
+    apply();
+    if(moving) raf=requestAnimationFrame(frame);
+  }
+  function kick(){ if(!raf&&isOpen&&!morphing&&!document.hidden&&inView&&!reduced()) raf=requestAnimationFrame(frame); }
+  function stopLoop(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
+  function onPointer(e){
+    if(!isOpen||morphing||reduced()) return;
+    const r=stageRect(); if(!r.width||!r.height) return;
+    const nx=(e.clientX-r.left)/r.width-.5, ny=(e.clientY-r.top)/r.height-.5;
+    // hacia el cursor: el borde más cercano al puntero se acerca al espectador; fuera del panel satura en ±MAX
+    T.rxT=clamp(ny*2,-1,1)*MAX_DESK; T.ryT=-clamp(nx*2,-1,1)*MAX_DESK;
+    T.gxT=e.clientX-r.left; T.gyT=e.clientY-r.top;
+    if(!gSnap){ gSnap=true; T.gx=T.gxT; T.gy=T.gyT; }
+    kick();
+  }
+  const ori={b0:null,g0:null,bound:false,granted:false};
+  function onOrient(e){
+    if(!isOpen||morphing||reduced()) return;
+    const b=e.beta, g=e.gamma; if(typeof b!=='number'||typeof g!=='number') return;
+    if(ori.b0===null){ ori.b0=b; ori.g0=g; }
+    else { ori.b0+=(b-ori.b0)*.02; ori.g0+=(g-ori.g0)*.02; }  // la referencia deriva hacia la postura actual: el panel vuelve solo a reposo
+    const db=clamp(b-ori.b0,-25,25), dg=clamp(g-ori.g0,-25,25);
+    T.rxT=-db/25*MAX_MOB; T.ryT=-dg/25*MAX_MOB;
+    const r=stageRect();
+    T.gxT=r.width*(.5+dg/50); T.gyT=r.height*(.5+db/50);
+    if(!gSnap){ gSnap=true; T.gx=T.gxT; T.gy=T.gyT; }
+    kick();
+  }
+  function bindOrient(){ if(ori.bound) return; ori.bound=true; addEventListener('deviceorientation',onOrient,{passive:true}); }
+  function unbindOrient(){ if(!ori.bound) return; ori.bound=false; removeEventListener('deviceorientation',onOrient); ori.b0=ori.g0=null; }
+  function setupMotion(){
+    if(reduced()) return;
+    if(finePointer.matches){ addEventListener('pointermove',onPointer,{passive:true}); return; }
+    const DOE=window.DeviceOrientationEvent; if(!DOE) return;
+    if(typeof DOE.requestPermission==='function'){ if(ori.granted) bindOrient(); else root.classList.add('hud-needperm'); }   // iOS: solo tras un gesto
+    else bindOrient();
+  }
+  function teardownMotion(){ removeEventListener('pointermove',onPointer); unbindOrient(); root.classList.remove('hud-needperm'); }
+  el.perm.addEventListener('click',()=>{
+    root.classList.remove('hud-needperm');
+    try{
+      DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ ori.granted=true; if(isOpen) bindOrient(); } }).catch(()=>{});
+    }catch(e){}                                             // denegado o no disponible: sin tilt, sin error
+  });
+  const io=('IntersectionObserver' in window)?new IntersectionObserver(es=>{ es.forEach(e=>{ inView=e.isIntersecting; }); if(inView) kick(); else stopLoop(); }):null;
+  if(io) io.observe(el.panel); else inView=true;
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopLoop(); else { kick(); clockTick(); } });
+  function onResize(){ sRect=null; }
+
+  /* ---------- reloj grande: 0.1 s desde state.t0 (setInterval, no rAF) ---------- */
+  function clockTick(){
+    if(!isOpen||document.hidden) return;
+    setNum(el.clock,(A&&A.state&&typeof A.state.t0==='number')?((performance.now()-A.state.t0)/1000).toFixed(1):'—');
+  }
+
+  /* ---------- render desde AIS.state ---------- */
+  const spark=[];
+  function drawSpark(){
+    const n=spark.length; if(!n){ el.sparkline.setAttribute('points',''); return; }
+    const max=Math.max(1,...spark), pts=[];
+    for(let i=0;i<n;i++){ const x=100-(n-1-i)/19*100, y=21-(spark[i]/max)*19; pts.push(x.toFixed(1)+','+y.toFixed(1)); }   // crece desde la derecha
+    el.sparkline.setAttribute('points',pts.join(' '));
+  }
+  const rows=[]; let railKey='';
+  function buildRail(st){
+    const key=st.stages.map(s=>s.id).join('|'); if(key===railKey) return; railKey=key;
+    el.rail.innerHTML=''; rows.length=0;
+    if(!st.stages.length){ el.rail.innerHTML='<div class="hud-empty">Sin etapas · ningún [data-sec] en la página</div>'; return; }
+    st.stages.forEach((s,i)=>{
+      const row=document.createElement('div'); row.className='hud-st hud-pending';
+      row.innerHTML='<span class="hud-dot"></span><span class="hud-n"><span class="hud-i">'+String(i+1).padStart(2,'0')+'</span><span class="hud-nm"></span><span class="hud-here">estás aquí</span></span><span class="hud-d">—</span><span class="hud-p">—</span>';
+      row.querySelector('.hud-nm').textContent=s.name||s.id;
+      el.rail.appendChild(row);
+      rows.push({row,d:row.querySelector('.hud-d'),p:row.querySelector('.hud-p'),cls:'hud-pending',dv:'—',pv:'—'});
+    });
+  }
+  function renderRail(st,c){
+    buildRail(st); const u=util(); let seen=0;
+    st.stages.forEach((s,i)=>{
+      const r=rows[i]; if(!r) return;
+      const cls='hud-'+(s.status==='current'||s.status==='visited'?s.status:'pending');
+      if(cls!==r.cls){ r.row.classList.remove(r.cls); r.row.classList.add(cls); r.cls=cls; }
+      if(cls!=='hud-pending') seen++;
+      const dv=c?u.fmt(s.dwell):'—', pv=c?u.pct(s.depth):'—';     // dwell y % por etapa solo se miden tras aceptar
+      if(dv!==r.dv){ r.d.textContent=dv; r.dv=dv; }
+      if(pv!==r.pv){ r.p.textContent=pv; r.pv=pv; }
+    });
+    put(el.railMeta,st.stages.length?st.stages.length+' etapas · '+seen+' vistas'+(c?'':' · % tras aceptar'):'—');
+    return seen;
+  }
+  function renderScore(st,c){
+    const sc=st.score||{}, total=(c&&typeof sc.total==='number')?sc.total:null;
+    const lamp=total==null?null:total>=65?'go':total>=25?'hold':'stop';
+    el.ring.style.setProperty('--hud-p',String(total==null?0:total));
+    el.ring.style.setProperty('--hud-c',lamp==='go'?'var(--teal)':lamp==='hold'?'var(--hold)':lamp==='stop'?'var(--stop)':'#3a4252');
+    setNum(el.score,total==null?'—':String(total));
+    put(el.band,total==null?'sin datos':String(sc.band||'').toLowerCase());
+    el.lampGo.classList.toggle('hud-lit',lamp==='go'); el.lampHold.classList.toggle('hud-lit',lamp==='hold'); el.lampStop.classList.toggle('hud-lit',lamp==='stop');
+    put(el.scoreNote,c?'en vivo':'tras aceptar');
+  }
+  function render(st){
+    if(!isOpen||!st) return;
+    if(!Array.isArray(st.stages)) st={...st,stages:[]};     // core parcial: nunca romper el tick
+    const c=!!st.consent, u=util(), cur=st.cursor||{}, scr=st.scroll||{};
+    const cv=Math.round(cur.speed||0); setNum(el.cv,String(cv));
+    spark.push(cv); if(spark.length>20) spark.shift(); drawSpark();
+    const sv=Math.abs(Math.round(scr.velocity||0)); setNum(el.sv,String(sv));
+    el.svBar.classList.toggle('hud-amber',sv>=40);
+    el.svFill.style.transform='scaleX('+Math.min(1,sv/1500).toFixed(3)+')';
+    const scur=Math.round(scr.current||0); setNum(el.sc,String(scur)); el.scFill.style.transform='scaleX('+(scur/100).toFixed(3)+')';
+    setNum(el.attn,(typeof st.attention==='number')?st.attention.toFixed(1):'—');
+    setNum(el.moves,String(cur.moves||0));
+    setNum(el.depth,u.pct(scr.depth));
+    const seen=renderRail(st,c);
+    setNum(el.stages,st.stages.length?seen+' / '+(st.stages.length-seen):'—');
+    const reading=!!(st.reading&&st.reading.active);
+    const reads=st.stages.reduce((n,s)=>n+(s.reads?s.reads.length:0),0)+(reading?1:0);
+    setNum(el.reads,c?String(reads):'—'); el.reads.classList.toggle('hud-live',c&&reading);
+    let trust=st.trustSeconds||0; if(c&&reading&&typeof st.reading.since==='number') trust+=Math.max(0,(st.seconds||0)-st.reading.since);   // la lectura en curso cuenta en vivo
+    setNum(el.trust,c?u.fmt(trust):'—'); el.trust.classList.toggle('hud-live',c&&reading);
+    renderScore(st,c);
+  }
+  function originText(at){
+    if(!at) return 'origen · —';
+    const P={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'referido',direct:'directo'};
+    const parts=[P[at.platform]||at.platform||'directo'];
+    if(at.platform==='referral'&&(at.source||at.referrer)) parts.push(at.source||at.referrer);
+    if(at.campaign) parts.push(at.campaign);
+    if(at.adName) parts.push(at.adName); else if(at.content) parts.push(at.content);
+    return 'origen · '+parts.join(' · ');
+  }
+  function renderStatic(){
+    const at=A&&A.state?A.state.attribution:null;
+    put(el.origin,originText(at));
+    put(el.device,'dispositivo · '+(at?(at.device==='mobile'?'móvil':at.device==='desktop'?'escritorio':'—'):'—'));
+    if(!A){ put(el.railMeta,'core no disponible'); el.rail.innerHTML='<div class="hud-empty">Sin AIS · las métricas aparecen cuando cargue el core</div>'; railKey=''; }
+  }
+  function setMode(){
+    const c=!!(A&&A.state&&A.state.consent);
+    el.mem.classList.toggle('hud-saved',c); el.memo.classList.toggle('hud-saved',c);
+    put(el.memText,c?'guardando esta visita · revocable en un clic':'solo memoria · nada se guarda hasta que aceptes');
+    el.memo.innerHTML=c
+      ?'<b>Guardando esta visita.</b> Score y recorrido activos, de primera parte. Revocable en un clic, aquí o desde la lupa.'
+      :'<b>Nada se guarda hasta que aceptes.</b> Lo que ves se calcula en memoria y desaparece al cerrar la pestaña. Primera parte · revocable en un clic.';
+    if(!busy) put(el.acceptLbl,c?'Continuar':'Aceptar y entrar');
+    put(el.ess,c?'Revocar · sólo lo esencial':'Sólo lo esencial');
+    el.x.hidden=!dismissible;
+  }
+
+  /* ---------- botón: transición CSS + setTimeout (misma mecánica que .btn del sitio) ---------- */
+  function setProg(b,p,ms){
+    const pr=b.querySelector('.prog'), bar=b.querySelector('.bar'), t=ms?ms+'ms linear':'0s';
+    if(pr){ pr.style.transition='transform '+t; pr.style.transform='scaleX('+(p/100)+')'; }
+    if(bar){ bar.style.transition='width '+t; bar.style.width=p+'%'; }
+  }
+  function resetBtn(){ setProg(el.accept,0,0); el.accept.classList.remove('loading'); }
+
+  /* ---------- abrir / cerrar ---------- */
+  function bindTick(){ if(A&&!tickBound){ tickBound=true; A.on('tick',render); } }
+  function unbindTick(){ if(A&&tickBound){ tickBound=false; A.off('tick',render); } }
+  function open(){
+    if(isOpen) return; isOpen=true; morphing=false; busy=false;
+    lastFocus=document.activeElement;
+    resetBtn();
+    root.classList.remove('hud-leave','hud-fade'); el.panel.classList.remove('hud-morph'); el.tilt.classList.remove('hud-morphing');
+    el.tilt.style.transform=''; el.tilt.style.transition=''; el.shadow.style.transform=''; el.gloss.style.transform='';
+    sRect=null; gSnap=false; T.rx=T.ry=T.rxT=T.ryT=0; T.gx=T.gy=T.gxT=T.gyT=-9999; lastNote=''; spark.length=0;
+    root.classList.add('hud-on');
+    setMode(); renderStatic();
+    if(A){ render(A.state); bindTick(); }
+    clearInterval(clockIv); clockIv=setInterval(clockTick,100); clockTick();
+    setupMotion(); apply();
+    addEventListener('resize',onResize,{passive:true});
+    document.addEventListener('keydown',onKey);
+    try{ el.panel.focus({preventScroll:true}); }catch(e){}
+  }
+  function hide(){
+    root.classList.remove('hud-on','hud-leave','hud-fade','hud-needperm');
+    el.panel.classList.remove('hud-morph'); el.tilt.classList.remove('hud-morphing');
+    el.tilt.style.transform=''; el.tilt.style.transition=''; el.shadow.style.transform=''; el.gloss.style.transform='';
+    isOpen=false; morphing=false; stopLoop(); unbindTick();
+    clearInterval(clockIv); clockIv=0;
+    teardownMotion();
+    removeEventListener('resize',onResize); document.removeEventListener('keydown',onKey);
+    const f=lastFocus; lastFocus=null;
+    if(f&&typeof f.focus==='function'&&document.contains(f)&&f!==document.body){ try{ f.focus({preventScroll:true}); }catch(e){} }
+  }
+  function targetRect(){
+    // destino del morph: el widget lupa si ya es medible; si sigue oculto (display:none), su posición de reposo
+    const w=document.getElementById('lupa');
+    if(w){ const r=w.getBoundingClientRect(); if(r.width>0&&r.height>0) return r; }
+    const W=innerWidth, H=innerHeight;
+    return mobile()?{left:0,top:H-92,width:W,height:92}:{left:W-20-316,top:H-20-92,width:316,height:92};
+  }
+  function emitCollapsed(){
+    const detail={consent:!!(A&&A.state&&A.state.consent),seconds:A&&A.state?A.state.seconds:null};
+    document.dispatchEvent(new CustomEvent('hud:collapsed',{detail}));
+    if(A&&typeof A.emit==='function'){ try{ A.emit('hud:collapsed',detail); }catch(e){} }
+  }
+  function collapse(morph){
+    if(!isOpen||morphing) return;
+    morphing=true; stopLoop();
+    const done=()=>{ hide(); busy=false; resetBtn(); setMode(); emitCollapsed(); };
+    if(!morph||reduced()){ root.classList.add('hud-fade'); setTimeout(done,340); return; }
+    // FLIP: medir sin inclinación, fijar destino, transicionar el wrapper con translate+scale (origen 0 0)
+    el.tilt.style.transition='none'; el.tilt.style.transform='none';
+    const first=el.tilt.getBoundingClientRect(), last=targetRect();
+    if(!first.width||!first.height){ root.classList.add('hud-fade'); setTimeout(done,340); return; }
+    el.panel.classList.add('hud-morph'); root.classList.add('hud-leave'); el.tilt.classList.add('hud-morphing');
+    el.tilt.style.transition='';
+    void el.tilt.offsetWidth;                               // reflow: que la transición parta del estado sin transform
+    el.tilt.style.transform='translate('+(last.left-first.left).toFixed(1)+'px,'+(last.top-first.top).toFixed(1)+'px) scale('+(last.width/first.width).toFixed(4)+','+(last.height/first.height).toFixed(4)+')';
+    setTimeout(()=>{ root.classList.add('hud-fade'); setTimeout(done,200); },640);
+  }
+  function close(){ if(!isOpen||morphing) return; busy=true; dismissible=true; collapse(!!(A&&A.state&&A.state.consent)); }
+
+  /* ---------- acciones ---------- */
+  function onAccept(){
+    if(busy||morphing) return; busy=true;
+    const pre=!(A&&A.state&&A.state.consent), ms=pre?850:420;
+    el.accept.classList.add('loading'); put(el.acceptLbl,pre?'Entrando…':'Cerrando…');
+    setProg(el.accept,100,ms);
+    setTimeout(()=>{
+      if(A&&pre){ try{ A.accept(); }catch(e){ setTimeout(()=>{ throw e; }); } }
+      dismissible=true; collapse(true);
+    },ms);
+  }
+  function onEssential(){
+    if(busy||morphing) return; busy=true; dismissible=true;
+    const was=!!(A&&A.state&&A.state.consent);
+    if(A){ try{ A.essential(); }catch(e){ setTimeout(()=>{ throw e; }); } }
+    if(typeof window.toast==='function'){ try{ window.toast(was?'Consentimiento revocado · sólo lo esencial':'Modo esencial · sin scoring conductual'); }catch(e){} }
+    collapse(false);
+  }
+  function onConsent(d){                                    // consentimiento decidido desde fuera (legado, widget): el HUD se retira solo
+    setMode();
+    if(isOpen&&!busy&&!morphing){ busy=true; dismissible=true; collapse(!(d&&d.essential)); }
+  }
+  const focusables=()=>[...el.panel.querySelectorAll('button:not([hidden]):not([disabled])')].filter(b=>b.offsetParent!==null);
+  function onKey(e){
+    if(!isOpen) return;
+    if(e.key==='Escape'){ if(dismissible&&!busy&&!morphing){ e.preventDefault(); close(); } return; }
+    if(e.key!=='Tab') return;
+    const f=focusables(); if(!f.length) return;
+    const first=f[0], last=f[f.length-1], a=document.activeElement;
+    if(e.shiftKey&&(a===first||a===el.panel)){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey&&a===last){ e.preventDefault(); first.focus(); }
+  }
+  el.accept.addEventListener('click',onAccept);
+  el.ess.addEventListener('click',onEssential);
+  el.x.addEventListener('click',close);
+  root.addEventListener('click',e=>{ if(e.target===root&&dismissible) close(); });
+
+  /* ---------- legado: open_('mConsent') del load del sitio abre el HUD; el modal viejo, si sigue, se apaga ---------- */
+  function wrapLegacy(){
+    const o=window.open_;
+    if(typeof o==='function'&&!o._hud){ const w=function(id){ if(id==='mConsent'){ open(); return; } return o.apply(this,arguments); }; w._hud=true; try{ window.open_=w; }catch(e){} }
+    const c=window.closeModal;
+    if(typeof c==='function'&&!c._hud){ const w2=function(id){ if(id==='mConsent'){ if(document.getElementById('mConsent')) c.apply(this,arguments); if(isOpen) close(); return; } return c.apply(this,arguments); }; w2._hud=true; try{ window.closeModal=w2; }catch(e){} }
+    const old=document.getElementById('mConsent'); if(old){ old.classList.remove('on'); old.style.display='none'; }
+  }
+
+  /* ---------- arranque: AIS ahora, en 'ais:ready' o nunca (el HUD sigue funcionando con '—') ---------- */
+  function bind(){
+    if(A) return true;
+    const a=window.AIS; if(!a||!a.state||typeof a.on!=='function') return false;
+    A=a;
+    A.hud={open,close,isOpen:()=>isOpen};
+    A.on('consent',onConsent);
+    setMode();
+    if(isOpen){ renderStatic(); render(A.state); bindTick(); }
+    return true;
+  }
+  function autoOpen(){
+    if(autoOpened) return; autoOpened=true;
+    if(A&&A.state.consent){ dismissible=true; return; }     // ya decidido antes de llegar aquí (p. ej. core adoptó S.consent)
+    open();
+  }
+  if(!bind()) document.addEventListener('ais:ready',bind);
+  wrapLegacy();
+  addEventListener('load',()=>{ wrapLegacy(); bind(); autoOpen(); },{once:true});
+  if(document.readyState!=='loading') autoOpen(); else document.addEventListener('DOMContentLoaded',autoOpen,{once:true});
+}
+if(document.getElementById('hud')) boot(); else document.addEventListener('DOMContentLoaded',boot,{once:true});
+})();
+</script>
+<!-- ===== script mod-widget ===== -->
+<script>
+(function(){
+'use strict';
+const root=document.getElementById('lupa'); if(!root) return;
+const q=id=>document.getElementById(id);
+// este módulo retira #pill: el tick legado del sitio sigue escribiendo pillScore por id, así que deja stubs ocultos si faltan
+['pill','pillScore'].forEach(id=>{if(document.getElementById(id))return;const s=document.createElement('b');s.id=id;s.hidden=true;s.textContent='0';document.body.appendChild(s);});
+const el={
+  toggle:q('lupa-toggle'),panel:q('lupa-panel'),close:q('lupa-close'),
+  mStage:q('lupa-m-stage'),mLamp:q('lupa-m-lamp'),mScore:q('lupa-m-score'),mScrollFill:q('lupa-m-scrollfill'),mScroll:q('lupa-m-scroll'),mSec:q('lupa-m-sec'),mCurFill:q('lupa-m-curfill'),
+  note:q('lupa-tilt-note'),sem:q('lupa-sem'),pLamp:q('lupa-p-lamp'),pScore:q('lupa-p-score'),pBand:q('lupa-p-band'),pGo:q('lupa-p-go'),
+  rail:q('lupa-rail'),railMeta:q('lupa-p-railmeta'),
+  pSec:q('lupa-p-sec'),pAttn:q('lupa-p-attn'),pScroll:q('lupa-p-scroll'),pDepth:q('lupa-p-depth'),pSv:q('lupa-p-sv'),pCv:q('lupa-p-cv'),pSig:q('lupa-p-sig'),
+  trust:q('lupa-p-trust'),reads:q('lupa-reads'),log:q('lupa-log'),attr:q('lupa-p-attr'),attrHost:q('lupa-p-attrhost'),cta:q('lupa-cta'),hud:q('lupa-hud')
+};
+const mqMobile=matchMedia('(max-width:760px)'), mqReduce=matchMedia('(prefers-reduced-motion: reduce)');
+const mobile=()=>mqMobile.matches, reduced=()=>mqReduce.matches;
+// escala visual de la mini barra de cursor: 1500 px/s = barra llena. El valor real (px/s) se muestra en el panel.
+const CUR_MAX=1500;
+const TILT=4.5; // grados máximos de inclinación
+const HUD_FALLBACK_MS=6000; // red de seguridad: si hay HUD pero nunca emite 'hud:collapsed', la lupa aparece igual
+const PLAT={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'Referral',direct:'Directo'};
+const GO_LABEL={go:'go · llamar',hold:'hold · nutrir',stop:'stop · awareness',off:'—'};
+const LAMPS=['go','hold','stop','off'];
+// tipo de evento del core → etiqueta corta; el label del evento se muestra tal cual
+const TYPE_ES={stage:'etapa','return':'vuelve',read:'lectura','read:end':'fin lectura',cta:'cta',hover:'hover',rage:'rage click',exit:'salida',consent:'consent',lead:'lead',signal:'señal'};
+
+let A=null, booted=false, shown=false, open=false, pendingShow=false, showT=0;
+
+/* ---------- helpers ---------- */
+const isNum=v=>typeof v==='number'&&isFinite(v);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// caché de escrituras DOM: en 'tick' (250 ms) sólo se toca lo que cambia
+const cache=new WeakMap();
+const mem=n=>{let c=cache.get(n);if(!c){c={};cache.set(n,c);}return c;};
+function txt(n,v){if(!n)return;const c=mem(n);if(c.t!==v){c.t=v;n.textContent=v;}}
+function sty(n,p,v){if(!n)return;const c=mem(n);if(c[p]!==v){c[p]=v;n.style[p]=v;}}
+function lamp(n,k){if(!n)return;const c=mem(n);if(c.k===k)return;c.k=k;LAMPS.forEach(b=>n.classList.toggle(b,b===k));}
+const util=()=>(A&&A.util)||{};
+function fmtS(s){if(!isNum(s))return '—';const u=util();if(typeof u.fmt==='function')return u.fmt(s);return (s<100?s.toFixed(1):String(Math.round(s)))+'s';}
+function fmtV(v){return isNum(v)?Math.round(Math.abs(v))+' px/s':'—';}
+// t de los eventos: core escribe segundos desde t0; se toleran también performance.now() en ms y epoch ms
+function ago(t){if(!isNum(t)||!A)return null;const sec=isNum(A.state.seconds)?A.state.seconds:0;let s;
+  if(t>1e11)s=(Date.now()-t)/1000;else if(t<=sec+1)s=sec-t;else s=(performance.now()-t)/1000;return Math.max(0,s);}
+function fmtAgo(t){const s=ago(t);if(s===null)return '—';if(s<1)return 'ahora';if(s<60)return 'hace '+Math.round(s)+'s';
+  const m=Math.floor(s/60),r=Math.round(s%60);return 'hace '+m+'m '+(r<10?'0':'')+r+'s';}
+const stages=()=>{const s=A&&A.state&&A.state.stages;return Array.isArray(s)?s:[];};
+function stageName(ref){if(ref&&typeof ref==='object')return String(ref.name||ref.id||'—');const st=stages().find(s=>s.id===ref);return st?String(st.name||st.id):(ref?String(ref):'—');}
+// semáforo = umbrales de bandShort() del sitio (65 / 45) sobre el total real; la banda textual solo si no hay número
+function bandKey(sc){if(!sc)return 'off';const t=Number(sc.total);
+  if(isFinite(t))return t>=65?'go':t>=45?'hold':'stop';
+  const b=String(sc.band||'').toUpperCase();
+  if(/^(SQL|HOT)/.test(b))return 'go';if(/^WARM/.test(b))return 'hold';if(/^(COLD|MQL)/.test(b))return 'stop';return 'off';}
+function emit(n,d){if(A&&typeof A.emit==='function')A.emit(n,d||{});}
+
+/* ---------- colapsado ---------- */
+function updateMini(S){
+  const cur=stages().find(s=>s.id===S.current)||null;
+  txt(el.mStage,cur?String(cur.name||cur.id):'—');
+  const sc=S.score||null,k=bandKey(sc);
+  lamp(el.mLamp,k);txt(el.mScore,sc&&isNum(sc.total)?String(Math.round(sc.total)):'—');
+  const scr=S.scroll||{},pc=isNum(scr.current)?clamp(scr.current,0,100):null;
+  sty(el.mScrollFill,'width',pc===null?'0%':Math.round(pc)+'%');txt(el.mScroll,pc===null?'scroll —':'scroll '+Math.round(pc)+'%');
+  txt(el.mSec,fmtS(S.seconds));
+  const cs=S.cursor&&S.cursor.speed;
+  sty(el.mCurFill,'width',isNum(cs)?Math.round(clamp(Math.abs(cs)/CUR_MAX,0,1)*100)+'%':'0%');
+}
+
+/* ---------- rail de etapas ---------- */
+let railIds='',railRows={};
+function buildRail(list){
+  railIds=list.map(s=>s.id).join('|');railRows={};
+  el.rail.innerHTML=list.length?list.map(s=>`<li class="lupa-st pending" data-id="${esc(s.id)}"><i class="lupa-dot" aria-hidden="true"></i><span class="lupa-nm">${esc(s.name||s.id)}</span><span class="lupa-pc">—</span><button class="lupa-go" type="button" data-go="${esc(s.id)}" aria-label="Ir a ${esc(s.name||s.id)}">ir</button></li>`).join('')
+    :'<li class="lupa-st lupa-empty">Sin etapas aún</li>';
+  el.rail.querySelectorAll('.lupa-st[data-id]').forEach(li=>{railRows[li.dataset.id]={li,pc:li.querySelector('.lupa-pc')};});
+}
+function updateRail(S){
+  const list=stages();if(list.map(s=>s.id).join('|')!==railIds)buildRail(list);
+  let visited=0;
+  list.forEach(s=>{const r=railRows[s.id];if(!r)return;
+    const st=s.status==='current'?'current':s.status==='visited'?'visited':'pending';if(st==='visited')visited++;
+    if(r.li.dataset.st!==st){r.li.dataset.st=st;r.li.classList.remove('current','visited','pending');r.li.classList.add(st);}
+    const d=isNum(s.depth)?Math.round(clamp(s.depth,0,100)):null;
+    txt(r.pc,st==='current'?(d===null?'— visto':d+'% visto'):(d===null?'—':d+'%'));});
+  txt(el.railMeta,list.length?visited+'/'+list.length+' visitadas':'—');
+}
+
+/* ---------- momentos de lectura (estimación) · agregado por etapa ---------- */
+let readsSig='';
+function updateReads(S){
+  const rd=S.reading||{},liveId=rd.active?rd.stage:null,rows=[];let sig='';
+  stages().forEach(s=>{
+    let n=0,tot=0;(Array.isArray(s.reads)?s.reads:[]).forEach(r=>{if(r&&isNum(r.seconds)){n++;tot+=r.seconds;}});
+    const live=liveId!==null&&s.id===liveId;if(!n&&!live)return;
+    rows.push({name:String(s.name||s.id),n,tot,live});sig+=s.id+':'+n+':'+tot.toFixed(1)+(live?'L':'')+'|';
+  });
+  txt(el.trust,fmtS(S.trustSeconds));
+  if(sig!==readsSig){readsSig=sig; // la lista sólo se reconstruye cuando termina o empieza una lectura
+    el.reads.innerHTML=rows.length?rows.map(r=>`<li${r.live?' class="live"':''}><span>${esc(r.name)}${r.live?' · leyendo':''}</span><em>${r.n?esc(fmtS(r.tot))+' · '+r.n+'×':''}${r.live?'<b class="lupa-live-t">—</b>':''}</em></li>`).join('')
+      :'<li class="lupa-empty">Sin lecturas aún</li>';}
+  if(liveId!==null){const e=ago(rd.since);txt(el.reads.querySelector('.lupa-live-t'),e===null?'—':'+'+e.toFixed(1)+'s');}
+}
+
+/* ---------- actividad ---------- */
+let logSig='';
+function updateLog(S){
+  const ev=Array.isArray(S.events)?S.events:[],n=ev.length,lastE=ev[n-1];
+  const sig=n+':'+(lastE?lastE.t+'/'+lastE.type:'');
+  if(sig!==logSig){logSig=sig;const six=ev.slice(-6).reverse(); // más reciente primero
+    el.log.innerHTML=six.length?six.map(e=>{const lb=String(e.label||''),ty=String(e.type||''),sn=e.stage?stageName(e.stage):'';
+      // el core ya incluye la etapa en el label ("Hero · estimación"): sólo se añade cuando falta
+      return `<li data-t="${isNum(e.t)?e.t:''}"><span class="lupa-ev"><i>${esc(TYPE_ES[ty]||ty||'evento')}</i>${lb?' '+esc(lb):''}${(sn&&sn!=='—'&&lb.indexOf(sn)<0)?' <em>· '+esc(sn)+'</em>':''}</span><em class="lupa-ago">—</em></li>`;}).join('')
+      :'<li class="lupa-empty">Sin eventos aún</li>';}
+  // la marca relativa se refresca cada tick sin reconstruir la lista
+  el.log.querySelectorAll('li[data-t]').forEach(li=>{const t=parseFloat(li.dataset.t);txt(li.querySelector('.lupa-ago'),fmtAgo(isNaN(t)?null:t));});
+}
+
+/* ---------- atribución (UTM + click IDs; nunca identidad de la persona) ---------- */
+function updateAttr(S){
+  const ext=!!(A&&A.attr&&typeof A.attr.render==='function');
+  el.attrHost.hidden=!ext;el.attr.hidden=ext;
+  if(ext){if(!el.attrHost.childElementCount)A.attr.render(el.attrHost,'chip');return;} // mod-attribution pinta y refresca su chip
+  const a=S.attribution||{},pf=String(a.platform||'').toLowerCase();let t;
+  if(!pf)t='—';
+  else if(pf==='direct')t='Directo · sin campaña';
+  else{let host=String(a.referrer||'');try{if(/^https?:/.test(host))host=new URL(host).hostname;}catch(err){}
+    t=[PLAT[pf]||pf,a.campaign||(pf==='referral'?host:''),a.adName||a.content].filter(Boolean).join(' · ');}
+  txt(el.attr,t);
+}
+
+/* ---------- expandido ---------- */
+function updatePanel(S){
+  const sc=S.score||null,k=bandKey(sc);
+  lamp(el.pLamp,k);lamp(el.sem,k);
+  txt(el.pScore,sc&&isNum(sc.total)?String(Math.round(sc.total)):'—');
+  txt(el.pBand,sc&&sc.band?String(sc.band).toUpperCase():'—');
+  txt(el.pGo,GO_LABEL[k]);
+  updateRail(S);
+  const scr=S.scroll||{},pc=isNum(scr.current)?clamp(scr.current,0,100):null;
+  txt(el.pSec,fmtS(S.seconds));txt(el.pAttn,fmtS(S.attention));
+  txt(el.pScroll,pc===null?'—':Math.round(pc)+'%');txt(el.pDepth,'máx '+(isNum(scr.depth)?Math.round(clamp(scr.depth,0,100))+'%':'—'));
+  txt(el.pSv,fmtV(scr.velocity));txt(el.pCv,fmtV(S.cursor&&S.cursor.speed));
+  txt(el.pSig,isNum(S.signals)?String(S.signals):'—');
+  updateReads(S);updateLog(S);updateAttr(S);
+}
+function onTick(){if(!A||!A.state||!shown||document.hidden)return;const S=A.state;updateMini(S);if(open)updatePanel(S);}
+
+/* ---------- tilt: un solo rAF, sólo expandido y visible; se detiene solo al llegar al reposo ---------- */
+let tTarget={x:0,y:0},tCur={x:0,y:0},raf=0,inView=true,orientOn=false,oBase=null,pRect=null;
+function applyTilt(){const x=tCur.x.toFixed(2),y=tCur.y.toFixed(2);
+  el.panel.style.transform='perspective(1100px) rotateX('+x+'deg) rotateY('+y+'deg)';
+  txt(el.note,'transform: rotateX('+x+'deg) rotateY('+y+'deg)');}
+function tiltFrame(){raf=0;if(!open||!inView||document.hidden||reduced())return;
+  tCur.x+=(tTarget.x-tCur.x)*.14;tCur.y+=(tTarget.y-tCur.y)*.14;applyTilt();
+  if(Math.abs(tTarget.x-tCur.x)>.02||Math.abs(tTarget.y-tCur.y)>.02)raf=requestAnimationFrame(tiltFrame);}
+function kick(){if(!raf&&open&&inView&&!document.hidden&&!reduced())raf=requestAnimationFrame(tiltFrame);}
+// contrato: el rAF se para cuando el elemento no es visible; el panel cerrado (display:none) no interseca
+if('IntersectionObserver' in window)new IntersectionObserver(es=>{es.forEach(e=>{inView=e.isIntersecting;
+  if(!inView&&raf){cancelAnimationFrame(raf);raf=0;}else if(inView)kick();});}).observe(el.panel);
+// el rect se cachea: medirlo ya inclinado realimenta el propio tilt (jitter)
+function onMove(e){if(!pRect){const r=el.panel.getBoundingClientRect();if(!r.width||!r.height)return;pRect=r;}
+  const px=(e.clientX-pRect.left)/pRect.width-.5,py=(e.clientY-pRect.top)/pRect.height-.5;tTarget={x:-py*TILT*2,y:px*TILT*2};kick();}
+function onLeave(){tTarget={x:0,y:0};kick();}
+function onOrient(e){if(!isNum(e.beta)||!isNum(e.gamma))return;
+  if(!oBase)oBase={b:e.beta,g:e.gamma}; // la primera lectura es el reposo: no se asume cómo sujeta el móvil
+  tTarget={x:clamp((e.beta-oBase.b)/10,-TILT,TILT),y:clamp((e.gamma-oBase.g)/10,-TILT,TILT)};kick();}
+// iOS 13+: sin permiso el evento simplemente no llega (sin error). La lupa no lanza el prompt por su cuenta —
+// eso es del HUD, dentro de un gesto — pero escucha por si ya se concedió; requestMotion() lo pide a quien lo llame desde un gesto.
+function enableOrient(){if(orientOn||!('DeviceOrientationEvent' in window))return;
+  orientOn=true;oBase=null;addEventListener('deviceorientation',onOrient,{passive:true});}
+function requestMotion(){const D=window.DeviceOrientationEvent;
+  if(!D||typeof D.requestPermission!=='function')return Promise.resolve(D?'granted':'unsupported');
+  let p;try{p=D.requestPermission();}catch(err){return Promise.resolve('denied');}
+  return Promise.resolve(p).then(r=>{if(r==='granted'&&open&&mobile())enableOrient();return r;}).catch(()=>'denied');}
+function disableOrient(){if(!orientOn)return;orientOn=false;removeEventListener('deviceorientation',onOrient);}
+function startTilt(){pRect=null;if(reduced()){el.panel.style.transform='';return;}
+  if(mobile())enableOrient();else{el.panel.addEventListener('pointermove',onMove);el.panel.addEventListener('pointerleave',onLeave);}
+  kick();}
+function stopTilt(){el.panel.removeEventListener('pointermove',onMove);el.panel.removeEventListener('pointerleave',onLeave);disableOrient();
+  if(raf){cancelAnimationFrame(raf);raf=0;}tTarget={x:0,y:0};tCur={x:0,y:0};pRect=null;el.panel.style.transform='';
+  txt(el.note,'transform: rotateX(0.00deg) rotateY(0.00deg)');}
+
+/* ---------- estados ---------- */
+function syncHudLink(){el.hud.hidden=!(A&&A.hud&&typeof A.hud.open==='function');}
+function show(){if(shown||!A)return;if(!A.state.consent){pendingShow=true;return;} // sin consentimiento no hay scoring que enseñar: aparece al aceptar
+  shown=true;root.classList.add('is-shown');document.documentElement.classList.add('lupa-shown');updateMini(A.state);emit('widget:show');}
+function hide(){clearTimeout(showT);showT=0;pendingShow=false;if(!shown)return;closeP({noFocus:true});shown=false;root.classList.remove('is-shown');document.documentElement.classList.remove('lupa-shown');emit('widget:hide');}
+// rect de la lupa colapsada (destino del morph FLIP del HUD), medible aunque esté oculta o expandida
+function rect(){let r;
+  if(shown&&!open)r=el.toggle.getBoundingClientRect();
+  else{root.classList.add('lupa-measure');r=el.toggle.getBoundingClientRect();root.classList.remove('lupa-measure');}
+  return {left:r.left,top:r.top,width:r.width,height:r.height,right:r.right,bottom:r.bottom};}
+function openP(){if(open||!shown||!A)return;open=true;root.classList.add('is-open');
+  el.toggle.setAttribute('aria-expanded','true');el.panel.setAttribute('aria-hidden','false');
+  syncHudLink();updatePanel(A.state);startTilt();
+  try{el.panel.focus({preventScroll:true});}catch(err){}
+  emit('widget:open');}
+function closeP(o){if(!open)return;open=false;root.classList.remove('is-open');
+  el.toggle.setAttribute('aria-expanded','false');el.panel.setAttribute('aria-hidden','true');stopTilt();
+  if(!(o&&o.noFocus)){try{el.toggle.focus({preventScroll:true});}catch(err){}}
+  emit('widget:close');}
+function goTo(id){let t=null;try{t=document.querySelector('[data-sec="'+CSS.escape(id)+'"]');}catch(err){}
+  if(!t)t=document.getElementById(id);if(!t)return;
+  if(mobile())closeP({noFocus:true}); // el sheet tapa la página
+  t.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'start'});}
+let flashT=0;
+function onStage(){if(!shown||!A)return;updateMini(A.state);if(reduced())return;
+  el.mStage.classList.remove('lupa-flash');void el.mStage.offsetWidth;el.mStage.classList.add('lupa-flash');
+  clearTimeout(flashT);flashT=setTimeout(()=>el.mStage.classList.remove('lupa-flash'),650);}
+
+/* ---------- interacción ---------- */
+el.toggle.addEventListener('click',()=>openP());
+el.close.addEventListener('click',()=>closeP());
+el.rail.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)goTo(b.dataset.go);});
+el.cta.addEventListener('click',()=>{closeP({noFocus:true});
+  if(A&&typeof A.signal==='function')A.signal('cta','Recibir mi reporte · lupa'); // no es .btn: el capture de core no lo contaría
+  if(typeof window.openForm==='function')window.openForm();
+  else{const c=document.getElementById('contacto');if(c)c.scrollIntoView({behavior:reduced()?'auto':'smooth'});}});
+el.hud.addEventListener('click',()=>{if(A&&A.hud&&typeof A.hud.open==='function'){closeP({noFocus:true});A.hud.open();}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!open)return;
+  if(document.querySelector('.scrim.on,.hud-scrim.hud-on'))return; // un modal o el HUD abiertos se llevan el Escape
+  closeP();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(raf){cancelAnimationFrame(raf);raf=0;}}
+  else if(A&&shown){updateMini(A.state);if(open){updatePanel(A.state);kick();}}});
+const onMq=()=>{if(open){stopTilt();startTilt();}};
+if(typeof mqMobile.addEventListener==='function')mqMobile.addEventListener('change',onMq);else if(mqMobile.addListener)mqMobile.addListener(onMq);
+addEventListener('resize',()=>{pRect=null;},{passive:true});
+el.panel.addEventListener('animationend',()=>{pRect=null;}); // la entrada escala el panel: el rect válido es el de reposo
+
+/* ---------- arranque: espera a window.AIS (mod-core) ---------- */
+const hasHud=()=>!!(A&&A.hud)||!!document.querySelector('.hud-scrim');
+function onHudCollapsed(){if(!A)return;clearTimeout(showT);showT=0;if(A.state.consent)show();else pendingShow=true;}
+function onConsent(d){if(!A)return;clearTimeout(showT);showT=0;
+  if((d&&d.essential)||!A.state.consent){hide();return;} // modo esencial o revocación: sin scoring no hay nada que mostrar
+  if(!hasHud()||pendingShow){pendingShow=false;show();return;}
+  showT=setTimeout(()=>{showT=0;if(A.state.consent)show();},HUD_FALLBACK_MS); // el HUD debería emitir 'hud:collapsed' antes
+}
+function boot(){if(booted)return true;const ais=window.AIS;
+  if(!ais||typeof ais.on!=='function'||!ais.state)return false;booted=true;A=ais;
+  A.on('tick',onTick);A.on('hud:collapsed',onHudCollapsed);A.on('consent',onConsent);A.on('stage',onStage);
+  A.widget={show,hide,open:openP,close:closeP,toggle:()=>open?closeP():openP(),isOpen:()=>open,isShown:()=>shown,rect,requestMotion,el:root};
+  syncHudLink();
+  if(A.state.consent)onConsent({essential:false}); // arranque tardío: el consentimiento ya está dado
+  return true;}
+document.addEventListener('hud:collapsed',onHudCollapsed);
+if(!boot()){
+  document.addEventListener('ais:ready',boot,{once:true});
+  if(document.readyState==='complete')setTimeout(boot,0);else addEventListener('load',boot,{once:true});
+}
+})();
+</script>
+<!-- ===== script mod-attribution ===== -->
+<script>
+/* mod-attribution · origen de la visita: utm + click ids + nombres de campaña/conjunto/anuncio que lleguen en la URL.
+   Todo dato visible sale de AIS.state.attribution (core). Google y Meta NO entregan el nombre de usuario:
+   el @instagram solo existe si la persona lo escribe en el campo opcional de #mForm. */
+(function(){
+  'use strict';
+  const ROOT=document.documentElement;
+  if(ROOT.hasAttribute('data-attr-mod'))return;            // doble inserción: manda la primera
+  ROOT.setAttribute('data-attr-mod','1');
+
+  const DEMO_QS='utm_source=meta&utm_medium=paid&utm_campaign=verano_lanzamiento&adset_name=intencion_alta&ad_name=video_a&fbclid=IwAR0demo';
+  const DEMO_ID='IwAR0demo';
+  const URL_KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','utm_id','gclid','gbraid','wbraid','dclid','fbclid','ttclid','msclkid','ad_name','adset_name','campaign_name','ad_id','adset_id','campaign_id'];
+  const PLATFORM={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'Referral',direct:'Directo'};
+  const DEVICE={mobile:'móvil',desktop:'escritorio'};
+  const NOT_TXT='<b>Qué NO llega:</b> Google y Meta no entregan el nombre de usuario de la persona. Solo lo que tú escribes.';
+  const reg=[];                                             // elementos pintados {el, mode}
+  let installed=false, sfWrapped=false, rtWrapped=false, pendingIg='', igRetries=0, tickN=0;
+
+  /* ---------- helpers ---------- */
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const str=v=>v==null?'':String(v);
+  const ais=()=>(window.AIS&&typeof window.AIS==='object')?window.AIS:null;
+  // S es un const del script del sitio: binding global léxico, no window.S
+  function siteS(){try{return (typeof S==='object'&&S)?S:null;}catch(e){return null;}}
+  function mask(id){const s=str(id);return s.length>7?s.slice(0,4)+'…'+s.slice(-2):s.slice(0,2)+'…';}
+  function hostOf(u){u=str(u);if(!u)return '';let h;try{h=new URL(u).hostname;}catch(e){h=u.replace(/^https?:\/\//,'').split('/')[0];}return h.replace(/^www\./,'');}
+  function pathOf(u){u=str(u);if(!u)return '';try{return new URL(u,location.href).pathname||'/';}catch(e){return u;}}
+  function fmtTime(ft){
+    if(ft==null||ft==='')return '';
+    const d=(ft instanceof Date)?ft:new Date(ft);              // core guarda ISO; también vale epoch ms
+    if(isNaN(d.getTime()))return '';
+    const t=d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})+' · '+t;
+  }
+  function urlHasAttribution(){const q=new URLSearchParams(location.search);return URL_KEYS.some(k=>q.has(k));}
+  function withQuery(mut){const q=new URLSearchParams(location.search);URL_KEYS.forEach(k=>q.delete(k));mut(q);const s=q.toString();return location.pathname+(s?'?'+s:'')+location.hash;}
+  const demoUrl=()=>withQuery(q=>{new URLSearchParams(DEMO_QS).forEach((v,k)=>q.set(k,v));});
+  const cleanUrl=()=>withQuery(()=>{});
+
+  /* ---------- modelo de vista: solo lectura de AIS.state ---------- */
+  function vm(){
+    const A=ais(),st=(A&&A.state&&typeof A.state==='object')?A.state:null;
+    const a=(st&&st.attribution&&typeof st.attribution==='object')?st.attribution:{};
+    const pf=str(a.platform).toLowerCase();
+    const ids=[['gclid',a.gclid],['fbclid',a.fbclid],['ttclid',a.ttclid]].filter(x=>x[1]);
+    const campaign=str(a.campaign),ad=str(a.adName),adset=str(a.adsetName),content=str(a.content),term=str(a.term),source=str(a.source),medium=str(a.medium);
+    const refHost=hostOf(a.referrer);
+    // la señal enumera lo que realmente llegó; no se califica más de lo que hay
+    const tags=[];
+    if(campaign||adset||ad||content||term||source||medium)tags.push('utm');
+    if(ids.length)tags.push('click id');
+    if(!tags.length&&refHost)tags.push('referrer');
+    const sig=tags.length>=2?'go':tags.length?'hold':'off';
+    const sigTxt=tags.length?tags.join(' + '):(pf==='direct'?'sin campaña':'—');
+    const s=siteS(),leadObj=(st&&st.lead)||(s&&s.lead)||null;
+    const igRaw=(leadObj&&typeof leadObj==='object'&&leadObj.instagram)?str(leadObj.instagram).replace(/^@+/,''):'';
+    return{ready:!!st,pf,pfLabel:PLATFORM[pf]||(pf?pf.charAt(0).toUpperCase()+pf.slice(1):''),campaign,adset,ad,content,term,source,medium,
+      ids:ids.map(x=>x[0]+' · '+mask(x[1])),refHost,landing:str(a.landing),landingPath:pathOf(a.landing),
+      device:DEVICE[str(a.device).toLowerCase()]||str(a.device),first:fmtTime(a.firstTouch),ig:igRaw?'@'+igRaw:'',
+      demo:a.fbclid===DEMO_ID,sig,sigTxt,testable:!urlHasAttribution()};
+  }
+
+  /* ---------- render ---------- */
+  function cell(k,v,title,sub){
+    const has=!!v;
+    return `<div class="attr-cell"><div class="attr-k">${esc(k)}</div><div class="attr-v${has?'':' attr-dim'}" title="${esc(title||v||'')}">${has?esc(v):'—'}${(has&&sub)?`<span class="attr-sub">${esc(sub)}</span>`:''}</div></div>`;
+  }
+  function fullHTML(v){
+    const head=`<div class="attr-head"><span>Origen de la visita</span><span>${v.ready?'url + referrer':'esperando core'}${v.demo?' <em class="attr-tag">prueba</em>':''}</span></div>`;
+    if(!v.ready)return head+`<div class="attr-wait">— · el panel se rellena cuando AIS esté listo</div>`;
+    const cells=[
+      ['campaña',v.campaign],['conjunto',v.adset],['anuncio',v.ad],
+      ['contenido',v.content],['término',v.term],['fuente · medio',[v.source,v.medium].filter(Boolean).join(' · ')],
+      ['click id',v.ids.join(', ')],['referrer',v.refHost],['landing',v.landingPath,v.landing],
+      ['dispositivo',v.device],['primer contacto',v.first,'',v.first?'hora local':''],['instagram',v.ig,'',v.ig?'escrito por ti':'']
+    ].map(c=>cell(c[0],c[1],c[2],c[3])).join('');
+    let test='';
+    if(v.demo)test=`<div class="attr-test"><em class="attr-tag">prueba</em><span>datos del enlace de prueba, no de una campaña real</span><button type="button" class="attr-link" data-attr-act="clear">quitar →</button></div>`;
+    else if(v.testable)test=`<div class="attr-test"><em class="attr-tag">prueba</em><button type="button" class="attr-link" data-attr-act="demo">Probar con una URL de campaña →</button><span>recarga con ?utm_source=meta … fbclid=IwAR0demo</span></div>`;
+    return head+`<div class="attr-body"><div class="attr-badge"><div class="attr-lens attr-${v.sig}"></div><div><div class="attr-pf">${esc(v.pfLabel||'—')}</div><div class="attr-sig">${esc(v.sigTxt)}</div></div></div><div class="attr-kv">${cells}</div></div>`+
+      `<div class="attr-not"><span class="attr-ic">○</span><p>${NOT_TXT}</p></div><div class="attr-srv">IP · se resuelve en servidor</div>`+test;
+  }
+  function chipHTML(v){
+    let parts,title;
+    if(!v.ready){parts=['—'];title='esperando core';}
+    else if(!v.pf){parts=['—'];title='sin atribución';}
+    else if(v.pf==='direct'){parts=['directo','sin campaña'];title='Directo · sin utm ni click id';}
+    else{parts=[v.pf,v.campaign||(v.pf==='referral'?v.refHost:''),v.ad].filter(Boolean);title=[v.pfLabel,v.campaign,v.adset,v.ad].filter(Boolean).join(' · ');}
+    const rest=parts.slice(1);
+    return `<span class="attr-chip" title="${esc(title)}"><i class="attr-dot attr-${v.sig}"></i><span><b>${esc(parts[0])}</b>${rest.length?' · '+rest.map(esc).join(' · '):''}</span>${v.demo?'<em class="attr-tag">prueba</em>':''}</span>`;
+  }
+  function paint(el,mode,v){el.innerHTML=(mode==='chip')?chipHTML(v):fullHTML(v);el.classList.add(mode==='chip'?'attr-chip-host':'attr-panel');}
+  function track(el,mode){const r=reg.find(x=>x.el===el);if(r)r.mode=mode;else reg.push({el:el,mode:mode});}
+  function render(el,mode){
+    if(typeof el==='string')el=document.querySelector(el);
+    if(!el||el.nodeType!==1)return null;
+    mode=(mode==='chip')?'chip':'full';
+    paint(el,mode,vm());track(el,mode);return el;
+  }
+  function chip(){const el=document.createElement('span');el.setAttribute('data-attr-chip','');return render(el,'chip');}
+  function refresh(){
+    const v=vm();
+    document.querySelectorAll('[data-attr-chip]').forEach(el=>track(el,'chip'));
+    for(let i=reg.length-1;i>=0;i--){const r=reg[i];if(!r.el.isConnected&&r.el.id!=='attr-panel'){reg.splice(i,1);continue;}paint(r.el,r.mode,v);}
+  }
+  // hosts data-attr-chip que otro módulo añada tarde: un querySelector cada 2 s (8 ticks), sin MutationObserver
+  function onTick(){if((++tickN&7)!==0)return;if(document.querySelector('[data-attr-chip]:not(.attr-chip-host)'))refresh();}
+  function line(){
+    const v=vm();if(!v.ready||!v.pf||v.pf==='direct')return '';
+    const parts=[v.pf,v.campaign||(v.pf==='referral'?v.refHost:''),v.ad].filter(Boolean);
+    return 'Origen: '+parts.join(' · ')+(v.demo?' (prueba)':'');
+  }
+  function data(){return Object.assign({},vm());}
+
+  /* ---------- montaje: #mSpot, justo antes de .delivery ---------- */
+  function mountPanel(){
+    let p=document.getElementById('attr-panel');
+    if(!p){p=document.createElement('div');p.id='attr-panel';}
+    p.classList.add('attr-panel');
+    const spot=document.getElementById('mSpot'),del=spot&&spot.querySelector('.delivery');
+    if(del){if(p.parentNode!==del.parentNode||p.nextElementSibling!==del)del.parentNode.insertBefore(p,del);p.hidden=false;}
+    else if(spot){const pad=spot.querySelector('.mpad')||spot;if(!pad.contains(p))pad.appendChild(p);p.hidden=false;}
+    else if(!p.isConnected){document.body.appendChild(p);p.hidden=true;}   // sin #mSpot aún: se guarda oculto
+    track(p,'full');return p;
+  }
+
+  /* ---------- formulario: campo instagram opcional tras el email ---------- */
+  function addField(){
+    const form=document.querySelector('#mForm form');
+    if(!form||form.querySelector('input[name="instagram"]'))return;
+    const email=form.querySelector('input[name="email"]'),anchor=email?(email.closest('.field')||email):null;
+    const html='<div class="field attr-field"><label for="attr-ig">Instagram (opcional)</label>'+
+      '<input id="attr-ig" name="instagram" placeholder="@usuario · opcional" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="40" />'+
+      '<div class="attr-hint">Solo si lo escribes tú. Ninguna plataforma lo entrega.</div></div>';
+    if(anchor)anchor.insertAdjacentHTML('afterend',html);
+    else{const cr=form.querySelector('.consent-row');if(cr)cr.insertAdjacentHTML('beforebegin',html);else form.insertAdjacentHTML('afterbegin',html);}
+  }
+  // misma forma que guarda core (sin '@'); la UI lo antepone al mostrarlo
+  function normIg(s){
+    s=str(s).trim();if(!s)return '';
+    s=s.replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i,'').replace(/^@+/,'').split(/[\/?#\s]/)[0].replace(/[^A-Za-z0-9._]/g,'');
+    return s.slice(0,30);
+  }
+  // se lee una sola vez, en el submit (nunca en keyup ni en tick)
+  function readIg(e){
+    const f=(e&&e.target&&e.target.elements)?e.target:document.querySelector('#mForm form');
+    const inp=(f&&f.elements)?f.elements.namedItem('instagram'):null;
+    return normIg(inp&&inp.value);
+  }
+  function leadsNow(){const A=ais(),s=siteS();return{a:(A&&A.state)?A.state.lead:undefined,s:s?s.lead:undefined};}
+  function applyIg(ig,before){
+    pendingIg=ig;igRetries=0;
+    const A=ais(),s=siteS();
+    // solo cuenta el lead que submitForm acaba de crear (identidad distinta a la de antes de llamarlo);
+    // uno anterior fusionado con el @ nuevo pisaría el nombre/WhatsApp recién enviados
+    const sl=(s&&s.lead&&typeof s.lead==='object'&&s.lead!==before.s)?s.lead:null;
+    const al=(A&&A.state&&A.state.lead&&typeof A.state.lead==='object'&&A.state.lead!==before.a)?A.state.lead:null;
+    if(sl)sl.instagram=ig;                                  // el fetch del sitio envía S.lead
+    const fresh=sl||al;
+    if(fresh&&A&&typeof A.setLead==='function')A.setLead(Object.assign({},fresh,{instagram:ig}));
+    // si aún no hay lead nuevo (otro módulo lo fija tras un await), se fusiona al llegar su evento 'lead'
+    refresh();
+  }
+  function onLead(l){
+    if(pendingIg&&l&&typeof l==='object'){
+      if(str(l.instagram).replace(/^@+/,'')===pendingIg)pendingIg='';   // ya está: no se reinyecta en leads futuros
+      else if(!l.instagram&&igRetries<3){const A=ais();if(A&&typeof A.setLead==='function'){igRetries++;A.setLead(Object.assign({},l,{instagram:pendingIg}));return;}}
+    }
+    refresh();
+  }
+
+  /* ---------- envolturas de globales del sitio (sin romper openSpot / entrega WhatsApp) ---------- */
+  function wrapGlobals(){
+    if(!sfWrapped&&typeof window.submitForm==='function'){
+      const sf=window.submitForm;
+      // submitForm del sitio escribe S.lead antes de su primer await: al volver ya está el lead nuevo
+      const w=function(e){const ig=readIg(e),before=leadsNow();const r=sf.apply(this,arguments);applyIg(ig,before);return r;};
+      w.__attr=true;w.__orig=sf;window.submitForm=w;sfWrapped=true;
+    }
+    if(!rtWrapped&&typeof window.reportText==='function'){
+      const rt=window.reportText;
+      const w=function(){let t=rt.apply(this,arguments);const l=line();if(l&&typeof t==='string'&&t.indexOf('\nOrigen: ')<0)t+='\n\n'+l;return t;};
+      w.__attr=true;w.__orig=rt;window.reportText=w;rtWrapped=true;
+    }
+  }
+
+  /* ---------- API + arranque ---------- */
+  const api={render:render,chip:chip,refresh:refresh,data:data,line:line,mount:mountPanel,
+    demo:{query:DEMO_QS,id:DEMO_ID,url:demoUrl,active:()=>vm().demo}};
+  function install(){
+    const A=ais();if(!A)return false;
+    if(!installed){
+      installed=true;
+      try{A.attr=api;}catch(e){}
+      if(typeof A.on==='function'){A.on('lead',onLead);A.on('tick',onTick);}
+      document.dispatchEvent(new CustomEvent('attr:ready',{detail:api}));
+    }
+    refresh();return true;
+  }
+  document.addEventListener('click',e=>{
+    const b=(e.target&&e.target.closest)?e.target.closest('[data-attr-act]'):null;if(!b)return;
+    e.preventDefault();
+    const act=b.getAttribute('data-attr-act');
+    if(act==='demo')location.assign(demoUrl());else if(act==='clear')location.assign(cleanUrl());
+  });
+  function boot(){mountPanel();addField();wrapGlobals();if(!install())refresh();}
+  document.addEventListener('ais:ready',()=>install(),{once:true});   // core lo dispara en document (sin bubbles)
+  boot();                                                              // el script va antes de </body>: el DOM previo ya existe
+  window.addEventListener('load',boot,{once:true});                    // reintento por si algún módulo llegó tarde
+})();
+</script>
+<!-- ===== script mod-report ===== -->
+<script>
+(function(){
+'use strict';
+var DASH='—';
+var M={cur:{s:0,n:0},scr:{s:0,n:0},bound:false,sess:false,timer:0,tilt:null,pend:false,px:0,py:0};
+var mqFine=window.matchMedia?matchMedia('(pointer:fine)'):null;
+var mqWide=window.matchMedia?matchMedia('(min-width:761px)'):null;
+var mqRM=window.matchMedia?matchMedia('(prefers-reduced-motion:reduce)'):null;
+var mqCoarse=window.matchMedia?matchMedia('(pointer:coarse)'):null;
+
+/* ---------- helpers: todo dato visible sale de AIS.state; '—' si no existe ---------- */
+function num(v){return (typeof v==='number'&&isFinite(v))?v:null;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function stateOf(){var A=window.AIS;return (A&&A.state)?A.state:null;}
+function fmtS(v){var n=num(v);if(n===null)return DASH;var A=window.AIS;if(A&&A.util&&typeof A.util.fmt==='function')return A.util.fmt(n);return (Math.round(n*10)/10).toFixed(1)+'s';}
+function fmt1(v){var n=num(v);return n===null?DASH:(Math.round(n*10)/10).toFixed(1);}
+function fmtSec(v){var n=num(v);return n===null?DASH:fmt1(n)+'s';}   // 'NN.Ns' literal (la cabecera no pasa a minutos)
+function fmtPct(v){var n=num(v);return n===null?DASH:Math.round(n)+'%';}
+function fmtPx(v){var n=num(v);return n===null?DASH:Math.round(n)+' px/s';}
+function fmtN(v){var n=num(v);return n===null?DASH:String(Math.round(n));}
+function isMobile(st){var a=st&&st.attribution;if(a&&a.device)return a.device==='mobile';return !!(mqCoarse&&mqCoarse.matches);}
+function stageName(s){return s?(s.name||s.id||DASH):DASH;}
+function stages(st){return Array.isArray(st.stages)?st.stages.filter(function(s){return !!s;}):[];}
+
+/* banda -> lámpara. Umbrales espejo de bandShort() del sitio (>=65 HOT, >=45 WARM). */
+function lampOf(st){
+  var sc=st.score,A=window.AIS;
+  if((!sc||num(sc.total)===null)&&A&&typeof A.score==='function')sc=A.score();
+  var t=sc?num(sc.total):null;
+  var band=(sc&&typeof sc.band==='string'&&sc.band)?sc.band.split('·')[0].trim().toUpperCase():DASH;
+  if(t===null)return{key:'',band:band,act:'sin dato'};
+  return t>=65?{key:'go',band:band,act:'llamar hoy'}:t>=45?{key:'hold',band:band,act:'nutrir'}:{key:'stop',band:band,act:'aún no'};
+}
+function sessionText(st){return 'sesión · '+fmtSec(st.seconds)+' · '+fmtN(st.signals)+' señales · confianza '+fmtSec(st.trustSeconds);}
+
+/* ---------- (4) semáforo de banda + total de confianza (también en compact) ---------- */
+function actText(L){return (L.key?L.key+' · ':'')+L.act;}
+function semHTML(st){
+  var L=lampOf(st);
+  var lamps=['stop','hold','go'].map(function(k){return '<div class="rep3-lamp rep3-'+k+(L.key===k?' rep3-on':'')+'"><i class="rep3-lens"></i></div>';}).join('');
+  /* instantánea: el anillo, la banda legada y el texto de WhatsApp se fijan al montar; el semáforo lee el mismo score y no
+     se refresca después para no contradecirlos. Solo el contador de confianza sigue vivo (es un acumulador, no el score). */
+  return '<div class="rep3-sem rep3-sem-'+(L.key||'none')+'" role="group" aria-label="semáforo de banda">'+
+    '<div class="rep3-lamps">'+lamps+'</div>'+
+    '<div class="rep3-sem-t"><div class="rep3-sem-k">Semáforo · banda</div>'+
+    '<div class="rep3-sem-band">'+esc(L.band)+'</div>'+
+    '<div class="rep3-sem-act">'+actText(L)+'</div>'+
+    '<div class="rep3-sem-trust">confianza <b data-rep3="trust">'+fmtSec(st.trustSeconds)+'</b> <span>est.</span></div></div></div>';
+}
+
+/* ---------- (1) lo que dijo tu scroll ---------- */
+function scrollHTML(st){
+  var sc=st.scroll||{},list=stages(st),n=list.length,last=-1;
+  list.forEach(function(s,i){if(s.status==='visited'||s.status==='current')last=i;});
+  var f=(n>1&&last>0)?last/(n-1):0;
+  var nodes=list.map(function(s){
+    var stt=(s.status==='visited'||s.status==='current')?s.status:'pending';
+    return '<div class="rep3-node rep3-'+stt+'"><i></i><span class="rep3-nn">'+esc(stageName(s))+'</span><span class="rep3-np">'+fmtPct(s.depth)+'</span></div>';
+  }).join('');
+  var rail=n?'<div class="rep3-rail"><div class="rep3-rail-in" style="--rep3-n:'+n+';--rep3-f:'+f.toFixed(3)+'"><i class="rep3-rail-line"></i><i class="rep3-rail-fill"></i>'+nodes+'</div></div>'
+            :'<div class="rep3-empty">'+DASH+' · sin etapas registradas</div>';
+  return '<div class="rep3-blk rep3-scroll"><div class="rep3-bh"><span>Lo que dijo tu scroll</span><span class="rep3-bv">profundidad máx <b>'+fmtPct(sc.depth)+'</b></span></div>'+rail+
+    '<div class="rep3-legend"><span><i class="rep3-lg rep3-lg-go"></i>visitada</span><span><i class="rep3-lg rep3-lg-hold"></i>pendiente</span><span>% = parte vista de cada etapa</span></div></div>';
+}
+
+/* ---------- (2) lectura y retención (estimación) ---------- */
+function readHTML(st){
+  var list=stages(st),rows=[];
+  list.forEach(function(s){
+    var reads=Array.isArray(s.reads)?s.reads.filter(function(r){return r&&num(r.seconds)!==null;}):[];
+    if(!reads.length)return;
+    var tot=reads.reduce(function(a,r){return a+r.seconds;},0);
+    var shown=reads.length>8?reads.slice(-8):reads;
+    var chips=shown.map(function(r){return '<i class="rep3-chip">'+fmtS(r.seconds)+'</i>';}).join('');
+    if(reads.length>8)chips='<i class="rep3-chip">+'+(reads.length-8)+'</i>'+chips;
+    rows.push('<div class="rep3-rr"><span class="rep3-rn">'+esc(stageName(s))+'</span><span class="rep3-rc">'+chips+'</span><span class="rep3-rt2">'+fmtS(tot)+'</span></div>');
+  });
+  var rd=st.reading||{};
+  if(rd.active&&rd.stage){
+    var id=typeof rd.stage==='string'?rd.stage:(rd.stage.id||rd.stage.name||'');
+    var cur=null;list.forEach(function(s){if(s.id===id)cur=s;});
+    rows.push('<div class="rep3-rr rep3-now"><span class="rep3-rn">'+esc(cur?stageName(cur):id)+'</span><span class="rep3-rc"><i class="rep3-chip rep3-chip-live">leyendo ahora</i></span><span class="rep3-rt2">…</span></div>');
+  }
+  var body=rows.length?rows.join(''):'<div class="rep3-rr rep3-empty">'+DASH+' · sin lectura sostenida detectada</div>';
+  return '<div class="rep3-blk rep3-read"><div class="rep3-bh"><span>Lectura y retención <em>estimación</em></span><span class="rep3-bv">lectura = scroll lento sostenido dentro de una etapa</span></div>'+
+    '<div class="rep3-read-g"><div class="rep3-reads">'+body+'</div>'+
+    '<div class="rep3-trust"><div class="rep3-tl">Tiempo real de confianza</div><b><span data-rep3="trustn">'+fmt1(st.trustSeconds)+'</span><small data-rep3="trustu">'+(num(st.trustSeconds)===null?'':'s')+'</small></b><div class="rep3-tn">suma de momentos de lectura · estimación</div></div></div></div>';
+}
+
+/* ---------- (3) micro-métricas ---------- */
+function microHTML(st){
+  var cur=M.cur.n?M.cur.s/M.cur.n:null,scr=M.scr.n?M.scr.s/M.scr.n:null,mob=isMobile(st);
+  function tile(k,v,n,extra){return '<div class="rep3-mt"><div class="rep3-mk">'+k+'</div><div class="rep3-mv'+(extra&&extra.teal?' rep3-teal':'')+'"'+(extra&&extra.live?' data-rep3="'+extra.live+'"':'')+'>'+v+'</div><div class="rep3-mn">'+n+'</div></div>';}
+  return '<div class="rep3-blk rep3-micro-blk"><div class="rep3-bh"><span>Micro-métricas</span><span class="rep3-bv">medias = muestras en movimiento · est.</span></div><div class="rep3-micro">'+
+    tile('Atención',fmtS(st.attention),'pestaña visible',{live:'attn'})+
+    tile(mob?'Vel. media touch':'Vel. media cursor',fmtPx(cur),'media en movimiento · est.',{live:'cur'})+
+    tile('Vel. media scroll',fmtPx(scr),'media en movimiento · est.',{live:'scr'})+
+    tile('Señales',fmtN(st.signals),'eventos registrados',{teal:true,live:'signals'})+
+    '</div></div>';
+}
+
+/* ---------- inyección sobre el HTML original (se parsea en <template>, no se toca el flujo) ---------- */
+function enhance(html,compact,st){
+  var tpl=document.createElement('template');tpl.innerHTML=html;
+  var frag=tpl.content,top=frag.querySelector('.rep-top');
+  if(top){
+    top.classList.add('rep3-top');
+    var rb=top.querySelector('.ringbox');
+    if(rb){
+      rb.classList.add('rep3-ring');
+      rb.insertAdjacentHTML('afterbegin','<i class="rep3-halo"></i>');
+      var ctr=rb.querySelector('.ctr'),lip='<i class="rep3-lip"></i><i class="rep3-well"></i>';
+      if(ctr)ctr.insertAdjacentHTML('beforebegin',lip);else rb.insertAdjacentHTML('beforeend',lip);
+      rb.insertAdjacentHTML('afterend',semHTML(st));
+    }else top.insertAdjacentHTML('afterbegin',semHTML(st));
+    var rt=top.querySelector('.rt');if(rt)rt.classList.add('rep3-rt');
+  }
+  if(!compact){
+    var blocks=scrollHTML(st)+readHTML(st)+microHTML(st);
+    var need=frag.querySelector('.need'),jr=frag.querySelector('.journey');
+    if(need)need.insertAdjacentHTML('beforebegin',blocks);
+    else if(jr)jr.insertAdjacentHTML('afterend',blocks);
+    else{var t2=document.createElement('template');t2.innerHTML=blocks;frag.appendChild(t2.content);}
+  }
+  return tpl.innerHTML;
+}
+
+/* submitForm legado escribe S.lead y core lo adopta en su siguiente tick (≤250 ms, antes del openSpot que espera 700 ms).
+   Por si algún flujo abre el reporte sin esperar, se adopta aquí antes de que score() calcule: anillo, banda y semáforo
+   salen del mismo número. Si ya coincide por identidad no hace nada. */
+function adoptLead(){
+  var A=window.AIS;if(!A||!A.state||typeof A.setLead!=='function')return;
+  try{if(typeof S!=='undefined'&&S&&S.lead&&S.lead!==A.state.lead)A.setLead(S.lead);}catch(e){}
+}
+function wrapReport(){
+  var orig=window.reportBody;
+  if(typeof orig!=='function'||orig.__rep3)return;
+  var w=function(compact){
+    var st=stateOf();
+    if(!st)return orig.apply(this,arguments);           // sin AIS: HTML original tal cual
+    adoptLead();
+    var html=orig.apply(this,arguments);
+    if(typeof html!=='string')return html;
+    var el=document.getElementById('rep3-session');if(el)el.textContent=sessionText(st);   // cabecera al día en el mismo frame
+    try{return enhance(html,compact,st);}catch(e){return html;}  // nunca romper mountReport → openSpot → WhatsApp
+  };
+  w.__rep3=true;w.__orig=orig;window.reportBody=w;
+}
+
+/* ---------- tick: medias de velocidad + refresco en vivo solo con un modal abierto ---------- */
+var MOVE_MIN=10;   // px/s: por debajo es la cola de decaimiento de la EMA de core, no movimiento
+function onTick(){
+  var st=stateOf();if(!st)return;
+  var c=st.cursor?num(st.cursor.speed):null;if(c!==null&&c>=MOVE_MIN){M.cur.s+=c;M.cur.n++;}
+  var v=st.scroll?num(st.scroll.velocity):null;if(v!==null&&Math.abs(v)>=MOVE_MIN){M.scr.s+=Math.abs(v);M.scr.n++;}
+  var live=document.querySelectorAll('.scrim.on [data-rep3]');
+  for(var i=0;i<live.length;i++){
+    var el=live[i],k=el.getAttribute('data-rep3'),t;
+    if(k==='session')t=sessionText(st);else if(k==='trust')t=fmtSec(st.trustSeconds);else if(k==='trustn')t=fmt1(st.trustSeconds);
+    else if(k==='trustu')t=num(st.trustSeconds)===null?'':'s';else if(k==='attn')t=fmtS(st.attention);else if(k==='signals')t=fmtN(st.signals);
+    else if(k==='cur')t=fmtPx(M.cur.n?M.cur.s/M.cur.n:null);else if(k==='scr')t=fmtPx(M.scr.n?M.scr.s/M.scr.n:null);else continue;
+    if(el.textContent!==t)el.textContent=t;
+  }
+}
+
+function mountSession(st){
+  var spot=document.getElementById('mSpot'),pad=spot&&spot.querySelector('.mpad');
+  var anchor=pad&&(pad.querySelector(':scope>#rHi,:scope>h2.mh')||pad.querySelector(':scope>.eyebrow'));
+  if(!anchor)return false;                                // sin #mSpot todavía: se reintenta en load
+  var el=document.getElementById('rep3-session');
+  if(!el){el=document.createElement('div');el.id='rep3-session';el.className='rep3-session';el.setAttribute('data-rep3','session');}
+  if(anchor.nextElementSibling!==el)anchor.insertAdjacentElement('afterend',el);
+  el.textContent=sessionText(st);
+  M.sess=true;return true;
+}
+function resetAvg(){M.cur.s=M.cur.n=M.scr.s=M.scr.n=0;}
+function bindAIS(){
+  var A=window.AIS;if(!A||!A.state)return false;
+  if(!M.sess)mountSession(A.state);
+  if(M.bound)return true;M.bound=true;
+  if(typeof A.on==='function'){A.on('tick',onTick);A.on('consent',resetAvg);}   // el recorrido cuenta desde la decisión (core resetea etapas y señales igual)
+  else M.timer=setInterval(onTick,250);
+  return true;
+}
+
+/* ---------- tilt sutil con el cursor: solo desktop con puntero fino, sin reduced-motion; rAF de un disparo, sin loop ---------- */
+function tiltOK(){return !!(mqFine&&mqFine.matches&&mqWide&&mqWide.matches&&!(mqRM&&mqRM.matches));}
+function setTilt(el,rx,ry){el.style.setProperty('--rep3-rx',rx+'deg');el.style.setProperty('--rep3-ry',ry+'deg');}
+function applyTilt(){
+  M.pend=false;var el=M.tilt;if(!el||!el.isConnected||document.hidden)return;
+  var r=el.getBoundingClientRect();if(!r.width||!r.height)return;
+  var x=(M.px-r.left)/r.width-.5,y=(M.py-r.top)/r.height-.5;
+  setTilt(el,(-y*4).toFixed(2),(x*5).toFixed(2));
+}
+function bindTilt(){
+  document.addEventListener('pointerover',function(e){
+    if(!tiltOK()||!e.target||typeof e.target.closest!=='function')return;
+    var t=e.target.closest('.rep3-top');
+    if(t&&t!==M.tilt){if(M.tilt)setTilt(M.tilt,0,0);M.tilt=t;}
+  },{passive:true});
+  document.addEventListener('pointerout',function(e){
+    var t=M.tilt;if(!t)return;var rt=e.relatedTarget;
+    if(!rt||!t.contains(rt)){setTilt(t,0,0);M.tilt=null;}
+  },{passive:true});
+  document.addEventListener('pointermove',function(e){
+    if(!M.tilt)return;
+    if(!M.tilt.isConnected){M.tilt=null;return;}          // el modal se cerró y volvió a montarse con el cursor encima
+    M.px=e.clientX;M.py=e.clientY;
+    if(M.pend||document.hidden)return;M.pend=true;requestAnimationFrame(applyTilt);
+  },{passive:true});
+}
+
+/* ---------- boot: envolver ya; AIS puede llegar después (ais:ready) o no llegar nunca ---------- */
+wrapReport();bindTilt();
+if(!bindAIS())document.addEventListener('ais:ready',function(){wrapReport();bindAIS();},{once:true});
+addEventListener('load',function(){wrapReport();bindAIS();});
+})();
 </script>
 </body>
 </html>
