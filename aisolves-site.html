@@ -1212,6 +1212,111 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .scrim .mclose{width:44px;height:44px;display:grid;place-items:center;top:6px;right:6px}
 }
 </style>
+<style>
+/* ============ capa-humo ============================================
+   1) El escenario crece un tercio; el cerebro queda fijo y centrado
+      mientras se recorre, y el tercio extra es espacio libre para los
+      ejemplos de formato.
+   2) Paleta: negro humo translúcido, detalles en blanco. El color queda
+      reservado al semáforo, que es donde significa algo.
+   ================================================================== */
+
+/* ---- 1. espacio ---- */
+.stage{min-height:104vh;min-height:104svh}
+@media(min-width:1000px){.stage{min-height:133vh;min-height:133svh}}
+/* el contenido se queda pegado al viewport: el cerebro no se va mientras
+   se recorre el tercio extra */
+/* overflow:hidden en el ancestro anula position:sticky, así que el recorte
+   baja al propio elemento pegajoso */
+.stage{overflow:visible}
+/* inset:auto debe ir ANTES de top:0, o el atajo lo anula y sticky sin top
+   no se pega nunca */
+.stage .carousel{position:sticky;inset:auto;top:0;height:100vh;height:100svh;overflow:hidden}
+.stage .car-body,.stage .car-cell.brain{height:100%}
+
+/* márgenes mayores: el cerebro respira */
+.stage .brain-hud{left:clamp(20px,4.2vw,74px);top:clamp(20px,4vw,64px)}
+.stage .car-bar{right:clamp(20px,4.2vw,74px);top:clamp(20px,4vw,64px)}
+.stage .car-desc{left:clamp(20px,4.2vw,74px);top:clamp(224px,27vh,300px)}
+.stage .brain-stream{left:clamp(20px,4.2vw,74px);bottom:clamp(66px,9vh,104px)}
+.stage .note{left:clamp(20px,4.2vw,74px);bottom:clamp(20px,3vw,44px)}
+.stage .stack{right:clamp(20px,4.2vw,74px);bottom:clamp(20px,3vw,44px)}
+.stage .car-foot{bottom:clamp(20px,3vw,44px)}
+.stage .brain-hint{right:clamp(20px,4.2vw,74px);bottom:clamp(84px,10vh,124px)}
+.stage .be-panel{right:clamp(20px,4.2vw,74px)}
+
+/* ---- 2. superficies: humo translúcido ---- */
+.stage .brain-hud,.stage .car-desc,.stage .car-bar,.stage .car-foot,.stage .stack,
+.scrim .shell,.be-panel,#hud .hud-panel,.lupa{
+  background:rgba(9,11,14,.58)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(1.06);backdrop-filter:blur(20px) saturate(1.06)}
+.scrim .shell{background:linear-gradient(180deg,rgba(14,16,20,.72),rgba(8,9,12,.78))!important}
+#hud .hud-panel{background:linear-gradient(180deg,rgba(13,15,19,.74),rgba(8,9,12,.80))!important}
+
+/* ---- detalles en blanco: el teal decorativo se retira ---- */
+.scrim .eyebrow,.be-panel .eyebrow,#hud .eyebrow{color:rgba(255,255,255,.62)}
+.scrim .fmt-tag,.be-panel .fmt-tag{color:rgba(255,255,255,.78);border-color:rgba(255,255,255,.22)}
+.scrim .rep-band,.be-panel .rep-band,.scrim .rep-summary .hl{color:#fff}
+.scrim .ring,.be-ring circle:last-child{stroke:#fff}
+.scrim .need{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.24)}
+.scrim .need .rl{color:rgba(255,255,255,.66)}
+.scrim .glyph{border-color:rgba(255,255,255,.5)}
+.scrim .glyph:before{background:#fff}
+.scrim .tick{border-color:rgba(255,255,255,.36)}
+.scrim .mrow .ic{color:rgba(255,255,255,.7)}
+.scrim .rep3-mv.rep3-teal,.scrim .rep3-chip-live{color:#fff}
+.scrim .track-line i{background:#fff}
+.scrim .track-line.done i{background:var(--confirm)}
+.scrim .step.on{color:#fff}
+.scrim .step.on:before{border-color:#fff;background:#fff}
+.stage .brain-dots i.on{background:#fff;border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.85)}
+.stage .car-foot .dots i.on{background:#fff;border-color:#fff}
+.stage .car-bar .title{color:#fff}
+.lupa .lupa-score,.lupa .lupa-stage{color:#fff}
+
+/* ============ semáforo limpio ============
+   Fuera el plástico con bisel: aro fino siempre visible, relleno y
+   halo solo en la lámpara encendida. El color solo aquí. */
+.rep3-lamps,#hud .hud-lamps,.lupa .lupa-lamps{
+  background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:12px!important;box-shadow:none!important;padding:9px 10px!important;gap:10px!important}
+.rep3-lens,#hud .hud-lens,.lupa .lupa-lens{
+  width:14px!important;height:14px!important;border-radius:50%!important;position:relative;
+  background:transparent!important;border:1.5px solid rgba(255,255,255,.30)!important;
+  box-shadow:none!important;transition:border-color .25s,box-shadow .25s}
+.rep3-lens:before,#hud .hud-lens:before,.lupa .lupa-lens:before{
+  content:"";position:absolute;inset:2.5px;border-radius:50%;background:transparent!important;
+  animation:none!important;transition:background .25s}
+/* encendidas */
+.rep3-lamp.rep3-on.rep3-go .rep3-lens,#hud .hud-lamp.hud-lit.hud-go .hud-lens{
+  border-color:var(--confirm)!important;box-shadow:0 0 14px rgba(31,170,90,.55)!important}
+.rep3-lamp.rep3-on.rep3-go .rep3-lens:before,#hud .hud-lamp.hud-lit.hud-go .hud-lens:before{background:var(--confirm)!important}
+.rep3-lamp.rep3-on.rep3-hold .rep3-lens,#hud .hud-lamp.hud-lit.hud-hold .hud-lens{
+  border-color:var(--hold)!important;box-shadow:0 0 14px rgba(224,164,0,.5)!important}
+.rep3-lamp.rep3-on.rep3-hold .rep3-lens:before,#hud .hud-lamp.hud-lit.hud-hold .hud-lens:before{background:var(--hold)!important}
+.rep3-lamp.rep3-on.rep3-stop .rep3-lens,#hud .hud-lamp.hud-lit.hud-stop .hud-lens{
+  border-color:var(--stop)!important;box-shadow:0 0 14px rgba(229,72,77,.5)!important}
+.rep3-lamp.rep3-on.rep3-stop .rep3-lens:before,#hud .hud-lamp.hud-lit.hud-stop .hud-lens:before{background:var(--stop)!important}
+/* etiqueta: apagada tenue, encendida blanca */
+.rep3-lamp,#hud .hud-lamp{background:transparent!important;border:0!important;padding:3px 0!important;opacity:1!important}
+.rep3-lamp p,#hud .hud-lamp p{color:rgba(255,255,255,.34)!important}
+.rep3-lamp.rep3-on p,#hud .hud-lamp.hud-lit p{color:#fff!important}
+/* el barrido brillante del panel sobraba */
+.rep3-lamps:after,.rep3-lamps:before{display:none!important}
+
+@media(max-width:859px){
+  .stage .carousel{height:100svh}
+  .stage .brain-hud,.stage .car-bar,.stage .car-foot{left:clamp(16px,4vw,40px);right:clamp(16px,4vw,40px)}
+  .stage .brain-stream,.stage .note{left:clamp(16px,4vw,40px)}
+}
+</style>
+<style>
+/* body{overflow-x:hidden} convierte a body en contenedor de scroll y anula
+   position:sticky en todo el documento. overflow-x:clip recorta igual sin
+   crear contenedor, así que el escenario puede quedarse fijo. */
+body{overflow-x:visible}
+html{overflow-x:clip}
+</style>
 </head>
 <body>
 
