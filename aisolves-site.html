@@ -123,7 +123,7 @@
   .car-desc p{color:var(--ink-2);font-size:16px;line-height:1.62;max-width:80ch;margin-bottom:14px}
   .car-desc p:last-child{margin-bottom:0}
   .car-desc .use{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--teal-ink);letter-spacing:.06em;margin-top:16px}
-  .car-body{display:grid;grid-template-columns:1fr 110px 1fr;border-top:1px solid var(--line);min-height:330px}
+  .car-body{display:grid;grid-template-columns:1fr 110px;border-top:1px solid var(--line);min-height:430px}
   .car-cell{position:relative;overflow:hidden}
   .car-cell.gears{border-right:1px solid var(--line)}
   .car-cell canvas,.car-cell svg{display:block;width:100%;height:100%}
@@ -922,6 +922,66 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .brain-hud{max-width:80%}}
 @media(prefers-reduced-motion:reduce){.car-cell.brain canvas{cursor:default}}
 </style>
+<style>
+/* ===== mod-brain-emit: flujo de metadata + panel emitido por el cerebro ===== */
+.car-cell.brain{min-height:430px}
+.car-cell.brain canvas{transition:transform .55s cubic-bezier(.16,1,.3,1)}
+.car-cell.brain.is-emitting canvas{transform:translateX(-17%) scale(.92)}
+.brain-stream{position:absolute;left:20px;bottom:40px;z-index:2;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;line-height:1.9;color:rgba(255,255,255,.30);pointer-events:none;max-width:52%}
+.bs-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:bsIn .45s ease both}
+.bs-line.hit{color:rgba(255,255,255,.72)}
+@keyframes bsIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+
+.brain-emit{position:absolute;inset:0;z-index:3;pointer-events:none}
+.be-wire{position:absolute;left:38%;right:35%;top:50%;height:1px;background:rgba(255,255,255,.18);overflow:hidden;opacity:0;transition:opacity .4s .15s}
+.is-emitting .be-wire{opacity:1}
+.be-wire i{position:absolute;top:-2px;left:0;width:26px;height:5px;border-radius:3px;background:#fff;
+  box-shadow:0 0 14px rgba(255,255,255,.95);animation:beWire 1.5s linear infinite}
+@keyframes beWire{from{left:-10%}to{left:105%}}
+.be-panel{position:absolute;right:16px;top:50%;transform:translate(14px,-50%) scale(.97);opacity:0;
+  width:min(330px,44%);max-height:88%;overflow:auto;pointer-events:auto;
+  background:rgba(11,13,18,.88);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);
+  box-shadow:0 26px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset;
+  transition:opacity .4s .1s,transform .45s cubic-bezier(.16,1,.3,1) .1s}
+.is-emitting .be-panel{opacity:1;transform:translate(0,-50%) scale(1)}
+.be-head{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid rgba(255,255,255,.12)}
+.be-live{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.18em;color:#fff}
+.be-live i{width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 9px #fff;animation:bePulse 1.3s infinite}
+@keyframes bePulse{0%,100%{opacity:1}50%{opacity:.25}}
+.be-fmt{flex:1;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;color:rgba(255,255,255,.45);text-align:right}
+.be-x{background:none;border:0;color:rgba(255,255,255,.5);cursor:pointer;font-size:12px;padding:0 2px}
+.be-x:hover{color:#fff}
+.be-body{padding:14px 13px}
+.be-top{display:flex;gap:14px;align-items:center;margin-bottom:13px}
+.be-ring{position:relative;width:86px;height:86px;flex:none}
+.be-ring b{position:absolute;inset:0;display:grid;place-items:center;font-weight:200;font-size:24px;color:#fff}
+.be-ring b small{font-size:10px;color:rgba(255,255,255,.45)}
+.be-band{flex:1;min-width:0}
+.be-k{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.38)}
+.be-v{font-family:"IBM Plex Mono",monospace;font-size:13px;color:#fff;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.be-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.09)}
+.be-grid>div{background:rgba(11,13,18,.9);padding:8px 9px}
+.be-grid i{display:block;font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.36);font-style:normal}
+.be-grid b{display:block;font-family:"IBM Plex Mono",monospace;font-size:13px;color:#fff;margin-top:3px;font-weight:400}
+.be-meta{margin-top:9px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;line-height:1.6;color:rgba(255,255,255,.5)}
+.be-meta span{color:rgba(255,255,255,.32);letter-spacing:.12em;text-transform:uppercase;font-size:8px;margin-right:6px}
+.be-fmtline{margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;line-height:1.5;color:rgba(255,255,255,.62)}
+.be-fmtline span{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-right:6px}
+.be-wait{color:rgba(255,255,255,.4);font-family:"IBM Plex Mono",monospace;font-size:11px}
+.be-foot{padding:0 13px 13px}
+.be-open{width:100%;background:#fff;color:#0b0d12;border:0;padding:11px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:.18s}
+.be-open:hover{background:rgba(255,255,255,.86)}
+@media(max-width:860px){
+  .car-body{grid-template-columns:1fr}
+  .car-cell.brain.is-emitting canvas{transform:translateY(-24%) scale(.82)}
+  .be-panel{right:12px;left:12px;width:auto;top:auto;bottom:12px;transform:translateY(14px) scale(.98);max-height:60%}
+  .is-emitting .be-panel{transform:none}
+  .be-wire{display:none}
+  .brain-stream{max-width:70%;bottom:34px}
+}
+@media(prefers-reduced-motion:reduce){.be-wire i{animation:none}.bs-line{animation:none}}
+</style>
 </head>
 <body>
 
@@ -994,13 +1054,25 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
           <div class="brain-dots"></div>
         </div>
         <div class="brain-hint">arrastra · 360°</div>
+        <div class="brain-stream" aria-hidden="true"></div>
+        <div class="brain-emit" id="brainEmit" hidden>
+          <div class="be-wire"><i></i></div>
+          <div class="be-panel" role="dialog" aria-label="Lectura emitida por el cerebro">
+            <div class="be-head">
+              <span class="be-live"><i></i>TRANSMITIENDO</span>
+              <span class="be-fmt">LEAD SIGNAL</span>
+              <button class="be-x" aria-label="cerrar">&#10005;</button>
+            </div>
+            <div class="be-body"></div>
+            <div class="be-foot"><button class="be-open">Ver en formato real &rarr;</button></div>
+          </div>
+        </div>
         <div class="note">transform: rotateY(0deg)</div>
       </div>
       <div class="stack">
         <div class="sq hatch"></div>
         <div class="sq">META</div><div class="sq">CAPI</div><div class="sq">GA4</div><div class="sq">WA</div><div class="sq">GSAP</div>
       </div>
-      <div class="car-cell"><canvas id="workSphere"></canvas><div class="note" id="waveNote">transform: scale3d(1, 1, 1)</div></div>
     </div>
     <div class="car-foot">
       <div class="dots" id="carDots"></div>
@@ -1230,7 +1302,10 @@ function carRender(){
 function carGo(i){carIdx=(i+FORMATS.length)%FORMATS.length;carRender();}
 function carNext(){carGo(carIdx+1);}
 function carPrev(){carGo(carIdx-1);}
-function carOpen(){openVariant(FORMATS[carIdx].id);}
+function carOpen(){const f=FORMATS[carIdx];
+  // el formato ya no salta suelto: lo emite el cerebro, que es quien lee el comportamiento
+  if(typeof window.brainEmit==='function'){ window.brainEmit(f.id, f.name, (f.d&&f.d[0])||''); const c=document.querySelector('.car-cell.brain'); if(c) c.scrollIntoView({block:'center',behavior:'smooth'}); return; }
+  openVariant(f.id);}
 
 /* ============ TRACKING ============ */
 const S={consent:false,attn:0,lastTick:0,active:true,maxDepth:0,signals:0,exitIntent:false,sections:{},order:[],lead:null,_teased:false};
@@ -1337,7 +1412,9 @@ let heroS,workS,gears;
 addEventListener('load',()=>{
   carRender();
   heroS=particleSphere(document.getElementById('heroSphere'),{count:6000,mode:'blob',ink:'26,30,42',scale:.34});
-  workS=particleSphere(document.getElementById('workSphere'),{count:4200,mode:'wave',ink:'72,60,110',scale:.38,speed:.006});
+  // el visor de producto se retiró: esa celda es ahora del cerebro
+  const _ws=document.getElementById('workSphere');
+  if(_ws) workS=particleSphere(_ws,{count:4200,mode:'wave',ink:'72,60,110',scale:.38,speed:.006});
   gears=buildGears();
   requestAnimationFrame(loopNotes);
 });
@@ -1607,6 +1684,8 @@ function loopNotes(){
     pair[k*2]=a; pair[k*2+1]=b; life[k]=1;
   }
 
+  var surgeUntil = 0;                       // descarga: el cerebro "dispara" al emitir
+  window.BRAIN = { surge:function(ms){ surgeUntil = performance.now() + (ms||1200); } };
   var rotY = 0, rotX = 0.06, autoRot = true, dragging=false, lastX=0, lastY=0, velY=0;
   canvas.addEventListener('pointerdown',function(e){ dragging=true; autoRot=false; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove',function(e){ if(!dragging) return; var dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY; rotY+=dx*0.006; velY=dx*0.006; rotX=Math.max(-0.6,Math.min(0.6, rotX+dy*0.004)); });
@@ -1637,13 +1716,20 @@ function loopNotes(){
 
     // color y tamaño por neurona: la zona activa se enciende, el resto queda tenue
     var col = geo.attributes.color.array, siz = geo.attributes.aSize.array;
+    var surge = Math.max(0, (surgeUntil - performance.now())/1600);   // 1 → 0
     for(var i2=0;i2<count;i2++){
       var on = zones[i2]===az;
       var flick = on ? (0.72 + 0.28*Math.sin(t*7 + i2*0.35)) : 0;
       var base = on ? 1.0 : 0.21;
       var v = on ? 0.50 + 0.50*flick : base;
+      var sz = on ? 1.9 + 1.0*flick : 1.1;
+      if(surge > 0){                                   // onda que recorre todo el cerebro al emitir
+        var w = Math.max(0, Math.sin((raw[i2*3+2] + 1) * 3.0 - (1-surge)*9.0));
+        v  += w * surge * 0.75;
+        sz += w * surge * 1.4;
+      }
       col[i2*3]=v; col[i2*3+1]=v; col[i2*3+2]=v;
-      siz[i2] = on ? 1.9 + 1.0*flick : 1.1;
+      siz[i2] = sz;
     }
     geo.attributes.color.needsUpdate = true;
     geo.attributes.aSize.needsUpdate = true;
@@ -1651,7 +1737,7 @@ function loopNotes(){
     // destellos
     var sp = sparkGeo.attributes.position.array, sc = sparkGeo.attributes.color.array, live=0;
     for(var k=0;k<MAXS;k++){
-      if(life[k] <= 0){ if(Math.random() < 0.30) reseed(k, az); }
+      if(life[k] <= 0){ if(Math.random() < (surge>0 ? 0.85 : 0.30)) reseed(k, az); }
       if(life[k] > 0){
         life[k] -= reduced ? 0.10 : 0.035;
         var a2=pair[k*2], b2=pair[k*2+1], o=Math.max(0, life[k]);
@@ -1697,6 +1783,126 @@ function loopNotes(){
 
   resize();
   }   /* fin initGL */
+})();
+
+</script>
+<!-- ===== script mod-brain-emit ===== -->
+<script>
+/* ==========================================================================
+   mod-brain-emit — el cerebro emite. Flujo de metadata en vivo + panel de
+   lectura que sale del propio cerebro cuando se pide "ver el formato".
+   Todo lo que muestra sale de AIS.state: si no hay dato, pone "—".
+   ========================================================================== */
+(function(){
+  var cell = document.querySelector('.car-cell.brain');
+  if(!cell) return;
+  var stream = cell.querySelector('.brain-stream');
+  var emit   = cell.querySelector('.brain-emit');
+  if(!emit) return;
+  var body   = emit.querySelector('.be-body');
+  var fmtEl  = emit.querySelector('.be-fmt');
+  var openBt = emit.querySelector('.be-open');
+  var closeBt= emit.querySelector('.be-x');
+
+  function A(){ return window.AIS && window.AIS.state ? window.AIS : null; }
+  function n1(v){ return (Math.round(v*10)/10).toFixed(1); }
+  function dash(v){ return (v===0||v) ? v : '—'; }
+
+  /* ---------- flujo de metadata: el cerebro "leyendo" el comportamiento ---------- */
+  var lastEventCount = 0, lastLine = '', LINES = 5;
+  function push(txt, kind){
+    if(!stream || txt===lastLine) return;
+    lastLine = txt;
+    var d = document.createElement('div');
+    d.className = 'bs-line' + (kind ? ' ' + kind : '');
+    d.textContent = txt;
+    stream.appendChild(d);
+    while(stream.children.length > LINES) stream.removeChild(stream.firstChild);
+  }
+  function tickStream(){
+    var a = A(); if(!a) return;
+    var s = a.state;
+    // 1) eventos nuevos del core (entrada en etapa, lectura, señales)
+    if(s.events && s.events.length > lastEventCount){
+      var fresh = s.events.slice(lastEventCount);
+      lastEventCount = s.events.length;
+      var e = fresh[fresh.length-1];
+      if(e) push('→ ' + (e.type||'evento') + ' · ' + (e.label||'') + (e.stage? ' · '+e.stage : ''), 'hit');
+      return;
+    }
+    // 2) telemetría continua
+    push(n1(s.seconds) + 's   scroll ' + s.scroll.current + '%   vel ' + Math.abs(s.scroll.velocity) +
+         'px/s   cursor ' + s.cursor.speed + 'px/s   ' + (s.current || '—'));
+  }
+
+  /* ---------- panel de lectura: sale del cerebro ---------- */
+  var C = 226.2;                                  // 2πr con r=36
+  function readout(fmt){
+    var a = A(); if(!a) return '<div class="be-wait">esperando al core…</div>';
+    var s = a.state, sc = s.score || {total:0,band:'—'};
+    var reads = 0, st = s.stages || [];
+    for(var i=0;i<st.length;i++) reads += (st[i].reads ? st[i].reads.length : 0);
+    var vis = st.filter(function(x){ return x.status==='visited'; }).length;
+    var at = s.attribution || {};
+    var origen = at.platform==='direct' ? 'directo'
+               : [at.platform, at.campaign, at.adName].filter(Boolean).join(' · ');
+    return ''+
+    '<div class="be-top">'+
+      '<div class="be-ring">'+
+        '<svg width="86" height="86" viewBox="0 0 86 86">'+
+          '<circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/>'+
+          '<circle cx="43" cy="43" r="36" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"'+
+          ' stroke-dasharray="'+C+'" stroke-dashoffset="'+(C - C*(sc.total/100))+'" transform="rotate(-90 43 43)"/>'+
+        '</svg>'+
+        '<b>'+dash(sc.total)+'<small>/100</small></b>'+
+      '</div>'+
+      '<div class="be-band">'+
+        '<div class="be-k">banda</div><div class="be-v">'+dash(sc.band)+'</div>'+
+        '<div class="be-k" style="margin-top:8px">etapa</div><div class="be-v">'+dash(s.current)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="be-grid">'+
+      '<div><i>scroll</i><b>'+s.scroll.current+'%</b></div>'+
+      '<div><i>profundidad</i><b>'+s.scroll.depth+'%</b></div>'+
+      '<div><i>etapas vistas</i><b>'+vis+'/'+st.length+'</b></div>'+
+      '<div><i>lecturas</i><b>'+reads+'</b></div>'+
+      '<div><i>confianza</i><b>'+n1(s.trustSeconds)+'s</b></div>'+
+      '<div><i>señales</i><b>'+s.signals+'</b></div>'+
+    '</div>'+
+    '<div class="be-meta"><span>origen</span> '+(origen||'directo')+'</div>'+
+    '<div class="be-meta"><span>metadata</span> '+(s.events?s.events.length:0)+' eventos analizados · IP se resuelve en servidor</div>'+
+    (fmt ? '<div class="be-fmtline"><span>formato</span> '+fmt.name+' — '+fmt.desc+'</div>' : '');
+  }
+
+  var openFmt = null, live = 0;
+  function show(fmt){
+    openFmt = fmt;
+    if(fmtEl) fmtEl.textContent = fmt ? fmt.name.toUpperCase() : 'LEAD SIGNAL';
+    body.innerHTML = readout(fmt);
+    emit.hidden = false;
+    // dejamos un frame para que la transición de entrada se vea
+    requestAnimationFrame(function(){ cell.classList.add('is-emitting'); });
+    if(window.BRAIN && window.BRAIN.surge) window.BRAIN.surge(1600);   // descarga de neuronas
+    push('→ transmitiendo lectura · ' + (fmt ? fmt.name : 'lead signal'), 'hit');
+    clearInterval(live);
+    live = setInterval(function(){ if(!emit.hidden) body.innerHTML = readout(openFmt); }, 1000);
+  }
+  function hide(){
+    cell.classList.remove('is-emitting');
+    clearInterval(live); live = 0;
+    setTimeout(function(){ emit.hidden = true; }, 380);
+  }
+  if(closeBt) closeBt.addEventListener('click', hide);
+  if(openBt)  openBt.addEventListener('click', function(){
+    if(openFmt && openFmt.id && typeof window.openVariant === 'function') window.openVariant(openFmt.id);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !emit.hidden) hide(); });
+
+  // el carrusel pide "ver este formato en vivo" → lo emite el cerebro
+  window.brainEmit = function(id, name, desc){ show({id:id, name:name||'lead signal', desc:desc||''}); };
+
+  setInterval(tickStream, 1100);
+  tickStream();
 })();
 
 </script>

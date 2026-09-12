@@ -242,6 +242,8 @@
     pair[k*2]=a; pair[k*2+1]=b; life[k]=1;
   }
 
+  var surgeUntil = 0;                       // descarga: el cerebro "dispara" al emitir
+  window.BRAIN = { surge:function(ms){ surgeUntil = performance.now() + (ms||1200); } };
   var rotY = 0, rotX = 0.06, autoRot = true, dragging=false, lastX=0, lastY=0, velY=0;
   canvas.addEventListener('pointerdown',function(e){ dragging=true; autoRot=false; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove',function(e){ if(!dragging) return; var dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY; rotY+=dx*0.006; velY=dx*0.006; rotX=Math.max(-0.6,Math.min(0.6, rotX+dy*0.004)); });
@@ -272,13 +274,20 @@
 
     // color y tamaño por neurona: la zona activa se enciende, el resto queda tenue
     var col = geo.attributes.color.array, siz = geo.attributes.aSize.array;
+    var surge = Math.max(0, (surgeUntil - performance.now())/1600);   // 1 → 0
     for(var i2=0;i2<count;i2++){
       var on = zones[i2]===az;
       var flick = on ? (0.72 + 0.28*Math.sin(t*7 + i2*0.35)) : 0;
       var base = on ? 1.0 : 0.21;
       var v = on ? 0.50 + 0.50*flick : base;
+      var sz = on ? 1.9 + 1.0*flick : 1.1;
+      if(surge > 0){                                   // onda que recorre todo el cerebro
+        var w = Math.max(0, Math.sin((raw[i2*3+2] + 1) * 3.0 - (1-surge)*9.0));
+        v  += w * surge * 0.75;
+        sz += w * surge * 1.4;
+      }
       col[i2*3]=v; col[i2*3+1]=v; col[i2*3+2]=v;
-      siz[i2] = on ? 1.9 + 1.0*flick : 1.1;
+      siz[i2] = sz;
     }
     geo.attributes.color.needsUpdate = true;
     geo.attributes.aSize.needsUpdate = true;
@@ -286,7 +295,7 @@
     // destellos
     var sp = sparkGeo.attributes.position.array, sc = sparkGeo.attributes.color.array, live=0;
     for(var k=0;k<MAXS;k++){
-      if(life[k] <= 0){ if(Math.random() < 0.30) reseed(k, az); }
+      if(life[k] <= 0){ if(Math.random() < (surge>0 ? 0.85 : 0.30)) reseed(k, az); }
       if(life[k] > 0){
         life[k] -= reduced ? 0.10 : 0.035;
         var a2=pair[k*2], b2=pair[k*2+1], o=Math.max(0, life[k]);
