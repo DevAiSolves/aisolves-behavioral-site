@@ -1317,6 +1317,59 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 body{overflow-x:visible}
 html{overflow-x:clip}
 </style>
+<style>
+/* ============ controles-compactos ============
+   Reglas de distintas capas fijaban los cuatro lados del mismo elemento
+   (top + right + left + bottom), y un elemento posicionado con los cuatro
+   se estira hasta llenar el hueco: la barra medía 756x857px. Aquí se
+   resetean los lados que sobran y los controles vuelven a ser píldoras. */
+
+/* --- barra del carrusel: píldora compacta --- */
+.stage .car-bar{
+  left:auto!important;bottom:auto!important;             /* mata el estirado */
+  width:auto!important;height:auto!important;
+  display:inline-grid!important;grid-auto-flow:column;grid-template-columns:none!important;
+  align-items:stretch;border-radius:10px;overflow:hidden}
+.stage .car-bar button{width:40px;height:40px;padding:0!important;font-size:15px;line-height:1}
+.stage .car-bar .title{
+  padding:0 16px!important;display:flex;align-items:center;
+  font-size:12px!important;letter-spacing:.12em;
+  max-width:min(38vw,300px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* --- pie: píldora centrada, botón a su tamaño --- */
+.stage .car-foot{
+  /* centrado por márgenes, no por transform: el paralaje compone su propio
+     transform y el translateX(-50%) se perdía */
+  left:0!important;right:0!important;top:auto!important;
+  width:max-content!important;max-width:calc(100% - 40px);margin-inline:auto!important;
+  border-radius:10px;padding:9px 10px!important;gap:14px!important;align-items:center}
+.stage .car-foot .btn{flex:0 0 auto!important;width:auto!important;
+  padding:11px 18px!important;font-size:12.5px!important;min-height:40px}
+.stage .car-foot .dots{gap:12px!important}
+
+
+
+@media(max-width:859px){
+  /* en estrecho la barra baja al centro, sigue siendo píldora */
+  .stage .car-bar{left:0!important;right:0!important;top:auto!important;
+    bottom:clamp(78px,11vh,112px)!important;width:max-content!important;
+    max-width:calc(100% - 32px);margin-inline:auto!important}
+  .stage .car-bar .title{max-width:44vw}
+  .stage .car-foot{bottom:clamp(18px,3vw,30px)!important}
+  .stage .car-foot .btn{padding:11px 16px!important;font-size:12px!important}
+}
+@media(max-width:859px){
+  /* la capa humo había bajado el flujo a 9vh y chocaba con la barra, que en
+     estrecho vive a 11vh. Se recoloca por encima de ella. */
+  .stage .brain-stream{bottom:clamp(152px,23vh,212px)!important}
+}
+@media(max-width:420px){
+  .stage .car-bar button{width:36px;height:36px}
+  .stage .car-bar .title{max-width:40vw;font-size:11px!important;padding:0 10px!important}
+  .stage .car-foot{gap:10px!important;padding:8px!important}
+  .stage .car-foot .dots{gap:10px!important}
+}
+</style>
 </head>
 <body>
 
@@ -2247,6 +2300,8 @@ function loopNotes(){
 })();
 
 </script>
+<script>/* el pie se centra por márgenes: su base de transform sobra */
+document.addEventListener("DOMContentLoaded",function(){var f=document.querySelector(".stage .car-foot");if(f)f.setAttribute("data-bx","");});</script>
 <!-- ===== script stage-tilt ===== -->
 <script>
 /* Paralaje 3D de los paneles del escenario. Un solo rAF, detenido con la
