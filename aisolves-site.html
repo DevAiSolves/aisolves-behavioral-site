@@ -1187,6 +1187,31 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 @media(max-width:760px){.scrim .shell{box-shadow:0 0 0 5px rgba(255,255,255,.03),0 0 0 6px rgba(255,255,255,.10),0 40px 90px rgba(0,0,0,.7)}}
 @media(prefers-reduced-motion:reduce){.scrim .shell,#mFull .mpad{transition:none}}
 </style>
+<style>
+/* contraste: sobre el negro del escenario (rgb 9,11,16) el blanco al 30-40%
+   daba 2.6-3.8:1. Al 52-55% pasa de 4.5:1, el umbral AA para texto pequeño. */
+.stage .brain-stream{color:rgba(255,255,255,.52)}
+.stage .bs-line.hit{color:rgba(255,255,255,.86)}
+.stage .note,.car-cell.brain .note{color:rgba(255,255,255,.52)}
+.stage .brain-hint{color:rgba(255,255,255,.52)}
+.stage .brain-idx{color:rgba(255,255,255,.56)}
+</style>
+<style>
+/* Área táctil: los puntos miden 7px y la equis 13px, por debajo del mínimo
+   usable en dedo. Se amplía el área sin tocar el aspecto, con el ancho igual
+   a la separación entre puntos para que no se roben el toque entre vecinos. */
+@media(pointer:coarse),(max-width:859px){
+  .stage .brain-dots{gap:20px}
+  .stage .car-foot .dots{gap:20px}
+  .stage .brain-dots i,.stage .car-foot .dots i{position:relative}
+  .stage .brain-dots i::after,.stage .car-foot .dots i::after{
+    content:"";position:absolute;left:50%;top:50%;width:28px;height:42px;
+    transform:translate(-50%,-50%)}
+  /* flex-shrink la encogía a 13px pese al width: hay que fijarla */
+  .be-x{width:44px;min-width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;margin:-13px -13px 0 0}
+  .scrim .mclose{width:44px;height:44px;display:grid;place-items:center;top:6px;right:6px}
+}
+</style>
 </head>
 <body>
 
