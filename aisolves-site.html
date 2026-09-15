@@ -2563,6 +2563,123 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 /* se quedan en blanco puro: barras de progreso, puntos activos y los botones
    del escenario negro (.btn.confirm .bar, .brain-dots i.on, .stage .car-foot) */
 </style>
+<style>
+/* ===== canal-de-entrada =====
+   Botones en miniatura, apagados por defecto. Se encienden solo con señal real:
+   click id en la URL para Google o Meta, y el WhatsApp cuando la persona lo
+   deja. Los iconos son glifos propios y genéricos, no logotipos de marca.
+   Encendido = blanco, para no romper la gama neutra del panel. ===== */
+#hud .hud-src{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10)}
+#hud .hud-chans{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+#hud .hud-ch{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;min-height:30px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);
+  color:rgba(255,255,255,.34);transition:color .35s,background .35s,border-color .35s,box-shadow .35s}
+#hud .hud-ch b{font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.12em;
+  text-transform:uppercase;font-weight:400}
+#hud .hud-ch svg{flex:none;opacity:.7;transition:opacity .35s}
+#hud .hud-ch[data-on="1"]{color:#fff;background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.45);box-shadow:0 0 14px rgba(255,255,255,.14)}
+#hud .hud-ch[data-on="1"] svg{opacity:1}
+#hud .hud-idrows{margin-top:11px;display:flex;flex-direction:column;gap:5px}
+#hud .hud-idrow{display:flex;gap:10px;align-items:baseline;min-width:0}
+/* display:flex pisaba el atributo hidden y las filas vacias se veian */
+#hud .hud-idrow[hidden]{display:none!important}
+#hud .hud-idrow dt{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(255,255,255,.40);flex:0 0 52px}
+#hud .hud-idrow dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  color:rgba(255,255,255,.72);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hud .hud-idrow dd.is-real{color:#fff}
+@media(max-width:760px){#hud .hud-ch b{font-size:8px}#hud .hud-idrow dt{flex-basis:44px}}
+@media(prefers-reduced-motion:reduce){#hud .hud-ch,#hud .hud-ch svg{transition:none}}
+</style>
+<style>
+/* ===== modales-humo =====
+   Todos los .scrim (reporte, formulario, comportamiento, hoja, cajón, aviso)
+   pasan al mismo cristal ahumado del panel de consentimiento. Gama neutra;
+   el color se reserva a la valoración del lead (semáforo y banda). ===== */
+.scrim{background:rgba(10,12,16,.52)!important;
+  -webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important}
+.scrim .shell{background:linear-gradient(158deg,rgba(28,31,38,.82) 0%,rgba(18,20,26,.86) 52%,rgba(12,14,18,.90) 100%)!important;
+  border:1px solid rgba(255,255,255,.13)!important;color:#f2f3f5!important;
+  -webkit-backdrop-filter:blur(22px) saturate(.85);backdrop-filter:blur(22px) saturate(.85);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 40px 120px rgba(0,0,0,.45)!important}
+#mFull .shell{background:linear-gradient(158deg,rgba(24,27,33,.92),rgba(12,14,18,.95))!important}
+
+/* texto en gama neutra */
+.scrim .mh,.scrim h3,.scrim b,.scrim strong{color:#fff!important}
+.scrim .mlead,.scrim p,.scrim li{color:rgba(255,255,255,.72)!important}
+.scrim .mlead b{color:#fff!important}
+.scrim .fine,.scrim .eyebrow,.scrim .fmt-tag,.scrim .rl,.scrim .dt{color:rgba(255,255,255,.52)!important}
+.scrim .fmt-tag{border-color:rgba(255,255,255,.16)!important}
+.scrim .mclose{color:rgba(255,255,255,.55)!important}.scrim .mclose:hover{color:#fff!important}
+.scrim .glyph{border-color:rgba(255,255,255,.45)!important}
+.scrim .glyph:before{background:#fff!important}
+
+/* bloques internos */
+.scrim .rep-summary,.scrim .journey,.scrim .delivery,.scrim .measures,.scrim .need,
+.scrim .rep3-blk,.scrim .rep3-chip,.scrim .rep3-lamps,.scrim .rep3-sem{
+  background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.11)!important}
+.scrim .rep-summary,.scrim .rep-summary b{color:rgba(255,255,255,.78)!important}
+.scrim .rep-summary .hl{color:#fff!important}
+.scrim .st{border-bottom-color:rgba(255,255,255,.08)!important}
+.scrim .st .n{color:rgba(255,255,255,.80)!important}
+.scrim .st .d{color:rgba(255,255,255,.62)!important}
+.scrim .st .p{color:rgba(255,255,255,.45)!important}
+.scrim .need p{color:#fff!important}
+.scrim .mrow p{color:rgba(255,255,255,.72)!important}
+.scrim .mrow p b{color:#fff!important}
+.scrim .mrow .ic{color:rgba(255,255,255,.72)!important}
+.scrim .measures .mhh{border-bottom-color:rgba(255,255,255,.11)!important;color:rgba(255,255,255,.45)!important}
+.scrim .mrow+.mrow{border-top-color:rgba(255,255,255,.07)!important}
+
+/* anillo y cifras */
+.scrim .ringbox svg circle:first-child{stroke:rgba(255,255,255,.14)!important}
+.scrim .ring{stroke:#fff!important}
+.scrim .ringbox .ctr b,.scrim .rep3-ring .ctr b{color:#fff!important}
+.scrim .ringbox .ctr b small{color:rgba(255,255,255,.5)!important}
+.scrim .rep3-well{background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),rgba(0,0,0,.34) 85%)!important;
+  box-shadow:none!important}
+.scrim .rep3-lip{box-shadow:inset 0 2px 7px rgba(0,0,0,.55),inset 0 -1px 2px rgba(255,255,255,.12)!important}
+.scrim .rep3-bv,.scrim .rep3-mv,.scrim .rep3-mn,.scrim .rep3-mt{color:#fff!important}
+.scrim .rep3-bh,.scrim .rep3-mk,.scrim .rep3-nn,.scrim .rep3-np,.scrim .rep3-legend,
+.scrim .rep3-lip,.scrim .rep3-micro,.scrim .rep3-empty{color:rgba(255,255,255,.5)!important}
+
+/* entrega por WhatsApp */
+.scrim .track-line{background:rgba(255,255,255,.12)!important}
+.scrim .track-line i{background:#fff!important}
+.scrim .step{color:rgba(255,255,255,.45)!important}
+.scrim .step:before{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.22)!important}
+.scrim .step.on{color:#fff!important}.scrim .step.on:before{background:#fff!important;border-color:#fff!important}
+.scrim .delivery .num{color:#fff!important}
+
+/* formulario */
+.scrim .field label{color:rgba(255,255,255,.48)!important}
+.scrim .field input,.scrim .field textarea{background:rgba(255,255,255,.05)!important;
+  border-color:rgba(255,255,255,.14)!important;color:#fff!important}
+.scrim .field input::placeholder,.scrim .field textarea::placeholder{color:rgba(255,255,255,.35)!important}
+.scrim .field input:focus{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.5)!important;
+  box-shadow:none!important}
+.scrim .consent-row label{color:rgba(255,255,255,.70)!important}
+.scrim .consent-row a{color:#fff!important}
+.scrim .ghostlink{color:rgba(255,255,255,.62)!important}.scrim .ghostlink:hover{color:#fff!important}
+
+/* acciones: blanco sobre humo */
+.scrim .btn.dark{background:#fff!important;color:#101216!important;border-color:#fff!important}
+.scrim .btn.dark:hover{background:rgba(255,255,255,.9)!important}
+.scrim .btn.ghost{border-color:rgba(255,255,255,.4)!important;color:#fff!important;background:transparent!important}
+.scrim .btn.ghost:hover{background:rgba(255,255,255,.12)!important}
+.scrim .btn .prog{background:rgba(0,0,0,.14)!important}
+
+/* ÚNICO color: la valoración del lead */
+.scrim .lens.go{background:#2fc5b1!important}
+.scrim .lens.hold{background:#e0a400!important}
+.scrim .lens.stop{background:#e5484d!important}
+.scrim .rep-band,.scrim .rep3-sem-band{color:#fff!important}
+.scrim .rep3-sem-go .rep3-sem-act{color:#2fc5b1!important}
+.scrim .rep3-sem-hold .rep3-sem-act{color:#e0a400!important}
+.scrim .rep3-sem-stop .rep3-sem-act{color:#e5484d!important}
+.scrim .btn.confirm{background:#1faa5a!important;color:#fff!important;border-color:#1faa5a!important}
+</style>
 </head>
 <body>
 
@@ -3360,6 +3477,36 @@ function loopNotes(){
                 <div class="hud-lamp" id="hud-lamp-hold"><span class="hud-lens hud-hold"></span><p>ámbar · nutrir</p></div>
                 <div class="hud-lamp" id="hud-lamp-stop"><span class="hud-lens hud-stop"></span><p>rojo · aún no</p></div>
               </div>
+            </div>
+
+            <!-- origen de la visita: botones apagados que se encienden con señal real -->
+            <div class="hud-src">
+              <div class="hud-k"><span>canal de entrada</span><em id="hud-srcnote">sin señal todavía</em></div>
+              <div class="hud-chans" role="group" aria-label="Canales detectados">
+                <span class="hud-ch" id="hud-ch-wa" aria-label="WhatsApp: sin señal" data-on="0">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 11.8a8.3 8.3 0 0 1-8.3 8.2 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.6a8 8 0 0 1-1-3.8A8.3 8.3 0 0 1 12.2 3 8.3 8.3 0 0 1 21 11.8z"/>
+                  </svg>
+                  <b>WhatsApp</b>
+                </span>
+                <span class="hud-ch" id="hud-ch-meta" aria-label="Meta: sin señal" data-on="0">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="8" cy="12" r="4.4"/><circle cx="16" cy="12" r="4.4"/>
+                  </svg>
+                  <b>Meta</b>
+                </span>
+                <span class="hud-ch" id="hud-ch-google" aria-label="Google: sin señal" data-on="0">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20 20"/>
+                  </svg>
+                  <b>Google</b>
+                </span>
+              </div>
+              <dl class="hud-idrows">
+                <div class="hud-idrow"><dt>ip</dt><dd id="hud-ip">se resuelve en servidor</dd></div>
+                <div class="hud-idrow" id="hud-camprow" hidden><dt>campaña</dt><dd id="hud-camp">—</dd></div>
+                <div class="hud-idrow" id="hud-clickrow" hidden><dt>click id</dt><dd id="hud-clickid">—</dd></div>
+              </dl>
             </div>
           </section>
 
@@ -7493,6 +7640,80 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   addEventListener('resize', paint, { passive:true });
   addEventListener('scroll', paint, { passive:true });   /* refuerzo, no unica via */
   paint();
+})();
+</script>
+<!-- ===== script mod-canal ===== -->
+<script>
+/* Enciende el canal por el que entró la visita. Solo con señal real:
+   · Google / Meta / TikTok: click id o utm_source en la propia URL.
+   · WhatsApp: cuando la persona deja su número en el formulario.
+   La IP no se inventa ni se pide a un tercero: se resuelve en servidor, así que
+   aquí queda como pendiente salvo que un backend inyecte window.AIS_SERVER. */
+(function(){
+  'use strict';
+  function $(id){ return document.getElementById(id); }
+  var wrap = $('hud-ch-wa'); if (!wrap) return;
+
+  function setOn(el, on, etiqueta){
+    if (!el) return;
+    el.setAttribute('data-on', on ? '1' : '0');
+    el.setAttribute('aria-label', etiqueta + (on ? ': activo' : ': sin señal'));
+  }
+  function fila(rowId, ddId, valor){
+    var row = $(rowId), dd = $(ddId);
+    if (!row || !dd) return;
+    if (valor){ dd.textContent = valor; dd.classList.add('is-real'); row.hidden = false; }
+    else { row.hidden = true; }
+  }
+
+  function leerURL(){
+    var q;
+    try { q = new URLSearchParams(location.search); } catch(e){ return {}; }
+    var get = function(k){ return (q.get(k) || '').trim(); };
+    return { gclid:get('gclid'), fbclid:get('fbclid'), ttclid:get('ttclid'),
+             source:get('utm_source').toLowerCase(), campaign:get('utm_campaign') || get('campaign_name') };
+  }
+
+  function pinta(){
+    var u = leerURL(), st = null;
+    try { st = window.AIS && AIS.state ? AIS.state : null; } catch(e){}
+    var at = (st && st.attribution) || {};
+    var plat = at.platform || '';
+
+    var google = !!u.gclid || plat === 'google' || u.source === 'google';
+    var meta   = !!u.fbclid || plat === 'meta'  || u.source === 'facebook' || u.source === 'meta' || u.source === 'instagram';
+    var wa     = !!(st && st.lead && st.lead.wa);
+
+    setOn($('hud-ch-google'), google, 'Google');
+    setOn($('hud-ch-meta'),   meta,   'Meta');
+    setOn($('hud-ch-wa'),     wa,     'WhatsApp');
+
+    var camp = u.campaign || at.campaign || '';
+    fila('hud-camprow', 'hud-camp', camp);
+
+    var cid = u.gclid ? 'gclid · ' + u.gclid.slice(0, 22)
+            : u.fbclid ? 'fbclid · ' + u.fbclid.slice(0, 22)
+            : u.ttclid ? 'ttclid · ' + u.ttclid.slice(0, 22) : '';
+    fila('hud-clickrow', 'hud-clickid', cid);
+
+    var nota = $('hud-srcnote');
+    if (nota){
+      nota.textContent = google ? 'google ads · click id en la url'
+                       : meta   ? 'meta ads · click id en la url'
+                       : wa     ? 'whatsapp · número facilitado'
+                       : (plat === 'referral' ? 'referido · sin campaña' : 'directo · sin campaña');
+    }
+    /* la IP nunca se inventa: solo si un servidor la inyecta */
+    var ip = $('hud-ip');
+    if (ip && window.AIS_SERVER && AIS_SERVER.ip){
+      ip.textContent = AIS_SERVER.ip + (AIS_SERVER.org ? ' · ' + AIS_SERVER.org : '');
+      ip.classList.add('is-real');
+    }
+  }
+
+  pinta();
+  setInterval(pinta, 1500);            /* el WhatsApp puede llegar más tarde */
+  document.addEventListener('ais:lead', pinta);
 })();
 </script>
 </body>
