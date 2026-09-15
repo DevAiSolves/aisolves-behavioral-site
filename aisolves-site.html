@@ -1001,7 +1001,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   perspective:1200px;perspective-origin:50% 44%;
   min-height:78vh;min-height:78svh;               /* svh con respaldo para iOS */
 }
-@media(min-width:1000px){.stage{min-height:177vh;min-height:177svh}}
+@media(min-width:1000px){.stage{min-height:210vh;min-height:210svh}}
 .stage .carousel{border:0;background:none;height:100%;position:absolute;inset:0}
 .stage .car-body{display:block;border:0;min-height:0;background:none;height:100%}
 .stage .car-cell.brain{position:absolute;inset:0;min-height:0;background:none;border:0;overflow:hidden}
@@ -1075,7 +1075,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .stage .note{display:none}
 }
 @media(max-width:480px){
-  .stage{min-height:123svh}
+  .stage{min-height:148svh}
   .stage .brain-hud .brain-name{font-size:16px}
   .stage .brain-stream{max-width:88%;font-size:9px;bottom:clamp(164px,24vh,206px)}
   .stage .brain-stream .bs-line:nth-last-child(n+3){display:none}
@@ -1224,8 +1224,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
    ================================================================== */
 
 /* ---- 1. espacio ---- */
-.stage{min-height:139vh;min-height:139svh}
-@media(min-width:1000px){.stage{min-height:177vh;min-height:177svh}}
+.stage{min-height:166vh;min-height:166svh}
+@media(min-width:1000px){.stage{min-height:210vh;min-height:210svh}}
 /* el contenido se queda pegado al viewport: el cerebro no se va mientras
    se recorre el tercio extra */
 /* overflow:hidden en el ancestro anula position:sticky, así que el recorte
@@ -2846,6 +2846,13 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   color:#fff;text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:860px){#hud .hud-pr{grid-template-columns:72px 1fr 32px}}
 @media(prefers-reduced-motion:reduce){#hud .hud-pr b{transition:none}}
+</style>
+<style>
+/* ===== registro-arriba =====
+   El registro en vivo de la izquierda sube para dejar libre la franja baja,
+   que es donde ahora viven las tarjetas de la órbita. ===== */
+#work .brain-stream{bottom:clamp(300px,38vh,430px)!important;z-index:3}
+@media(max-width:860px){#work .brain-stream{bottom:clamp(250px,34vh,330px)!important}}
 </style>
 </head>
 <body>
@@ -8023,7 +8030,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
        no se salga del viewport, que es lo que fallaba en el enfoque css3d. */
     var cw = narrow ? Math.min(W - 54, 330) : Math.max(280, Math.min(380, W * 0.30));
     host.style.setProperty('--cw', Math.round(cw) + 'px');
-    host.style.setProperty('--oy', narrow ? '46%' : '50%');
+    host.style.setProperty('--oy', narrow ? '74%' : '80%');
     /* Radio: en estrecho se encoge para que la vecina quepa en pantalla. */
     R = narrow ? Math.max(84, W * 0.20) : Math.max(210, Math.min(430, W * 0.30));
     PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
@@ -8050,12 +8057,12 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     /* sesgo continuo hacia el paso mas cercano: incluso desplazandose hay
        siempre una tarjeta dominante, en vez de dos empatadas a medio camino */
     var paso = Math.round(target / STEP) * STEP;
-    var m = quieto > 12 ? 1 : 0.42;
+    var m = quieto > 8 ? 1 : 0.42;
     target = target + (paso - target) * m;
     /* suavizado, pero sin rebobinados: si el salto es grande, se planta */
     if (!primed) { cur = target; primed = true; }
     else if (Math.abs(target - cur) > STEP * 1.6) cur = target;
-    else cur += (target - cur) * 0.16;
+    else cur += (target - cur) * (quieto > 8 ? 0.30 : 0.16);   /* asienta antes al parar */
 
     var frontI = 0, frontD = -2;
     for (var i = 0; i < N; i++) {
