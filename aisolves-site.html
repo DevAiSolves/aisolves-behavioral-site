@@ -1470,6 +1470,19 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
 @media(max-width:860px){.met-pin .phases{grid-template-columns:1fr;gap:14px}.met-pin .phase{padding:22px 22px 60px;border-right:1px solid rgba(255,255,255,.14)!important}.met-scene{min-height:260svh}}
 @media(prefers-reduced-motion:reduce){.sys-cards .cell,.met-pin .phase{transition:none}}
 </style>
+<style>
+/* ===== cerebro maestro (Higgsfield) atado al scroll ===== */
+.sys-pin{perspective:1400px;perspective-origin:50% 42%}
+.brain-master{position:absolute;left:50%;top:44%;z-index:1;pointer-events:none;
+  width:min(74vw,860px);max-height:82vh;object-fit:contain;
+  transform:translate(-50%,-50%) rotateY(var(--brY,0deg)) scale(var(--brS,1));
+  filter:brightness(var(--brB,1)) contrast(1.05);opacity:var(--brO,1);
+  will-change:transform,opacity,filter;transition:opacity .3s}
+#sysCanvas{z-index:2}
+.sys-phase,.sys-meta,.sys-progress,.sys-cards{z-index:3}
+@media(max-width:719px){.brain-master{width:96vw;top:42%}}
+@media(prefers-reduced-motion:reduce){.brain-master{transform:translate(-50%,-50%)}}
+</style>
 </head>
 <body>
 
@@ -1579,6 +1592,7 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
 <section class="sec scene-sec" id="sistema" data-sec="Sistema">
   <div class="wrap"><div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento. Recorre la sección: la metadata viaja al cerebro, se puntúa y activa los píxeles.</p></div></div></div>
   <div class="sys-scene"><div class="sys-pin">
+    <img class="brain-master" id="brainMaster" src="brain.webp" alt="Cerebro AISOLVES" />
     <canvas id="sysCanvas" aria-hidden="true"></canvas>
     <div class="sys-phase">01 · captura · guardando metadata</div>
     <div class="sys-meta" id="sysMeta" aria-live="polite"></div>
@@ -4733,6 +4747,7 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
     var OUTS    = ['Meta Pixel','Conversions API','GA4 · Consent v2','TikTok · LinkedIn'];
     var particles = [], pulses = [], tokens = [], tokenN = 0, lastSpawn = 0, t = 0;
     var cards = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
+    var master = document.getElementById('brainMaster');
     var metaEl = document.getElementById('sysMeta'), progEl = sys.querySelector('.sys-progress i');
     var phaseEl = sys.querySelector('.sys-phase');
     var P = 0, run = false, raf = 0, vis = false;
@@ -4830,35 +4845,31 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
         ctx.globalAlpha = 1;
       }
 
-      // --- cerebro: núcleo + anillo de score ---
+      // --- cerebro maestro (imagen Higgsfield): su giro y escala van con el scroll ---
       var b = g.brain, R = b.r;
-      var grad = ctx.createRadialGradient(b.x, b.y, R*0.2, b.x, b.y, R*1.8);
-      grad.addColorStop(0, 'rgba(255,255,255,'+(0.10+0.10*pSco).toFixed(3)+')'); grad.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(b.x,b.y,R*1.8,0,Math.PI*2); ctx.fill();
-      // hemisferios: dos arcos con pliegues
-      ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2;
-      for(var h=-1; h<=1; h+=2){
-        ctx.beginPath();
-        for(var a=0; a<=Math.PI*2; a+=0.05){
-          var rr = R*0.62 + Math.sin(a*7 + t*1.4)*R*0.05 + Math.sin(a*13)*R*0.025;
-          var x = b.x + h*R*0.34 + Math.cos(a)*rr*0.72, y = b.y + Math.sin(a)*rr;
-          if(a===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-        }
-        ctx.closePath(); ctx.stroke();
+      if(master){
+        var brY = (-16 + 32*P);                            // barrido -16° → +16°: el cerebelo bascula
+        var brS = 0.92 + 0.14*ease(clamp(P/0.75,0,1));      // respira al recorrer
+        var brO = 0.30 + 0.70*clamp(P/0.28,0,1);            // aparece con la captura
+        var brB = 0.72 + 0.5*pSco;                          // se enciende con la puntuación
+        master.style.setProperty('--brY', brY.toFixed(2)+'deg');
+        master.style.setProperty('--brS', brS.toFixed(3));
+        master.style.setProperty('--brO', brO.toFixed(2));
+        master.style.setProperty('--brB', brB.toFixed(2));
       }
-      // anillo del score
+      // score en una esquina, sin tapar el cerebro
       var s = A(); var target = (s && s.consent && s.score) ? s.score.total : 64;
       var score = Math.round(target * ease(pSco));
-      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.14)';
-      ctx.beginPath(); ctx.arc(b.x,b.y,R*1.18,0,Math.PI*2); ctx.stroke();
+      var cxs = vertical ? W*0.5 : W-116, cys = vertical ? 78 : 116, Rr = vertical ? 26 : 38;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.14)';
+      ctx.beginPath(); ctx.arc(cxs,cys,Rr,0,Math.PI*2); ctx.stroke();
       ctx.strokeStyle = '#fff'; ctx.lineCap='round';
-      ctx.beginPath(); ctx.arc(b.x,b.y,R*1.18,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke();
-      ctx.lineCap='butt';
-      mono(Math.round(R*0.42)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(pSco>0 ? String(score) : '—', b.x, b.y + R*1.62);
-      mono(10); ctx.fillStyle='rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.arc(cxs,cys,Rr,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke(); ctx.lineCap='butt';
+      mono(Math.round(Rr*0.72)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(pSco>0 ? String(score) : '—', cxs, cys);
+      mono(9); ctx.fillStyle='rgba(255,255,255,.55)';
       var band = score>=80?'SQL':score>=65?'HOT':score>=45?'WARM':score>=25?'MQL':'COLD';
-      ctx.fillText(pSco>0 ? 'score · '+band : 'esperando metadata', b.x, b.y + R*1.62 + R*0.36);
+      ctx.fillText(pSco>0 ? 'score · '+band : 'esperando', cxs, cys+Rr+13);
 
       // --- activación: pulsos hacia píxeles y CAPI ---
       if(pAct > 0.02 && !reduced && t - lastSpawn > 0.06 && Math.random() < 0.5){
