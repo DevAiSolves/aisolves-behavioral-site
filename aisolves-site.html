@@ -7,7 +7,9 @@
 <meta name="description" content="No vendemos anuncios. Instalamos el sistema que lee el comportamiento de cada visitante, lo puntúa en tiempo real y decide quién merece una llamada." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" /></noscript>
 <style>
   :root{
     --paper:#f4f2ee; --card:#f8f6f2; --navy:#0d1017;
@@ -970,7 +972,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 .be-fmtline span{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-right:6px}
 .be-wait{color:rgba(255,255,255,.4);font-family:"IBM Plex Mono",monospace;font-size:11px}
 .be-foot{padding:0 13px 13px}
-.be-open{width:100%;background:#fff;color:#0b0d12;border:0;padding:11px;font-family:Montserrat,sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:.18s}
+.be-open{width:100%;background:#fff;color:#0b0d12;border:0;padding:11px;font-family:Montserrat,sans-serif;font-weight:500;font-size:12px;cursor:pointer;transition:.18s}
 .be-open:hover{background:rgba(255,255,255,.86)}
 @media(max-width:860px){
   .car-body{grid-template-columns:1fr}
@@ -2679,6 +2681,21 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .scrim .rep3-sem-hold .rep3-sem-act{color:#e0a400!important}
 .scrim .rep3-sem-stop .rep3-sem-act{color:#e5484d!important}
 .scrim .btn.confirm{background:#1faa5a!important;color:#fff!important;border-color:#1faa5a!important}
+</style>
+<style>
+/* ===== salto-de-render =====
+   El navegador deja de maquetar y pintar las secciones que están fuera de
+   pantalla hasta que hacen falta. contain-intrinsic-size les reserva un alto
+   estimado para que la barra de scroll no dé saltos.
+   Se excluyen a propósito #work (contiene el escenario con position:sticky,
+   que content-visibility rompería) y el hero, que es lo primero que se ve. ===== */
+#sistema,#metodo,#servicios,#paquetes,#about,#equipo,#pie{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 900px;
+}
+@media(max-width:720px){
+  #sistema,#metodo,#servicios,#paquetes,#about,#equipo,#pie{contain-intrinsic-size:auto 1400px}
+}
 </style>
 </head>
 <body>
@@ -4524,7 +4541,31 @@ function boot() {
 }
 function onLoad() { if (loaded) return; loaded = true; initFx(); boot(); }
 if (document.readyState === 'complete') onLoad(); else addEventListener('load', onLoad);
-loadThree(ok => { threeState = ok; boot(); });
+/* Three.js son 132 KB y sólo lo necesita el cerebro, que vive muy por debajo
+   del pliegue. Se descarga cuando esa sección se acerca, no durante la carga:
+   quien no baja nunca no lo paga. Sin IntersectionObserver, se pide al quedar
+   el navegador libre. */
+(function () {
+  var pedido = false;
+  function pedir() {
+    if (pedido) return; pedido = true;
+    loadThree(function (ok) { threeState = ok; boot(); });
+  }
+  var zona = document.getElementById('work');
+  if (zona && window.IntersectionObserver) {
+    var io = new IntersectionObserver(function (es) {
+      for (var i = 0; i < es.length; i++) {
+        if (es[i].isIntersecting) { io.disconnect(); pedir(); return; }
+      }
+    }, { rootMargin: '40% 0px' });           /* lo justo para que no se note la espera */
+    io.observe(zona);
+    setTimeout(pedir, 9000);                  /* red de seguridad */
+  } else if (window.requestIdleCallback) {
+    requestIdleCallback(pedir, { timeout: 4000 });
+  } else {
+    setTimeout(pedir, 1200);
+  }
+})();
 })();
 </script>
 <!-- ===== script mod-hud ===== -->
@@ -7550,7 +7591,43 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     var v = parseFloat(el.getAttribute(attr));
     return isNaN(v) ? 0 : v;
   }
+  /* Construcción perezosa: generar miles de puntos cuesta, y hacerlo para todas
+     las nubes durante la carga retrasa la página entera. Cada una se construye
+     al acercarse a pantalla; sin IntersectionObserver se construye al momento. */
+  function crear(el) {
+    if (el.__aisOrb || el.__aisOrbDead) return;
+    var sp = el.getAttribute('data-orb-speed');
+    sp = (sp === null || sp === '' || isNaN(parseFloat(sp))) ? 0.15 : parseFloat(sp);
+    el.__aisOrb = AISOrb(el, {
+      shape: el.getAttribute('data-orb') || 'shell',
+      tint:  el.getAttribute('data-orb-tint') || 'ink',
+      speed: sp,
+      count: num(el, 'data-orb-count'),
+      seed:  num(el, 'data-orb-seed'),
+      scale: num(el, 'data-orb-scale')
+    });
+  }
+  var espera = null;
   function boot(root) {
+    var list = (root || document).querySelectorAll('canvas[data-orb]'), i, el;
+    if (!window.IntersectionObserver) {
+      for (i = 0; i < list.length; i++) crear(list[i]);
+      return;
+    }
+    if (!espera) espera = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        espera.unobserve(e.target);
+        crear(e.target);
+      });
+    }, { rootMargin: '120% 0px' });      /* se adelanta un viewport largo */
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      if (el.__aisOrb || el.__aisOrbDead) continue;
+      espera.observe(el);
+    }
+  }
+  function bootViejo(root) {
     var list = (root || document).querySelectorAll('canvas[data-orb]'), i, el;
     for (i = 0; i < list.length; i++) {
       el = list[i];
