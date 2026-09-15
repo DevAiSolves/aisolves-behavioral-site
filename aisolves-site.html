@@ -19,7 +19,7 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
-  body{font-family:Montserrat,system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body{font-family:Montserrat,system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
   /* vanlent grid: uniform light blue-lavender */
   body:before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
@@ -1311,7 +1311,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 }
 </style>
 <style>
-/* body{overflow-x:hidden} convierte a body en contenedor de scroll y anula
+/*  convierte a body en contenedor de scroll y anula
    position:sticky en todo el documento. overflow-x:clip recorta igual sin
    crear contenedor, así que el escenario puede quedarse fijo. */
 body{overflow-x:visible}
@@ -1585,19 +1585,824 @@ html{overflow-x:clip}
 #hud .hud-memo b{color:#9a6a00!important}
 #hud .hud-memo.hud-saved b{color:#0f7a3d!important}
 </style>
+<style>
+/* ==========================================================================
+   m-hscroll · escena de scroll horizontal gobernada por el scroll vertical,
+   con anotación CSS en vivo (tipo "translateX: -1540px").
+
+   Estructura reutilizable (cualquier sección con esto queda animada sola):
+     <div class="hs-scene">
+       <div class="hs-pin">
+         <div class="hs-track"> …paneles… </div>
+         <div class="hs-ann"></div>        (anotación en vivo)
+         <div class="hs-rail"></div>       (opcional: barra de progreso)
+       </div>
+     </div>
+
+   ESTADO POR DEFECTO (y también sin JS, en <720px o con prefers-reduced-motion):
+   la tira es un carrusel horizontal NATIVO con scroll-snap. El JS solo
+   "asciende" la escena a modo fijo añadiendo .is-hs al .hs-scene.
+   Nunca se fija nada en móvil: fijar ahí da problemas con la barra de URL.
+
+   Variables que publica el JS:  --hs-x (px del translate)  ·  --hs-p (0..1)
+   Easing firma del sitio: cubic-bezier(.22,1,.36,1)
+   ========================================================================== */
+
+/* --- 1. escena + escenario ------------------------------------------------ */
+.hs-scene{ position:relative; background:var(--paper,#fafafb); }
+.hs-pin{ position:relative; width:100%; }
+
+/* --- 2. la tira: por defecto scroll horizontal nativo con snap ------------- */
+.hs-track{
+  display:flex; align-items:stretch;
+  overflow-x:auto; overflow-y:hidden;
+  /* proximity, no mandatory: con paneles de ~82vw el punto de anclaje del
+     último panel cae fuera del rango de scroll y "mandatory" puede dejarlo
+     inalcanzable en 390px. */
+  scroll-snap-type:x proximity;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin; scrollbar-color:var(--line,#e4e9f2) transparent;
+  /* rejilla modular de 100px, líneas finas */
+  background-image:
+    repeating-linear-gradient(to right, var(--line-2,#eef1f7) 0 1px, transparent 1px 100px),
+    repeating-linear-gradient(to bottom, var(--line-2,#eef1f7) 0 1px, transparent 1px 100px);
+}
+.hs-track::-webkit-scrollbar{ height:3px; }
+.hs-track::-webkit-scrollbar-thumb{ background:var(--line,#e4e9f2); }
+.hs-track::-webkit-scrollbar-track{ background:transparent; }
+.hs-track > *{ flex:0 0 auto; scroll-snap-align:start; }
+/* la tira es un scroller: el JS le pone tabindex cuando NO está fijada, así que
+   necesita un foco visible. teal-ink sobre paper = 4.34:1 (>3:1 para UI). */
+.hs-track:focus-visible{
+  outline:2px solid var(--teal-ink,#0f8577); outline-offset:-2px;
+}
+
+/* --- 3. modo fijo (lo activa el JS con .is-hs) ----------------------------- */
+.hs-scene.is-hs .hs-pin{
+  position:sticky; top:0;
+  overflow:hidden;          /* reserva para navegadores sin overflow:clip */
+  overflow:clip;
+}
+.hs-scene.is-hs .hs-track{
+  overflow:visible; width:max-content; height:100%;
+  scroll-snap-type:none;
+  transform:translate3d(var(--hs-x,0px),0,0);
+  will-change:transform;
+}
+
+/* --- 4. anotación en vivo ------------------------------------------------- */
+.hs-ann{
+  position:absolute; right:14px; bottom:12px; z-index:6;
+  pointer-events:none; -webkit-user-select:none; user-select:none;
+  font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:10px; line-height:1; letter-spacing:.1em; white-space:nowrap;
+  color:var(--ink-2,#52525b);   /* 7.41:1 sobre paper. --ink-3 daba 2.68:1 */
+  opacity:0; transition:opacity .3s cubic-bezier(.22,1,.36,1);
+}
+.hs-ann.is-on{ opacity:1; }
+
+/* --- 5. barra de progreso opcional ---------------------------------------- */
+.hs-rail{
+  position:absolute; left:0; right:0; bottom:0; height:1px; z-index:5;
+  background:var(--line,#e4e9f2); pointer-events:none;
+}
+.hs-rail::after{
+  content:""; position:absolute; left:0; top:0; right:0; bottom:0;
+  background:var(--teal,#2fc5b1);
+  transform:scaleX(var(--hs-p,0)); transform-origin:left center;
+}
+.hs-scene:not(.is-hs) .hs-rail{ display:none; }
+
+/* --- 6. panel base (aspecto por defecto, sobreescribible) ------------------ */
+.hs-panel{
+  position:relative; box-sizing:border-box;
+  width:min(82vw,380px);
+  min-height:clamp(300px,56vh,520px);
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:clamp(18px,5vw,30px);
+  padding-bottom:calc(clamp(18px,5vw,30px) + 22px);   /* franja reservada a la anotación */
+  background:transparent;
+  box-shadow:inset -1px 0 0 0 var(--line,#e4e9f2);
+}
+.hs-panel:first-child{ box-shadow:inset 1px 0 0 0 var(--line,#e4e9f2), inset -1px 0 0 0 var(--line,#e4e9f2); }
+.hs-num,
+.hs-meta{
+  font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:10px; line-height:1.4; letter-spacing:.2em; text-transform:uppercase;
+  font-weight:400;
+}
+/* Contraste sobre --paper (#fafafb), texto de 10px = texto normal, mínimo 4.5:1:
+   --ink-3 #9a9aa3 = 2.68:1 (falla) · --teal-ink #0f8577 = 4.34:1 (falla por poco)
+   --ink-2 #52525b = 7.41:1 (pasa)  · --ink #18181b = 16.98:1 (pasa)
+   El acento teal se conserva en .hs-rule, que es decorativo y está exento. */
+.hs-num{ color:var(--ink-2,#52525b); }
+.hs-meta{ color:var(--ink,#18181b); display:block; }
+.hs-meta + .hs-meta{ margin-top:6px; }
+.hs-meta[data-placeholder="true"]{ color:var(--ink-2,#52525b); }
+.hs-title{
+  margin:14px 0 0; padding:0;
+  font-family:Montserrat, "Helvetica Neue", Arial, sans-serif;
+  font-weight:200; font-style:normal;
+  font-size:clamp(20px,2.4vw,32px); line-height:1.15;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink,#18181b);
+}
+.hs-copy{
+  margin:14px 0 0; max-width:36ch;
+  font-family:Montserrat, "Helvetica Neue", Arial, sans-serif;
+  font-weight:300; font-size:14px; line-height:1.7;
+  color:var(--ink-2,#52525b);
+}
+.hs-rule{ width:34px; height:1px; margin:18px 0 0; background:var(--teal,#2fc5b1); }
+.hs-foot{ margin-top:auto; padding-top:22px; }
+
+/* --- 7. desktop: paneles proporcionales al ancho (siempre hay recorrido) --- */
+@media (min-width:720px){
+  .hs-panel{
+    width:max(320px,42vw);
+    padding:clamp(28px,3vw,46px);
+    padding-bottom:calc(clamp(28px,3vw,46px) + 22px);
+  }
+}
+
+/* --- 8. movimiento reducido: nada se fija, tira visible con scroll nativo -- */
+@media (prefers-reduced-motion: reduce){
+  .hs-scene.is-hs .hs-pin{ position:relative; top:auto; height:auto !important; overflow:visible; }
+  .hs-scene.is-hs{ height:auto !important; }
+  .hs-scene.is-hs .hs-track{
+    overflow-x:auto; width:auto; scroll-snap-type:x proximity;
+    transform:none; will-change:auto;
+  }
+  .hs-scene.is-hs .hs-track{ scroll-behavior:auto; }
+  .hs-ann{ transition:none; opacity:1; }
+}
+</style>
+<style>
+/* ==========================================================================
+   m-servicios — rejilla modular de SERVICIOS (AISOLVES)
+   Namespace: todo bajo #servicios y prefijo .svx-  · sin dependencias.
+   Reutiliza del sitio: .sec .wrap .sec-top .st-l .sub2 y las variables de
+   paleta. Easing firma: cubic-bezier(.22,1,.36,1).
+   ========================================================================== */
+#servicios{
+  --svx-u:clamp(76px,7.4vw,100px);        /* módulo de la rejilla (100px máx) */
+  --svx-cu:var(--svx-u);                  /* módulo de la columna de flechas */
+  --svx-ease:cubic-bezier(.22,1,.36,1);
+  --svx-pad:34px;
+}
+
+/* ---------- cabecera ---------- */
+#servicios .svx-hr{
+  border-left:1px solid var(--line);padding:var(--svx-pad);
+  display:flex;align-items:flex-end;justify-content:flex-end;max-width:360px}
+#servicios .svx-hr span{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.7;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+
+/* ---------- cuerpo: izquierda + rejilla modular ---------- */
+.svx-body{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  border:1px solid var(--line);background:var(--card)}
+
+/* ---------- columna izquierda ---------- */
+.svx-left{padding:var(--svx-pad);display:flex;flex-direction:column;justify-content:center;min-width:0}
+
+.svx-steps{display:flex;align-items:center;gap:22px;margin-bottom:26px;flex-wrap:wrap}
+.svx-step{
+  position:relative;width:18px;height:18px;flex:0 0 18px;padding:0;border:0;cursor:pointer;
+  background:var(--ink-3);                                   /* reserva: 2.8:1 */
+  background:color-mix(in srgb,var(--ink-2) 68%,var(--card));/* 3.4:1 sobre --card */
+  transition:background-color .2s var(--svx-ease),transform .25s var(--svx-ease)}
+/* zona pulsable de 40px de alto que teselan sin solaparse (ancho = paso de rejilla) */
+.svx-step::before{
+  content:"";position:absolute;top:50%;left:50%;width:calc(100% + 22px);height:40px;
+  transform:translate(-50%,-50%)}
+.svx-step:hover{transform:scale(1.14)}
+.svx-step.is-on{background:var(--ink)}
+.svx-step:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
+.svx-count{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-3);margin-left:6px}
+
+/* par de palabras grandes: la segunda en caja negra */
+.svx-pair{
+  display:flex;flex-direction:column;align-items:flex-start;gap:.05em;
+  font-weight:200;font-size:clamp(30px,5vw,58px);line-height:1;
+  letter-spacing:.02em;text-transform:uppercase;margin:0;position:relative}
+.svx-m{display:block;overflow:hidden;line-height:1.16;padding-bottom:.02em}
+.svx-mi{display:block;line-height:1.16;transform:translateY(0);transition:transform .42s var(--svx-ease);will-change:transform}
+.svx-m2 .svx-mi{transition-delay:.06s}
+.svx-pair.is-out .svx-mi{transform:translateY(-118%)}
+.svx-pair.is-in  .svx-mi{transform:translateY(118%)}
+.svx-pair.svx-notr .svx-mi{transition:none}
+.svx-box{
+  display:inline-flex;align-items:center;background:var(--navy);color:#fff;
+  padding:.06em .30em .10em .16em;
+  min-width:fit-content;                 /* si el ancho medido se queda corto, manda el contenido */
+  transition:width .42s var(--svx-ease)}
+.svx-box .svx-m{flex:0 0 auto}           /* la máscara no encoge: la palabra no se recorta nunca */
+.svx-ghost{
+  position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;
+  white-space:nowrap;font:inherit;letter-spacing:inherit;text-transform:inherit}
+
+.svx-desc{
+  margin-top:26px;max-width:520px;font-weight:300;font-size:clamp(14px,1.1vw,16.5px);
+  line-height:1.62;color:var(--ink-2);
+  transition:opacity .3s var(--svx-ease),transform .3s var(--svx-ease)}
+.svx-desc.is-out{opacity:0;transform:translateY(8px)}
+
+/* ---------- columna derecha: rejilla modular ---------- */
+.svx-right{
+  border-left:1px solid var(--line);padding:var(--svx-pad);
+  display:flex;align-items:center;justify-content:flex-end}
+.svx-mods{
+  display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:var(--svx-u);
+  width:100%;max-width:calc(var(--svx-u)*4);
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.svx-c{box-shadow:inset 1px 1px 0 0 var(--line);min-width:0}
+.svx-c--w2{grid-column:span 2}
+.svx-c--hatch{
+  background-image:repeating-linear-gradient(45deg,var(--line),var(--line) 1px,transparent 1px,transparent 10px)}
+.svx-c--data{
+  background:var(--card);display:flex;flex-direction:column;
+  justify-content:center;padding:12px 14px;gap:8px}
+.svx-n{
+  font-weight:200;font-size:clamp(26px,3.2vw,42px);line-height:1;
+  letter-spacing:.005em;color:var(--ink);white-space:nowrap}
+.svx-n i{font-style:normal;font-size:.5em;margin-left:.16em;color:var(--ink-2)}
+.svx-k{
+  font-family:"IBM Plex Mono",monospace;font-size:9px;line-height:1.5;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ---------- carrusel ---------- */
+.svx-car{display:flex;align-items:stretch;border:1px solid var(--line);border-top:0;background:var(--card)}
+.svx-nav{display:flex;flex-direction:column;justify-content:center;flex:0 0 var(--svx-cu);border-right:1px solid var(--line)}
+.svx-ar{
+  flex:0 0 var(--svx-cu);height:var(--svx-cu);display:flex;align-items:center;justify-content:center;
+  background:transparent;border:0;cursor:pointer;color:var(--ink);transition:background-color .2s,color .2s,opacity .2s}
+.svx-ar+.svx-ar{border-top:1px solid var(--line)}
+.svx-ar:hover{background:var(--paper);color:var(--teal-ink)}
+.svx-ar:focus-visible{outline:1px solid var(--ink);outline-offset:-4px}
+.svx-ar[disabled]{opacity:.28;cursor:default;background:transparent;color:var(--ink)}
+.svx-ar svg{width:22px;height:22px}
+
+.svx-viewport{position:relative;flex:1 1 auto;min-width:0;overflow:hidden;min-height:calc(var(--svx-u)*2)}
+.svx-track{display:flex;align-items:stretch;height:100%;transform:translate3d(0,0,0);
+  transition:transform .6s cubic-bezier(.4,0,.2,1);will-change:transform}
+.svx-slide{
+  flex:0 0 auto;width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;
+  gap:16px;padding:22px 24px;box-shadow:inset 1px 0 0 0 var(--line)}
+.svx-slide:first-child{box-shadow:none}
+.svx-q{font-weight:300;font-size:clamp(13.5px,1vw,15px);line-height:1.62;color:var(--ink-2)}
+.svx-sig{display:flex;align-items:center;gap:10px;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase}
+.svx-sig b{font-weight:400;color:var(--teal-ink)}
+.svx-sig em{font-style:normal;color:var(--ink-3)}
+.svx-print{
+  position:absolute;right:8px;bottom:8px;z-index:2;pointer-events:none;user-select:none;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1;letter-spacing:.2em;
+  white-space:nowrap;color:var(--ink-3)}
+
+/* ---------- responsive ---------- */
+@media(max-width:980px){
+  .svx-body{grid-template-columns:1fr}
+  .svx-right{border-left:0;border-top:1px solid var(--line);justify-content:flex-start}
+}
+/* 760px: el mismo corte en el que el sitio apila .sec-top */
+@media(max-width:760px){
+  #servicios{--svx-u:88px;--svx-cu:56px;--svx-pad:20px}
+  #servicios .svx-hr{border-left:0;border-top:1px solid var(--line);max-width:none;justify-content:flex-start}
+  #servicios .svx-hr span{text-align:left}
+  .svx-mods{grid-template-columns:repeat(2,1fr);max-width:none}
+  .svx-c--data{grid-column:span 2}
+  .svx-c--mhide{display:none}
+  .svx-step{width:15px;height:15px;flex:0 0 15px}
+  .svx-steps{margin-bottom:20px}
+  .svx-slide{padding:18px 18px}
+}
+
+/* ---------- reduced motion ---------- */
+@media(prefers-reduced-motion:reduce){
+  .svx-mi,.svx-box,.svx-desc,.svx-track,.svx-step{transition:none!important}
+  .svx-pair.is-out .svx-mi,.svx-pair.is-in .svx-mi{transform:none}
+  .svx-desc.is-out{opacity:1;transform:none}
+  .svx-step:hover{transform:none}
+}
+</style>
+<style>
+/* ==========================================================================
+   m-about — SECCIÓN "SOBRE AISOLVES" con la geometría de la plantilla.
+   · Cabecera reutilizando .sec-top del sitio (Montserrat fino, mayúsculas).
+   · Columna izquierda: declaración revelada línea a línea + celda cuadrada
+     reservada (#aboutOrb, canvas data-orb de m-spheres) con sus líneas de rejilla.
+   · Columna derecha: marco que se abre con clip-path: inset(0 0 100% 0) y
+     anotación CSS en vivo del propio valor aplicado.
+   · Franja inferior: etiquetas mono de plataformas en celdas de rejilla.
+   Todo prefijado .ab- / #about. Easing firma: cubic-bezier(.22,1,.36,1).
+   ========================================================================== */
+#about{--ab-ease:cubic-bezier(.22,1,.36,1);--ab-p:0}
+
+/* ---------- cabecera ---------- */
+#about .ab-head{gap:0}
+#about .ab-head h2{font-weight:200;letter-spacing:.09em}
+#about .ab-title .ab-w{display:inline-block;overflow:hidden;vertical-align:top;line-height:1.06}
+#about .ab-title .ab-w>i{display:inline-block;font-style:normal;transform:translateY(112%);
+  transition:transform .9s var(--ab-ease);will-change:transform}
+#about .ab-title .ab-w:nth-of-type(2)>i{transition-delay:.09s}
+#about .ab-title.is-in .ab-w>i{transform:translateY(0)}
+#about .ab-hnote{flex:none;display:flex;flex-direction:column;justify-content:center;gap:9px;
+  padding:0 26px;min-width:180px;border-left:1px solid var(--line)}
+#about .ab-hk{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink-2)}
+/* Anotaciones vivas: decorativas y aria-hidden. NO usar var(--note) (#b9bfcc),
+   que sobre --card da 1.8:1 y resulta ilegible; --ink-3 es el mínimo aceptable. */
+#about .ab-prog,#about .ab-clip{color:var(--ink-3)}
+
+/* ---------- cuerpo: 2 columnas ---------- */
+#about .ab-body{display:grid;grid-template-columns:1.18fr .82fr;
+  border:1px solid var(--line);background:var(--card)}
+#about .ab-l{display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
+#about .ab-sayw{flex:1 1 auto;display:flex;align-items:center;padding:42px 34px 46px}
+
+/* declaración: Montserrat fino, líneas en máscara */
+#about .ab-say{font-weight:200;font-size:clamp(22px,2.6vw,38px);line-height:1.3;
+  letter-spacing:.004em;color:var(--ink)}
+#about .ab-ln{display:block;overflow:hidden}
+#about .ab-ln>i{display:block;font-style:normal;transform:translateY(110%);
+  transition:transform .95s var(--ab-ease);will-change:transform}
+#about .ab-say.is-in .ab-ln>i{transform:translateY(0)}
+#about .ab-ln:nth-of-type(2)>i{transition-delay:.11s}
+#about .ab-ln:nth-of-type(3)>i{transition-delay:.22s}
+#about .ab-ln:nth-of-type(4)>i{transition-delay:.33s}
+#about .ab-say b{font-weight:300;color:var(--teal-ink)}
+
+/* fila inferior de la columna izquierda: celda del orbe + celda de tramado */
+#about .ab-row{display:grid;grid-template-columns:minmax(0,360px) 1fr;
+  border-top:1px solid var(--line)}
+#about .ab-orb{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;
+  will-change:transform;transform:translate3d(0,calc((var(--ab-p) - .5) * -14px),0);
+  opacity:0;transition:opacity .9s var(--ab-ease)}
+#about .ab-orb.is-in{opacity:1}
+/* líneas de rejilla de la celda reservada (4 × 4 módulos) */
+#about .ab-orb:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--line-2) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--line-2) 1px,transparent 1px);
+  background-size:25% 25%}
+#about #aboutOrb{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%}
+#about .ab-fill{border-left:1px solid var(--line);
+  background-image:repeating-linear-gradient(45deg,var(--line-2),var(--line-2) 1px,transparent 1px,transparent 13px),
+                   repeating-linear-gradient(-45deg,var(--line-2),var(--line-2) 1px,transparent 1px,transparent 13px)}
+
+/* ---------- columna derecha: panel de identidad ---------- */
+#about .ab-r{position:relative;min-width:0}
+#about .ab-clip{position:absolute;top:12px;right:14px;z-index:2;opacity:0;
+  transition:opacity .3s ease;pointer-events:none;user-select:none}
+#about .ab-clip.is-on{opacity:1}
+#about .ab-id{height:100%;display:flex;flex-direction:column;gap:26px;padding:40px 32px 32px;
+  clip-path:inset(0 0 100% 0);will-change:clip-path;
+  transition:clip-path 1.1s var(--ab-ease)}
+#about .ab-id.is-in{clip-path:inset(0 0 0 0)}
+#about .ab-name{font-weight:100;font-size:clamp(28px,3.3vw,46px);line-height:1;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+#about .ab-tag{margin-top:14px;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--teal-ink)}
+#about .ab-layers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+#about .ab-layers li{border-top:1px solid var(--line-2);padding:15px 0}
+#about .ab-k{display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2)}
+#about .ab-k em{font-style:normal;color:var(--teal-ink)}
+#about .ab-d{display:block;margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+#about .ab-foot{margin-top:auto;padding-top:6px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:center;gap:0 18px;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--ink-2)}
+/* diana táctil de 40px sin engordar el subrayado: la caja crece, la línea no */
+#about .ab-foot a,#about .ab-foot span{display:inline-flex;align-items:center;min-height:40px}
+#about .ab-foot a{color:var(--ink-2);text-decoration:none}
+#about .ab-foot a>u{text-decoration:none;border-bottom:1px solid var(--line)}
+#about .ab-foot a:hover{color:var(--ink)}
+#about .ab-foot a:hover>u{border-color:var(--ink-3)}
+#about .ab-foot a:focus-visible{outline:2px solid var(--teal-ink);outline-offset:3px}
+
+/* ---------- franja de plataformas ----------
+   Líneas: borde izquierdo en el contenedor + borde derecho/inferior en cada
+   celda. Así cada línea mide 1px exacto sea cual sea el número de columnas. */
+#about .ab-plat{display:grid;grid-template-columns:repeat(7,1fr);
+  border-left:1px solid var(--line);background:var(--card)}
+#about .ab-pc{display:flex;align-items:center;justify-content:center;text-align:center;
+  min-height:68px;padding:18px 12px;
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.5;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);
+  opacity:0;transform:translateY(14px);
+  transition:opacity .7s var(--ab-ease),transform .7s var(--ab-ease)}
+#about .ab-plat.is-in .ab-pc{opacity:1;transform:none}
+#about .ab-plat.is-in .ab-pc:nth-child(1){transition-delay:0s}
+#about .ab-plat.is-in .ab-pc:nth-child(2){transition-delay:.07s}
+#about .ab-plat.is-in .ab-pc:nth-child(3){transition-delay:.14s}
+#about .ab-plat.is-in .ab-pc:nth-child(4){transition-delay:.21s}
+#about .ab-plat.is-in .ab-pc:nth-child(5){transition-delay:.28s}
+#about .ab-plat.is-in .ab-pc:nth-child(6){transition-delay:.35s}
+#about .ab-plat.is-in .ab-pc:nth-child(7){transition-delay:.42s}
+#about .ab-plat.is-in .ab-pc:nth-child(8){transition-delay:.49s}
+/* celda de relleno: sólo cuando la franja se parte en filas (4 y 2 columnas) */
+#about .ab-pcx{display:none;
+  background-image:repeating-linear-gradient(45deg,var(--line-2),var(--line-2) 1px,transparent 1px,transparent 13px),
+                   repeating-linear-gradient(-45deg,var(--line-2),var(--line-2) 1px,transparent 1px,transparent 13px)}
+
+/* ---------- responsive real ---------- */
+@media(max-width:1100px){
+  #about .ab-plat{grid-template-columns:repeat(4,1fr)}
+  #about .ab-pcx{display:flex}
+}
+@media(max-width:960px){
+  #about .ab-body{grid-template-columns:1fr}
+  #about .ab-l{border-right:0;border-bottom:1px solid var(--line)}
+  #about .ab-row{grid-template-columns:minmax(0,280px) 1fr}
+}
+@media(max-width:760px){
+  #about .ab-head{flex-direction:column}
+  #about .ab-hnote{border-left:0;border-top:1px solid var(--line);padding:16px 34px;
+    flex-direction:row;justify-content:space-between;min-width:0}
+  #about .ab-sayw{padding:32px 24px 36px}
+  #about .ab-id{padding:32px 24px 26px}
+  #about .ab-plat{grid-template-columns:repeat(2,1fr)}
+  #about .ab-pc{min-height:62px;letter-spacing:.16em}
+}
+@media(max-width:560px){
+  #about .ab-row{grid-template-columns:1fr}
+  #about .ab-fill{display:none}
+  /* a ancho completo un cuadrado serían ~310px de celda vacía: se achata a 2:1
+     y la rejilla mantiene módulos cuadrados (4 columnas × 2 filas). */
+  #about .ab-orb{aspect-ratio:2/1}
+  #about .ab-orb:before{background-size:25% 50%}
+  #about .ab-clip{display:none}
+}
+
+/* ---------- respeto a prefers-reduced-motion ---------- */
+@media(prefers-reduced-motion:reduce){
+  #about .ab-title .ab-w>i,#about .ab-ln>i{transform:none;transition:none}
+  #about .ab-orb{opacity:1;transform:none;transition:none;will-change:auto}
+  #about .ab-id{clip-path:none;transition:none;will-change:auto}
+  #about .ab-pc{opacity:1;transform:none;transition:none}
+  #about .ab-prog,#about .ab-clip{display:none}
+}
+
+/* ---------- red de seguridad sin JS ----------
+   Los estados de partida (clip-path, opacity:0, translateY) sólo los deshace el
+   script. Si el JS no se ejecuta, el contenido queda visible igualmente. */
+@media(scripting:none){
+  #about .ab-title .ab-w>i,#about .ab-ln>i{transform:none}
+  #about .ab-orb{opacity:1;transform:none}
+  #about .ab-id{clip-path:none}
+  #about .ab-pc{opacity:1;transform:none}
+  #about .ab-prog,#about .ab-clip{display:none}
+}
+</style>
+<style>
+/* ==========================================================================
+   mod-footer — PIE DE PÁGINA en rejilla modular (template claro).
+   · Dos columnas de celdas, líneas de 1px var(--line), fondo var(--card).
+   · Las líneas NUNCA se duplican: cada celda pinta su borde derecho e
+     inferior con box-shadow inset; el contenedor pinta arriba e izquierda.
+   · Ritmo modular de 100px (--pm) igual que la rejilla de fondo del sitio.
+   · Reveal por clip-path (sin transform) para que las líneas no bailen.
+   · Easing firma: cubic-bezier(.22,1,.36,1).
+   ========================================================================== */
+#pie{
+  --pm:100px;                 /* módulo base de la rejilla */
+  --pie-ease:cubic-bezier(.22,1,.36,1);
+  --pie-p:0;                  /* progreso 0..1 del pie en viewport (lo escribe el JS) */
+  position:relative; z-index:1;
+}
+/* el sitio tiene una regla genérica footer{border-top;padding:36px 0;margin-top:60px}:
+   la neutralizamos aquí para que el pie se comporte como una .sec normal */
+footer#pie{border-top:0;margin-top:0;padding:110px 40px 90px}
+
+/* ---------- armazón ---------- */
+#pie .pie-grid{
+  display:grid; grid-template-columns:minmax(0,4fr) minmax(0,6fr);
+  background:var(--card);
+  border-top:1px solid var(--line); border-left:1px solid var(--line);
+}
+#pie .pie-col{display:flex; flex-direction:column; min-width:0}
+#pie .pie-cell{
+  position:relative; background:var(--card); min-width:0;
+  box-shadow:inset -1px -1px 0 0 var(--line);   /* derecha + abajo: una sola línea compartida */
+}
+/* el estado oculto SÓLO existe si el JS ha puesto .pie-anim: sin JS el pie se ve entero */
+#pie.pie-anim .pie-cell{
+  clip-path:inset(0 0 100% 0); opacity:.001; will-change:clip-path;
+  transition:clip-path 1s var(--pie-ease), opacity .55s var(--pie-ease);
+}
+#pie.pie-anim .pie-cell.is-rv{clip-path:inset(0 0 0 0); opacity:1}
+#pie.pie-done .pie-cell{clip-path:none; will-change:auto}
+
+/* ---------- cabeceras de celda: Montserrat fino, mayúsculas, tracking ---------- */
+#pie .pie-cap{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  height:calc(var(--pm) * .6); padding:0 clamp(16px,2vw,26px); flex:none;
+}
+#pie .pie-cap-t{
+  font-family:Montserrat,system-ui,sans-serif; font-weight:200;
+  text-transform:uppercase; letter-spacing:.24em; font-size:12.5px; line-height:1; color:var(--ink);
+}
+/* ink-2 y no ink-3: #9a9aa3 sobre var(--card) da 2.8:1 y esto es texto real */
+#pie .pie-k,#pie .pie-k2{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-2); line-height:1;
+}
+#pie .pie-k2{font-size:9.5px}
+/* línea de progreso: su ancho ES var(--pie-p), y eso es lo que imprime la anotación */
+#pie .pie-prog{
+  position:absolute; left:0; bottom:0; height:1px; background:var(--teal); opacity:.6;
+  width:calc(var(--pie-p,0) * 100%);
+}
+
+/* ---------- izquierda arriba: contacto real ---------- */
+#pie .pie-reach{
+  flex:none; min-height:calc(var(--pm) * 2);
+  display:flex; flex-direction:column; justify-content:center; gap:16px;
+  padding:clamp(22px,2.6vw,32px) clamp(16px,2vw,26px);
+}
+#pie .pie-mail{
+  display:inline-flex; align-items:center; min-height:44px; align-self:flex-start; max-width:100%;
+  font-family:Montserrat,system-ui,sans-serif; font-weight:200;
+  font-size:clamp(19px,2.2vw,28px); line-height:1.15; letter-spacing:.01em; color:var(--ink);
+  word-break:break-word; padding:6px 0 8px; border-bottom:1px solid var(--line);
+  transition:color .28s var(--pie-ease), border-color .28s var(--pie-ease);
+}
+#pie .pie-mail:hover,#pie .pie-mail:focus-visible{color:var(--teal-ink); border-bottom-color:var(--teal)}
+#pie .pie-wa{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  background:none; border:0; border-top:1px solid var(--line-2); border-radius:0;
+  padding:14px 0; min-height:48px; margin-top:4px; cursor:pointer; color:var(--ink);
+  font-family:Montserrat,system-ui,sans-serif; font-weight:400; font-size:12.5px;
+  letter-spacing:.16em; text-transform:uppercase;
+  transition:color .22s var(--pie-ease);
+}
+#pie .pie-wa svg{flex:none; display:block; transition:transform .4s var(--pie-ease)}
+#pie .pie-wa .pie-ar{margin-left:auto; font-family:"IBM Plex Mono",monospace; letter-spacing:0; color:var(--ink-3);
+  transition:transform .3s var(--pie-ease), color .22s var(--pie-ease)}
+#pie .pie-wa:hover,#pie .pie-wa:focus-visible{color:var(--teal-ink)}
+#pie .pie-wa:hover .pie-ar{transform:translateX(5px); color:var(--teal-ink)}
+#pie .pie-wa:hover svg{transform:translateY(-2px)}
+
+/* ---------- izquierda abajo: celda cuadrada reservada a la nube de partículas ---------- */
+#pie .pie-orb{flex:none; width:100%; aspect-ratio:1/1; overflow:hidden}
+#pie .pie-orb-cv{position:absolute; inset:0; display:block; width:100%; height:100%}
+/* celda de relleno con tramado: absorbe el desajuste de altura entre columnas
+   y aloja la anotación CSS en vivo */
+#pie .pie-fill{
+  flex:1 1 auto; min-height:56px;
+  background-color:var(--card);
+  background-image:
+    repeating-linear-gradient(45deg,var(--line-2) 0 1px,transparent 1px 11px),
+    repeating-linear-gradient(-45deg,var(--line-2) 0 1px,transparent 1px 11px);
+}
+/* anotación CSS en vivo, estilo plantilla: mono xxs, terciario, abajo a la derecha */
+#pie .pie-note{
+  position:absolute; right:8px; bottom:8px; z-index:2; pointer-events:none; user-select:none;
+  font-family:"IBM Plex Mono",monospace; font-size:10px; line-height:1; letter-spacing:.02em;
+  color:var(--ink-3); opacity:.55; white-space:nowrap;
+}
+
+/* ---------- derecha arriba: información ---------- */
+#pie .pie-info{flex:none; display:flex; flex-direction:column; justify-content:center}
+#pie .pie-li{
+  padding:16px clamp(16px,2vw,26px); font-size:13.5px; line-height:1.5; color:var(--ink-2);
+}
+#pie .pie-li + .pie-li{border-top:1px solid var(--line-2)}
+#pie [data-placeholder="true"]{
+  color:var(--ink-2);
+  text-decoration:underline; text-decoration-style:dashed;
+  text-decoration-color:var(--line); text-underline-offset:4px;
+}
+
+/* ---------- derecha abajo: formulario (sin endpoint) ---------- */
+#pie .pie-form{display:flex; flex-direction:column; flex:1 1 auto; min-height:0}
+/* lleva .pie-cell en el selector para no perder la transición de fondo al enfocar */
+#pie .pie-cell.pie-f{
+  flex:none; display:flex; flex-direction:column; gap:6px;
+  padding:12px clamp(16px,2vw,26px) 14px;
+  transition:background .2s var(--pie-ease), clip-path 1s var(--pie-ease), opacity .55s var(--pie-ease);
+}
+#pie .pie-f:focus-within{background:var(--paper)}
+#pie .pie-f label{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ink-2);
+}
+#pie .pie-f input,#pie .pie-f textarea{
+  width:100%; display:block; background:transparent; color:var(--ink);
+  font-family:Montserrat,system-ui,sans-serif; font-weight:300; font-size:14px; line-height:1.45;
+  border:0; border-bottom:1px solid transparent; border-radius:0; outline:none;
+  /* 44px de diana: con padding 5/6 el input medía 32px */
+  min-height:44px; padding:11px 0 12px; -webkit-appearance:none; appearance:none;
+  transition:border-color .22s var(--pie-ease);
+}
+#pie .pie-f input::placeholder,#pie .pie-f textarea::placeholder{color:var(--ink-2); opacity:1}
+#pie .pie-f input:focus,#pie .pie-f textarea:focus{border-bottom-color:var(--teal)}
+/* la celda del textarea es la que absorbe la altura sobrante de la columna */
+#pie .pie-cell.pie-f-ta{flex:1 1 auto}
+#pie .pie-f textarea{resize:vertical; min-height:92px; height:100%}
+#pie .pie-send{
+  flex:none; display:flex; align-items:center; justify-content:space-between;
+  gap:14px; flex-wrap:wrap; padding:16px clamp(16px,2vw,26px);
+}
+#pie .pie-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  background:var(--navy); color:#fff; border:1px solid var(--navy); border-radius:0;
+  font-family:Montserrat,system-ui,sans-serif; font-weight:500; font-size:12px;
+  letter-spacing:.16em; text-transform:uppercase; line-height:1;
+  padding:15px 26px; cursor:pointer; transition:background .2s var(--pie-ease);
+}
+#pie .pie-btn:hover{background:#171d29}
+#pie .pie-btn .pie-ar{font-family:"IBM Plex Mono",monospace; letter-spacing:0;
+  transition:transform .3s var(--pie-ease)}
+#pie .pie-btn:hover .pie-ar{transform:translateX(5px)}
+
+/* ---------- barra final ---------- */
+#pie .pie-bar{
+  display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,2.2fr);
+  border-left:1px solid var(--line);
+}
+#pie .pie-b{
+  display:flex; align-items:center; gap:10px; min-height:calc(var(--pm) * .64);
+  padding:14px clamp(14px,1.6vw,22px);
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-2); text-align:left;
+}
+#pie button.pie-b{background:var(--card); border:0; cursor:pointer;
+  transition:color .2s var(--pie-ease), background .2s var(--pie-ease)}
+#pie button.pie-b:hover{color:var(--ink); background:var(--paper)}
+/* subrayado: "Privacidad" y "Cómo revocar" son acciones, no rótulos */
+#pie button.pie-b:not(.pie-cta){text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:5px}
+/* celda-botón ancha: el selector lleva `button` para ganar a #pie button.pie-b */
+#pie button.pie-cta{
+  justify-content:space-between; background:var(--navy); color:#fff;
+  font-family:Montserrat,system-ui,sans-serif; font-weight:500; font-size:12px;
+  letter-spacing:.16em; text-transform:uppercase; border:0; cursor:pointer;
+  transition:background .2s var(--pie-ease);
+}
+#pie button.pie-cta:hover{background:#171d29; color:#fff}
+#pie .pie-cta .pie-ar{font-family:"IBM Plex Mono",monospace; letter-spacing:0;
+  transition:transform .3s var(--pie-ease)}
+#pie .pie-cta:hover .pie-ar{transform:translateX(5px)}
+
+/* ---------- foco visible (accesibilidad) ---------- */
+#pie a:focus-visible,#pie button:focus-visible,#pie input:focus-visible,#pie textarea:focus-visible{
+  outline:1px solid var(--teal-ink); outline-offset:2px;
+}
+
+/* ---------- responsive real: 390px igual que 1440px ---------- */
+@media(max-width:900px){
+  footer#pie{padding:72px 20px 64px}
+  #pie .pie-grid{grid-template-columns:minmax(0,1fr)}
+  #pie .pie-bar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #pie .pie-b-c{grid-column:1 / -1}
+  #pie .pie-cta{grid-column:1 / -1; min-height:72px}
+  #pie .pie-reach{min-height:calc(var(--pm) * 1.8)}
+}
+@media(max-width:480px){
+  footer#pie{padding:60px 16px 56px}
+  #pie .pie-cap{height:calc(var(--pm) * .54)}
+  #pie .pie-b{min-height:58px; font-size:10px; letter-spacing:.1em}
+  /* el min-height:72px del bloque de 900px pierde por orden: se repite aquí */
+  #pie button.pie-cta{min-height:66px}
+  #pie .pie-btn{width:100%}
+  #pie .pie-send{align-items:stretch}
+}
+
+/* ---------- movimiento reducido ---------- */
+@media(prefers-reduced-motion:reduce){
+  #pie.pie-anim .pie-cell{clip-path:none; opacity:1; transition:none; will-change:auto}
+  #pie .pie-note{display:none}
+  #pie .pie-wa svg,#pie .pie-wa .pie-ar,#pie .pie-btn .pie-ar,#pie .pie-cta .pie-ar{transition:none}
+  #pie .pie-wa:hover svg,#pie .pie-wa:hover .pie-ar,#pie .pie-btn:hover .pie-ar,#pie .pie-cta:hover .pie-ar{transform:none}
+}
+</style>
+<style>
+/* =========================================================================
+   M-SPHERES · nubes de partículas por sección (canvas 2D, sin dependencias)
+   Prefijo único: .aisorb-*  ·  atributo de arranque: data-orb
+   Sólo usa variables ya definidas en el sitio, con fallback por si falta alguna.
+   ========================================================================= */
+
+/* el canvas siempre llena su caja; la caja es quien manda en la geometría */
+canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* --- caja de una nube ---------------------------------------------------- */
+.aisorb-box{
+  position:relative;
+  aspect-ratio:1/1;
+  max-width:100%;
+  background:var(--card,#fff);
+  overflow:hidden;
+}
+
+/* micro-etiqueta superior izquierda (IBM Plex Mono, como el resto del sitio) */
+.aisorb-lab{
+  position:absolute;left:14px;top:13px;z-index:2;
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:9px;line-height:1;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-2,#52525b);pointer-events:none;user-select:none;
+}
+.aisorb-lab b{font-weight:400;color:var(--teal-ink,#0f8577)}
+
+/* anotación en vivo abajo a la derecha (misma gramática que las notas CSS) */
+.aisorb-print{
+  position:absolute;right:14px;bottom:12px;z-index:2;
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:9px;line-height:1;letter-spacing:.14em;
+  color:var(--ink-2,#52525b);
+  max-width:calc(100% - 28px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  pointer-events:none;user-select:none;
+}
+
+/* celda: la nube arriba, el pie debajo (nunca encima de los puntos) */
+.aisorb-cell{display:flex;flex-direction:column;min-width:0}
+.aisorb-cap{padding:16px 16px 18px;border-top:1px solid var(--line,#e4e9f2)}
+.aisorb-cap .aisorb-n{
+  font-family:Montserrat,system-ui,sans-serif;font-weight:200;
+  font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink,#18181b);
+}
+.aisorb-cap .aisorb-d{
+  margin-top:7px;font-size:11.5px;line-height:1.55;color:var(--ink-2,#52525b);
+  font-family:Montserrat,system-ui,sans-serif;
+}
+
+/* --- rejilla de demostración: líneas de 1px por gap sobre fondo de línea --- */
+.aisorb-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:1px;background:var(--line,#e4e9f2);
+  border:1px solid var(--line,#e4e9f2);
+}
+.aisorb-grid > *{background:var(--card,#fff)}
+
+/* cabecera de sección en el lenguaje del sitio.
+   El mínimo del clamp es 28px por dos razones: es el mínimo más pequeño que usa
+   el sitio en un h2, y a 28px el <b> en --teal-ink cuenta como texto grande
+   (umbral 3:1 en vez de 4.5:1), que es donde ese par de tokens se sostiene. */
+.aisorb-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  flex-wrap:wrap;padding:0 0 22px;
+}
+.aisorb-head h2{
+  margin:0;font-family:Montserrat,system-ui,sans-serif;font-weight:100;
+  text-transform:uppercase;letter-spacing:.06em;font-size:clamp(28px,2.6vw,34px);
+  line-height:1.06;color:var(--ink,#18181b);
+}
+.aisorb-head h2 b{font-weight:300;color:var(--teal-ink,#0f8577)}
+.aisorb-head .aisorb-k{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2,#52525b);
+}
+
+.aisorb-sec{padding:72px 40px}
+
+@media(max-width:900px){
+  .aisorb-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .aisorb-sec{padding:56px 24px}
+}
+@media(max-width:560px){
+  .aisorb-grid{grid-template-columns:minmax(0,1fr)}
+  .aisorb-sec{padding:44px 16px}
+}
+</style>
+<style>
+/* ===== mascaras-a-prueba-de-fallos =====
+   Las máscaras de línea de los módulos nuevos recortaban el texto: la caja medía
+   97px para 204px de contenido y el desplazamiento interior nunca volvía a cero,
+   así que media frase quedaba oculta de forma permanente. Principio que se aplica
+   aquí: una animación puede mover el texto, nunca puede esconderlo. Las máscaras
+   pasan a alto automático y sin recorte, los desplazamientos internos se anulan,
+   y la entrada se hace con un desvanecido que parte de visible. ===== */
+#about .ab-ln,#about .ab-w,#servicios .sv-w,#servicios .sv-word,#pie .pie-w{
+  overflow:visible!important;height:auto!important;max-height:none!important;line-height:1.22!important}
+#about .ab-ln>i,#about .ab-w>i,#servicios .sv-w>i,#servicios .sv-word>i,#pie .pie-w>i{
+  transform:none!important;display:inline!important}
+/* la palabra dentro de la caja negra necesita aire: se recortaba por abajo */
+#servicios .sv-hl,#servicios .sv-box{line-height:1.16!important;padding-bottom:.10em!important;
+  overflow:visible!important;height:auto!important}
+/* entrada que parte de visible: si el observador no dispara, el texto se lee igual */
+#about .ab-say,#about .ab-title{opacity:1!important}
+#about .ab-say{transition:transform .9s cubic-bezier(.22,1,.36,1),opacity .9s cubic-bezier(.22,1,.36,1)}
+@media(prefers-reduced-motion:reduce){#about .ab-say{transition:none}}
+</style>
 </head>
 <body>
 
 <nav>
   <a class="lg" href="#top"><span class="d"></span>AISOLVES</a>
-  <div class="links"><a href="#work">Trabajo</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#paquetes">Paquetes</a><a href="#equipo">Equipo</a></div>
+  <div class="links"><a href="#work">Trabajo</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#servicios">Servicios</a><a href="#paquetes">Paquetes</a><a href="#about">Nosotros</a><a href="#equipo">Equipo</a></div>
   <a class="cta" onclick="openForm()">Auditoría gratuita →</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero" id="top" data-sec="Hero">
   <div class="lab l1"><i>01.</i> Behavioral Growth OS</div>
-  <div class="lab l2"><i>02.</i> Amsterdam · Remoto</div>
+  <div class="lab l2"><i>02.</i> Remoto · en español</div>
   <div class="contact-t">T: +34 600 000 000</div>
   <div class="lab l3"><i>03.</i> M: hola@aisolves.com</div>
   <div class="lab l4"><i>04.</i> Abiertos a 3 proyectos</div>
@@ -1710,6 +2515,98 @@ html{overflow-x:clip}
   </div>
 </section>
 
+<section class="sec wrap" id="servicios" data-sec="Servicios">
+
+  <div class="sec-top">
+    <div class="st-l">
+      <h2>Servicios</h2>
+      <p class="sub2">Seis piezas, un solo dato: el comportamiento.</p>
+    </div>
+    <div class="svx-hr"><span>Seis servicios<br/>sobre una sola<br/>taxonomía de eventos</span></div>
+  </div>
+
+  <div class="svx-body">
+
+    <!-- izquierda: pasos + par de palabras + descripción -->
+    <div class="svx-left">
+      <div class="svx-steps" id="svxSteps" role="group" aria-label="Elegir servicio">
+        <button class="svx-step is-on" type="button" aria-pressed="true" aria-label="Servicio 1 de 6: Meta Pixel"></button>
+        <button class="svx-step"       type="button" aria-pressed="false" aria-label="Servicio 2 de 6: Lead scoring"></button>
+        <button class="svx-step"       type="button" aria-pressed="false" aria-label="Servicio 3 de 6: SEO y SEM"></button>
+        <button class="svx-step"       type="button" aria-pressed="false" aria-label="Servicio 4 de 6: WhatsApp API"></button>
+        <button class="svx-step"       type="button" aria-pressed="false" aria-label="Servicio 5 de 6: Retargeting en vivo"></button>
+        <button class="svx-step"       type="button" aria-pressed="false" aria-label="Servicio 6 de 6: Contenido por señal"></button>
+        <span class="svx-count" id="svxCount">01 / 06</span>
+      </div>
+
+      <h3 class="svx-pair" id="svxPair">
+        <span class="svx-m svx-m1"><span class="svx-mi" id="svxW1">meta</span></span>
+        <span class="svx-box" id="svxBox"><span class="svx-m svx-m2"><span class="svx-mi" id="svxW2">pixel</span></span></span>
+        <span class="svx-ghost" id="svxGhost" aria-hidden="true"></span>
+      </h3>
+
+      <p class="svx-desc" id="svxDesc">Pixel de Meta y Conversions API con event_id deduplicado: el mismo evento viaja por navegador y por servidor sin contarse dos veces.</p>
+    </div>
+
+    <!-- derecha: rejilla modular -->
+    <div class="svx-right">
+      <div class="svx-mods" role="group" aria-label="Datos del sistema">
+        <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-n">8</span>
+          <span class="svx-k">Etapas medidas por visita</span>
+        </div>
+        <div class="svx-c" aria-hidden="true"></div>
+        <div class="svx-c svx-c--hatch" aria-hidden="true"></div>
+
+        <div class="svx-c svx-c--mhide" aria-hidden="true"></div>
+        <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-n">0-100</span>
+          <span class="svx-k">Score de comportamiento</span>
+        </div>
+        <div class="svx-c svx-c--mhide" aria-hidden="true"></div>
+
+        <div class="svx-c svx-c--hatch" aria-hidden="true"></div>
+        <div class="svx-c" aria-hidden="true"></div>
+        <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-n">48-72 <i>h</i></span>
+          <span class="svx-k">Onboarding de alta activación</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- carrusel: lo que mide el sistema -->
+  <div class="svx-car">
+    <div class="svx-nav">
+      <button class="svx-ar" type="button" id="svxPrev" aria-label="Ficha anterior" aria-controls="svxTrack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <button class="svx-ar" type="button" id="svxNext" aria-label="Ficha siguiente" aria-controls="svxTrack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="svx-viewport" id="svxView">
+      <div class="svx-track" id="svxTrack">
+        <article class="svx-slide">
+          <p class="svx-q">Cada sección emite su propio evento al entrar en pantalla, con el tiempo que se le dedica y la velocidad del scroll. De los formularios se guarda la metadata, nunca lo que la persona escribe. Permite decidir qué bloque hay que reescribir porque nadie llega a terminarlo.</p>
+          <div class="svx-sig"><b>Captura</b><em>Capa 01</em></div>
+        </article>
+        <article class="svx-slide">
+          <p class="svx-q">Ese comportamiento se resume en cuatro dimensiones —intención, engagement, fit e identidad— y se convierte en un número de 0 a 100 con su banda. Cada salto queda registrado con la causa que lo provocó. Permite decidir a quién se llama hoy y a quién se deja madurar.</p>
+          <div class="svx-sig"><b>Puntuación</b><em>Capa 02</em></div>
+        </article>
+        <article class="svx-slide">
+          <p class="svx-q">El evento sale por navegador y por servidor con el mismo event_id, de modo que Meta lo deduplica y se queda con la mejor señal, siempre con Consent Mode v2 en denegado por defecto. Permite decidir con qué información optimiza la puja, en vez de suponerla.</p>
+          <div class="svx-sig"><b>Activación</b><em>Capa 03</em></div>
+        </article>
+      </div>
+      <span class="svx-print" id="svxPrint" aria-hidden="true">01 / 03</span>
+    </div>
+  </div>
+
+</section>
+
+
 <!-- PAQUETES -->
 <section class="sec wrap" id="paquetes" data-sec="Paquetes">
   <div class="sec-top"><div class="st-l"><h2>Paquetes</h2><p class="sub2">Retainer sin permanencia · precio por sistema, no por horas.</p></div></div>
@@ -1719,6 +2616,91 @@ html{overflow-x:clip}
     <div class="plan"><div class="pn">Compound</div><div class="desc">Crecimiento que se acelera con el tiempo.</div><div class="from">Desde</div><div class="price">3.500<small> USD/mes</small></div><ul><li>Todo lo de Engine</li><li>Onboarding de alta activación 48-72 h</li><li>Experimentación continua A/B</li><li>Atribución multi-touch</li><li>SLA &lt;15 min para SQL</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
   </div>
 </section>
+
+<section class="sec wrap" id="about" data-sec="Nosotros">
+
+  <!-- cabecera -->
+  <div class="sec-top ab-head">
+    <div class="st-l">
+      <h2 class="ab-title"><span class="ab-w"><i>Sobre</i></span> <span class="ab-w"><i>AISOLVES</i></span></h2>
+      <p class="sub2">Estrategia, datos y activación — conectados desde la primera visita hasta el cierre.</p>
+    </div>
+    <div class="ab-hnote">
+      <span class="ab-hk">Nosotros</span>
+      <span class="note ab-prog" aria-hidden="true">--ab-p: 0.00</span>
+    </div>
+  </div>
+
+  <!-- cuerpo -->
+  <div class="ab-body">
+
+    <!-- izquierda: declaración + hueco reservado para la nube de partículas -->
+    <div class="ab-l">
+      <div class="ab-sayw">
+        <p class="ab-say">
+          <span class="ab-ln"><i>Instalamos el sistema que lee el comportamiento de cada visita,</i></span>
+          <span class="ab-ln"><i>lo puntúa y decide a quién merece la pena llamar.</i></span>
+          <span class="ab-ln"><i>No vendemos anuncios:</i></span>
+          <span class="ab-ln"><i>construimos <b>la señal</b> con la que se compran.</i></span>
+        </p>
+      </div>
+      <div class="ab-row">
+        <!-- celda cuadrada reservada: la dibuja el módulo de partículas -->
+        <!-- El módulo de esferas (m-spheres) arranca todo <canvas data-orb>.
+             El atributo VA EN EL CANVAS y su valor es una forma válida
+             (shell|lens|eroded|orbit); en el div contenedor no se inicializa. -->
+        <div class="ab-orb" aria-hidden="true">
+          <canvas id="aboutOrb" data-orb="shell" data-orb-tint="ink" data-orb-speed="0.14"></canvas>
+        </div>
+        <div class="ab-fill" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- derecha: marco de identidad que se abre con clip-path -->
+    <div class="ab-r">
+      <span class="note ab-clip" aria-hidden="true">clip-path: inset(0% 0% 100% 0%)</span>
+      <div class="ab-id">
+        <div class="ab-idh">
+          <div class="ab-name">AISOLVES</div>
+          <div class="ab-tag">Behavioral Growth OS</div>
+        </div>
+        <ul class="ab-layers">
+          <li>
+            <span class="ab-k"><em>01</em> / Captura</span>
+            <span class="ab-d">Cada sección y bloque emite eventos estructurados. Medimos la señal, nunca lo que la persona escribe.</span>
+          </li>
+          <li>
+            <span class="ab-k"><em>02</em> / Puntuación</span>
+            <span class="ab-d">Cuatro dimensiones convierten ese ruido en un score de 0 a 100 y una banda accionable.</span>
+          </li>
+          <li>
+            <span class="ab-k"><em>03</em> / Activación</span>
+            <span class="ab-d">El mismo event_id viaja por navegador y por servidor, con Consent Mode v2 desde el primer evento.</span>
+          </li>
+        </ul>
+        <div class="ab-foot">
+          <a href="mailto:hola@aisolves.com"><u>hola@aisolves.com</u></a>
+          <span>WhatsApp Business</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- franja de plataformas integradas (sólo texto, sin logotipos) -->
+  <div class="ab-plat">
+    <span class="ab-pc">Meta Pixel</span>
+    <span class="ab-pc">Conversions API</span>
+    <span class="ab-pc">GA4</span>
+    <span class="ab-pc">Consent Mode v2</span>
+    <span class="ab-pc">WhatsApp Business API</span>
+    <span class="ab-pc">Google Ads</span>
+    <span class="ab-pc">TikTok</span>
+    <span class="ab-pc ab-pcx" aria-hidden="true"></span>
+  </div>
+
+</section>
+
 
 <!-- EQUIPO -->
 <section class="sec wrap" id="equipo" data-sec="Equipo">
@@ -1745,22 +2727,107 @@ html{overflow-x:clip}
 </section>
 
 <!-- CONTACTO -->
-<section class="sec wrap" id="contacto" data-sec="Contacto">
-  <div class="contact">
-    <div class="cl">
-      <h2>Empieza por <b>ver</b><br/>lo que ya pasa.</h2>
-      <p class="sub">Deja tu WhatsApp y te enviamos el reporte de comportamiento de esta misma visita. Sin registro, sin permanencia.</p>
-      <div class="lines">M: <a href="mailto:hola@aisolves.com">hola@aisolves.com</a><br/>W: <a href="#" onclick="openForm();return false">WhatsApp Business</a><br/>04. ABIERTOS A 3 PROYECTOS · Q3 2026</div>
+<footer class="sec wrap" id="pie" data-sec="Contacto">
+  <!-- id="contacto" se conserva aquí a propósito: el sitio observa
+       getElementById('contacto') para armar el teaser de comportamiento
+       y hace scrollIntoView sobre él desde el HUD y desde el menú. -->
+  <div class="pie-grid" id="contacto">
+
+    <!-- ═══ columna izquierda ═══ -->
+    <div class="pie-col">
+
+      <div class="pie-cell pie-cap">
+        <h2 class="pie-cap-t">Contacto</h2>
+        <span class="pie-k">01</span>
+        <i class="pie-prog" aria-hidden="true"></i>
+      </div>
+
+      <div class="pie-cell pie-reach">
+        <span class="pie-k2">Correo</span>
+        <a class="pie-mail" href="mailto:hola@aisolves.com">hola@aisolves.com</a>
+        <!-- WhatsApp: reutiliza el flujo ya existente del sitio (modal #mForm) -->
+        <button class="pie-wa" type="button" onclick="openForm()" aria-label="Escríbenos por WhatsApp">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/>
+            <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/>
+          </svg>
+          <span class="pie-wa-t">WhatsApp</span>
+          <span class="pie-ar" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <!-- celda cuadrada reservada: otro módulo dibuja aquí la nube de partículas -->
+      <div class="pie-cell pie-orb" id="footerOrb">
+        <canvas class="pie-orb-cv" id="footerOrbCv" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="pie-cell pie-fill">
+        <span class="pie-note" id="pieNote" aria-hidden="true">--pie-p: 0.000</span>
+      </div>
     </div>
-    <div class="cbox">
-      <div class="eyebrow">Reporte de comportamiento</div>
-      <h3>Recibe tu Lead Signal</h3>
-      <p>El sistema ya está leyendo tu visita. Pide el informe completo y lo tienes en tu WhatsApp en segundos.</p>
-      <button class="btn dark" style="width:100%" onclick="openForm()"><span>Recibir mi reporte</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
+
+    <!-- ═══ columna derecha ═══ -->
+    <div class="pie-col">
+
+      <div class="pie-cell pie-cap">
+        <h2 class="pie-cap-t">Información</h2>
+        <span class="pie-k">02</span>
+      </div>
+
+      <div class="pie-cell pie-info">
+        <p class="pie-li">Remoto · trabajamos con equipos de habla hispana</p>
+        <p class="pie-li">Onboarding en 48-72 h</p>
+        <p class="pie-li">Consent Mode v2 · GDPR / LOPDGDD</p>
+        <p class="pie-li" data-placeholder="true">Razón social y domicilio fiscal — por definir —</p>
+      </div>
+
+      <div class="pie-cell pie-cap">
+        <h2 class="pie-cap-t">Escríbenos</h2>
+        <span class="pie-k">03</span>
+      </div>
+
+      <!-- NO HAY ENDPOINT. Este formulario no envía nada a ningún servidor:
+           al pulsar "Enviar" se llama a openForm(), que abre el modal #mForm
+           (flujo de WhatsApp ya existente en el sitio) con los campos
+           prerrellenados. El onsubmit="return false" es la red de seguridad
+           por si el JS del módulo no llegara a cargar. -->
+      <form class="pie-form" id="pieForm" novalidate onsubmit="return false">
+        <div class="pie-cell pie-f">
+          <label for="pieName">Nombre</label>
+          <input id="pieName" name="name" type="text" autocomplete="name" placeholder="Tu nombre" />
+        </div>
+        <div class="pie-cell pie-f">
+          <label for="pieMail">Email</label>
+          <input id="pieMail" name="email" type="email" autocomplete="email" placeholder="tu@empresa.com" />
+        </div>
+        <div class="pie-cell pie-f">
+          <label for="pieWa">WhatsApp</label>
+          <input id="pieWa" name="wa" type="tel" inputmode="tel" autocomplete="tel" placeholder="Prefijo + número" />
+        </div>
+        <div class="pie-cell pie-f pie-f-ta">
+          <label for="pieMsg">Mensaje</label>
+          <textarea id="pieMsg" name="msg" rows="3" placeholder="Cuéntanos tu caso…"></textarea>
+        </div>
+        <div class="pie-cell pie-send">
+          <span class="pie-k2">Se abre WhatsApp · no se envía a ningún servidor</span>
+          <button class="pie-btn btn dark" type="submit" id="pieSendBtn">
+            <span class="lbl">Enviar</span><span class="pie-ar" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-  <footer><div class="fx"><span>© 2026 AISOLVES · Behavioral Growth OS</span><span>Privacidad · Cómo revocar · Consent Mode v2</span></div></footer>
-</section>
+
+  <!-- ═══ barra final ═══ -->
+  <div class="pie-bar">
+    <div class="pie-cell pie-b pie-b-c">© 2026 AISOLVES · Behavioral Growth OS</div>
+    <button class="pie-cell pie-b" type="button" data-pie="consent">Privacidad</button>
+    <button class="pie-cell pie-b" type="button" data-pie="consent">Cómo revocar</button>
+    <button class="pie-cell pie-b pie-cta btn" type="button" onclick="openForm()">
+      <span class="lbl">Hablemos de tu caso</span><span class="pie-ar" aria-hidden="true">→</span>
+    </button>
+  </div>
+</footer>
 
 
 
@@ -4862,7 +5929,10 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
   var io = new IntersectionObserver(function(es){ es.forEach(function(e){
     if(e.isIntersecting){ e.target.classList.add('is-rv'); io.unobserve(e.target); } }); },
     {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
-  var watched=[].slice.call(document.querySelectorAll('.m-words, .m-rvy, .m-img'));
+  // el pie se suma a la red de seguridad: sus celdas se ocultan con clip-path
+  // hasta recibir is-rv, y ahí viven el correo y el WhatsApp. Si el observador
+  // no dispara, esos datos no pueden quedar invisibles.
+  var watched=[].slice.call(document.querySelectorAll('.m-words, .m-rvy, .m-img, #pie .pie-cell'));
   watched.forEach(function(el){ if(reduced){ el.classList.add('is-rv'); return; } io.observe(el); });
   // red de seguridad: si el observador no dispara (o llega tarde), el scroll
   // activa cualquier bloque ya visible. El contenido nunca queda oculto.
@@ -4890,6 +5960,1254 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
   addEventListener('scroll', onScroll, {passive:true}); onScroll();
 })();
 
+</script>
+
+<!-- ===== módulos vanlent ===== -->
+<script>
+/* ==========================================================================
+   m-hscroll · motor. ES5, sin dependencias.
+   · Fija .hs-pin con position:sticky y mapea el progreso vertical de la
+     escena a un translate3d de .hs-track (el scroll vertical arrastra la tira).
+   · Imprime en .hs-ann el mismo translate que aplica, redondeado al píxel
+     (el transform se aplica con 2 decimales para que no vibre).
+   · La altura de la escena se calcula con el ancho REAL de la tira
+     (track.scrollWidth - pin.clientWidth) y se recalcula en cada resize.
+   · <720px, pantalla muy baja, sin recorrido o prefers-reduced-motion:
+     no se fija nada, la tira queda con scroll horizontal nativo + snap y la
+     anotación sigue viva leyendo scrollLeft.
+   · El IntersectionObserver es solo una red de seguridad: la verdad es la
+     comprobación por geometría que se hace en cada evento de scroll.
+   API: window.HSCROLL.refresh() tras insertar o cambiar contenido.
+   ========================================================================== */
+(function(){
+'use strict';
+if (window.HSCROLL) return;
+
+var MIN_W = 720;   // por debajo de este ancho no se fija nada
+var MIN_H = 420;   // escenario demasiado bajo: tampoco se fija
+var MIN_TRAVEL = 8;
+
+var reduced = false;
+try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(e){}
+
+var scenes = [];
+var ticking = false, resizeT = null, io = null, ro = null;
+var raf = window.requestAnimationFrame ? function(f){ return window.requestAnimationFrame(f); }
+                                       : function(f){ return setTimeout(f,16); };
+
+/* soporte de listeners pasivos sin romper navegadores antiguos */
+var passive = false;
+try {
+  var probe = Object.defineProperty({}, 'passive', { get:function(){ passive = {passive:true}; return true; } });
+  window.addEventListener('hs-probe', null, probe);
+  window.removeEventListener('hs-probe', null, probe);
+} catch(e){}
+
+function clamp(v,a,b){ return v<a ? a : (v>b ? b : v); }
+function attrNum(el,name,def){
+  var v = el.getAttribute(name);
+  if (v === null || v === '') return def;
+  v = parseFloat(v);
+  return (v !== v) ? def : v;            // NaN
+}
+function setCls(el,name,on){
+  if (!el || !el.classList) return;
+  if (on) el.classList.add(name); else el.classList.remove(name);
+}
+/* redondea igual que la plantilla: se imprime lo que se aplica */
+function print(el,label,value,unit){
+  if (!el) return;
+  var txt = label + ': ' + String(Math.round(value)) + (unit || '');
+  if (el.textContent !== txt) el.textContent = txt;   // evita escribir cada frame
+}
+
+/* ---------- registro de escenas ---------- */
+function scan(){
+  var list = document.querySelectorAll('.hs-scene'), i, el, pin, track, s;
+  for (i = 0; i < list.length; i++){
+    el = list[i];
+    if (el.getAttribute('data-hs-ready') === '1') continue;
+    pin = el.querySelector('.hs-pin');
+    track = pin ? pin.querySelector('.hs-track') : null;
+    if (!pin || !track) continue;
+    el.setAttribute('data-hs-ready','1');
+    s = { el:el, pin:pin, track:track, ann:pin.querySelector('.hs-ann'),
+          pinned:false, travel:0, run:1, pxIn:0, len:1, scroller:null };
+    /* adorno: nunca debe llegar al lector de pantalla, aunque falte en el HTML */
+    if (s.ann) s.ann.setAttribute('aria-hidden','true');
+    var rail = pin.querySelector('.hs-rail');
+    if (rail) rail.setAttribute('aria-hidden','true');
+    bindTrack(s);
+    if (ro) { try { ro.observe(track); } catch(e){} }
+    if (io) { try { io.observe(el); } catch(e){} }
+    scenes.push(s);
+  }
+}
+
+/* en modo nativo la anotación se alimenta del scroll horizontal de la tira */
+function bindTrack(s){
+  s.track.addEventListener('scroll', function(){
+    if (s.pinned || !s.ann) return;
+    print(s.ann, 'translateX', -s.track.scrollLeft, 'px');
+  }, passive);
+}
+
+/* Cuando la tira NO está fijada, los paneles 2..n solo se alcanzan desplazando
+   la tira: sin tabindex el teclado no puede llegar a ellos (WCAG 2.1.1).
+   Cuando sí está fijada, el contenido se alcanza con el scroll de la página y
+   el foco sobraría, así que se retira. */
+function setScroller(s,on){
+  if (s.scroller === on) return;
+  s.scroller = on;
+  if (on){
+    s.track.setAttribute('tabindex','0');
+    s.track.setAttribute('role','group');
+    if (!s.track.getAttribute('aria-label'))
+      s.track.setAttribute('aria-label','Tira horizontal: use las flechas para recorrer los paneles');
+  } else {
+    s.track.removeAttribute('tabindex');
+    s.track.removeAttribute('role');
+  }
+}
+
+/* ---------- geometría ---------- */
+function measure(s){
+  var vw = document.documentElement.clientWidth || window.innerWidth || 0;
+  var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  var off = s.el.getAttribute('data-hs') === 'off';
+  var travel = Math.max(0, s.track.scrollWidth - s.pin.clientWidth);
+  var can = !reduced && !off && vw >= MIN_W && vh >= MIN_H && travel > MIN_TRAVEL;
+
+  if (can){
+    var ratio = clamp(attrNum(s.el,'data-hs-ratio',1), 0.2, 4);   // px verticales por px horizontal
+    var hold  = clamp(attrNum(s.el,'data-hs-hold',0.15), 0, 0.45); // reposo de entrada y de salida
+    if (!s.pinned) s.track.scrollLeft = 0;
+    s.travel = travel;
+    s.pxIn = Math.round(vh * hold);
+    s.run  = Math.max(1, Math.round(travel * ratio));
+    s.len  = s.pxIn * 2 + s.run;            // recorrido vertical útil
+    s.pinned = true;
+    setScroller(s,false);
+    setCls(s.el,'is-hs',true);
+    s.pin.style.height = vh + 'px';
+    s.el.style.height  = (vh + s.len) + 'px';   // altura en px, nunca 600vh
+  } else {
+    s.pinned = false;
+    setCls(s.el,'is-hs',false);
+    /* travel se midió arriba; si sobra ancho, la tira es un scroller enfocable */
+    setScroller(s, travel > MIN_TRAVEL);
+    setCls(s.el,'is-hs-pinned',false);
+    s.el.style.height = '';
+    s.pin.style.height = '';
+    if (s.track.style.removeProperty) s.track.style.removeProperty('--hs-x');
+    if (s.el.style.removeProperty) s.el.style.removeProperty('--hs-p');
+    s.travel = 0;
+  }
+}
+
+/* ---------- pintado ---------- */
+function update(){
+  var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  var i, s, r, visible, scrolled, t, x;
+  for (i = scenes.length - 1; i >= 0; i--){
+    s = scenes[i];
+    /* escena retirada del DOM: la soltamos en lugar de medir un nodo huérfano */
+    if (s.el.ownerDocument && !s.el.ownerDocument.contains(s.el)){
+      if (ro) { try { ro.unobserve(s.track); } catch(e){} }
+      if (io) { try { io.unobserve(s.el); } catch(e){} }
+      scenes.splice(i,1);
+      continue;
+    }
+    r = s.el.getBoundingClientRect();
+    /* comprobación por geometría: no dependemos del IntersectionObserver */
+    visible = (r.bottom > 0 && r.top < vh);
+    if (s.ann) setCls(s.ann,'is-on',visible);
+
+    if (s.pinned){
+      scrolled = clamp(-r.top, 0, s.len);
+      t = clamp((scrolled - s.pxIn) / s.run, 0, 1);
+      x = -t * s.travel;
+      s.track.style.setProperty('--hs-x', x.toFixed(2) + 'px');
+      s.el.style.setProperty('--hs-p', t.toFixed(4));
+      setCls(s.el,'is-hs-pinned', (r.top <= 0 && r.bottom >= vh));
+      if (visible) print(s.ann,'translateX',x,'px');
+    } else if (visible){
+      print(s.ann,'translateX', -s.track.scrollLeft, 'px');
+    }
+  }
+}
+
+/* El pestillo "ticking" evita repintar más de una vez por frame. Si el rAF no
+   llegara a ejecutarse (pestaña oculta, segundo plano, rAF emulado con
+   setTimeout y estrangulado) el pestillo se quedaría cerrado y el módulo
+   dejaría de responder al scroll. El temporizador de respaldo lo reabre. */
+function onScroll(){
+  if (ticking) return;
+  ticking = true;
+  var done = false;
+  var run = function(){
+    if (done) return;
+    done = true; ticking = false;
+    update();
+  };
+  raf(run);
+  setTimeout(run, 250);
+}
+function refresh(){
+  scan();
+  for (var i = 0; i < scenes.length; i++) measure(scenes[i]);
+  update();
+}
+function onResize(){
+  if (resizeT) clearTimeout(resizeT);
+  resizeT = setTimeout(refresh, 120);
+}
+
+/* ---------- observadores (siempre como apoyo, nunca como única vía) ------- */
+if (window.ResizeObserver){
+  try { ro = new ResizeObserver(function(){ onResize(); }); } catch(e){ ro = null; }
+}
+if (window.IntersectionObserver){
+  try {
+    io = new IntersectionObserver(function(){ onScroll(); },
+      { rootMargin:'200px 0px 200px 0px', threshold:[0,0.01,0.5,1] });
+  } catch(e){ io = null; }
+}
+
+/* ---------- arranque ---------- */
+window.addEventListener('scroll', onScroll, passive);
+window.addEventListener('resize', onResize, passive);
+window.addEventListener('orientationchange', function(){ setTimeout(refresh, 400); }, passive);
+window.addEventListener('load', refresh, passive);
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden){ ticking = false; refresh(); }   // reabre el pestillo al volver
+});
+try {
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) document.fonts.ready.then(refresh);
+} catch(e){}
+try {
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduced = e.matches; refresh(); });
+  else if (mq.addListener) mq.addListener(function(e){ reduced = e.matches; refresh(); });
+} catch(e){}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh);
+else refresh();
+setTimeout(refresh, 300);      // por si la tira aún estaba midiéndose
+
+window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
+})();
+</script>
+<script>
+/* ==========================================================================
+   m-servicios — rotador del par de palabras + carrusel de fichas.
+   ES5 puro, sin dependencias. Respeta prefers-reduced-motion.
+   ========================================================================== */
+(function(){
+  var sec = document.getElementById('servicios');
+  if(!sec) return;
+
+  var RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function reduced(){ return !!(RM && RM.matches); }
+
+  /* --- contenido real de AISOLVES: par de palabras + descripción honesta --- */
+  var DATA = [
+    {a:'meta',        b:'pixel',   d:'Pixel de Meta y Conversions API con event_id deduplicado: el mismo evento viaja por navegador y por servidor sin contarse dos veces.'},
+    {a:'lead',        b:'scoring', d:'Puntuación de 0 a 100 del comportamiento real de cada visita, en bandas COLD, MQL, WARM, HOT y SQL.'},
+    {a:'seo',         b:'sem',     d:'Búsqueda de pago y orgánica trabajando sobre la misma taxonomía de eventos, incluida la visibilidad en respuestas generadas por IA.'},
+    {a:'whatsapp',    b:'api',     d:'WhatsApp Business API conectado a la intención detectada: el mensaje sale cuando la señal lo justifica, no por calendario.'},
+    {a:'retargeting', b:'vivo',    d:'Audiencias que se construyen con el comportamiento medido en la propia web, no sólo con la visita a una página.'},
+    {a:'contenido',   b:'señal',   d:'Reels y carruseles orientados por lo que el funnel demuestra que retiene.'}
+  ];
+
+  var pair  = document.getElementById('svxPair'),
+      w1    = document.getElementById('svxW1'),
+      w2    = document.getElementById('svxW2'),
+      box   = document.getElementById('svxBox'),
+      ghost = document.getElementById('svxGhost'),
+      desc  = document.getElementById('svxDesc'),
+      count = document.getElementById('svxCount'),
+      steps = sec.querySelectorAll('.svx-step');
+
+  var cur = 0, swapT = null, timer = null, visible = false, reflow = 0;
+
+  function pad(n){ return (n<10?'0':'')+n; }
+
+  /* ancho de la caja: fantasma de la misma tipografía. El padding va en em, así que
+     cambia con el viewport: se vuelve a medir en cada pintado, nunca se cachea. */
+  function measurePad(){
+    if(!window.getComputedStyle) return 0;
+    var cs = getComputedStyle(box);
+    return (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0);
+  }
+  function setBox(txt){
+    ghost.textContent = txt;
+    var w = ghost.offsetWidth;
+    if(w) box.style.width = Math.ceil(w + measurePad()) + 'px';
+  }
+
+  function paint(i){
+    var d = DATA[i];
+    w1.textContent = d.a; w2.textContent = d.b; desc.textContent = d.d;
+    setBox(d.b);
+  }
+
+  function setPair(i, instant){
+    if(i === cur && !instant) return;
+    cur = i;
+    for(var k=0;k<steps.length;k++){
+      var on = (k===i);
+      steps[k].classList[on?'add':'remove']('is-on');
+      steps[k].setAttribute('aria-pressed', on?'true':'false');
+    }
+    count.textContent = pad(i+1) + ' / ' + pad(DATA.length);
+
+    if(instant || reduced()){
+      if(swapT){ clearTimeout(swapT); swapT = null; }
+      pair.classList.remove('is-out','is-in','svx-notr');
+      desc.classList.remove('is-out');
+      paint(i); return;
+    }
+
+    pair.classList.remove('is-in','svx-notr'); pair.classList.add('is-out');
+    desc.classList.add('is-out');
+    if(swapT) clearTimeout(swapT);
+    swapT = setTimeout(function(){
+      paint(i);                                              /* texto nuevo, caja ya animando */
+      pair.classList.remove('is-out');
+      pair.classList.add('svx-notr','is-in');                /* colocar abajo sin transición */
+      reflow = pair.offsetHeight;                            /* forzar reflow: el salto no se interpola */
+      pair.classList.remove('svx-notr','is-in');             /* y subir a su sitio */
+      desc.classList.remove('is-out');
+    }, 430);
+  }
+
+  function next(){ setPair((cur+1) % DATA.length); }
+
+  for(var s=0;s<steps.length;s++){
+    (function(idx){
+      steps[idx].onclick = function(){ setPair(idx); restart(); };
+    })(s);
+  }
+
+  function start(){ if(timer || reduced() || !visible || held) return; timer = setInterval(next, 4500); }
+  function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+  function restart(){ stop(); start(); }
+
+  /* pausa mientras el puntero o el foco estan dentro (WCAG 2.2.2) */
+  var held = false;
+  function hold(){ held = true;  stop(); }
+  function free(){ held = false; start(); }
+  sec.addEventListener('mouseenter', hold);
+  sec.addEventListener('mouseleave', free);
+  sec.addEventListener('focusin',  hold);
+  sec.addEventListener('focusout', function(e){
+    if(!e.relatedTarget || !sec.contains(e.relatedTarget)) free();
+  });
+
+  /* --------------------- carrusel de fichas ------------------------------ */
+  var view  = document.getElementById('svxView'),
+      track = document.getElementById('svxTrack'),
+      prev  = document.getElementById('svxPrev'),
+      nxt   = document.getElementById('svxNext'),
+      print = document.getElementById('svxPrint'),
+      slides= track ? track.children : [],
+      ci = 0, perView = 1, slideW = 0;
+
+  function layout(){
+    if(!view) return;
+    var vw = view.clientWidth;
+    perView = (vw >= 760 && slides.length > 1) ? 2 : 1;
+    slideW = Math.floor(vw / perView);
+    for(var i=0;i<slides.length;i++) slides[i].style.width = slideW + 'px';
+    var max = Math.max(0, slides.length - perView);
+    if(ci > max) ci = max;
+    apply(true);
+  }
+
+  function apply(instant){
+    var x = -(ci * slideW);
+    if(instant || reduced()){
+      track.style.transition = 'none';
+      track.style.transform = 'translate3d(' + x + 'px,0,0)';
+      reflow = track.offsetHeight;   /* reflow antes de devolver la transición */
+      track.style.transition = '';
+    }else{
+      track.style.transform = 'translate3d(' + x + 'px,0,0)';
+    }
+    printX();
+    var max = Math.max(0, slides.length - perView);
+    if(prev){ if(ci <= 0) prev.setAttribute('disabled','disabled'); else prev.removeAttribute('disabled'); }
+    if(nxt) { if(ci >= max) nxt.setAttribute('disabled','disabled'); else nxt.removeAttribute('disabled'); }
+  }
+
+  /* posición dentro de las fichas: dato propio, no un volcado de la matriz.
+     Con dos fichas a la vista se imprime el rango, no sólo la primera. */
+  function printX(){
+    if(!print) return;
+    var last = Math.min(ci + perView, slides.length);
+    var txt = pad(ci + 1) + (last > ci + 1 ? '\u2013' + pad(last) : '') + ' / ' + pad(slides.length);
+    if(print.textContent !== txt) print.textContent = txt;
+  }
+
+  function go(d){
+    var max = Math.max(0, slides.length - perView);
+    var n = ci + d;
+    if(n < 0) n = 0; if(n > max) n = max;
+    if(n === ci) return;
+    ci = n; apply(false);
+  }
+  if(prev) prev.onclick = function(){ go(-1); };
+  if(nxt)  nxt.onclick  = function(){ go(1); };
+
+  /* deslizar con el dedo */
+  var tx0 = null;
+  if(view){
+    view.addEventListener('touchstart', function(e){ tx0 = e.touches[0].clientX; }, {passive:true});
+    view.addEventListener('touchend', function(e){
+      if(tx0 === null) return;
+      var dx = e.changedTouches[0].clientX - tx0; tx0 = null;
+      if(Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+    }, {passive:true});
+  }
+
+  /* --------------------- arranque y ciclo de vida ------------------------ */
+  function boot(){ paint(cur); layout(); }
+
+  boot();
+  if(document.readyState !== 'complete') window.addEventListener('load', boot);
+  /* Montserrat puede cargar después del primer pintado: hay que volver a medir */
+  if(document.fonts && document.fonts.ready && document.fonts.ready.then){
+    document.fonts.ready.then(boot)['catch'](function(){});
+  }
+
+  var rT = null;
+  function remeasure(){
+    if(rT) clearTimeout(rT);
+    rT = setTimeout(function(){ setBox(DATA[cur].b); layout(); }, 160);
+  }
+  window.addEventListener('resize', remeasure, {passive:true});
+  /* el contenedor puede cambiar sin que cambie la ventana (barra de scroll, nav, zoom) */
+  if(window.ResizeObserver) new ResizeObserver(remeasure).observe(sec);
+
+  if(window.IntersectionObserver){
+    new IntersectionObserver(function(es){
+      for(var i=0;i<es.length;i++){ visible = es[i].isIntersecting; visible ? start() : stop(); }
+    }, {threshold:0.2}).observe(sec);
+  }else{ visible = true; start(); }
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) stop(); else start();
+  });
+
+  if(RM){
+    var onRM = function(){ if(reduced()){ stop(); setPair(cur, true); } else start(); };
+    if(RM.addEventListener) RM.addEventListener('change', onRM);
+    else if(RM.addListener) RM.addListener(onRM);
+  }
+})();
+</script>
+<script>
+/* ==========================================================================
+   m-about — revelados de la sección "Sobre AISOLVES".
+   ES5 puro (var / function), sin dependencias. Un solo IntersectionObserver
+   con red de seguridad por scroll: el contenido nunca se queda oculto.
+   ========================================================================== */
+(function(){
+  var sec = document.getElementById('about');
+  if(!sec) return;
+
+  var reduced = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || false;
+  var raf = window.requestAnimationFrame ? function(f){ return requestAnimationFrame(f); }
+                                         : function(f){ return setTimeout(f, 16); };
+
+  var title    = sec.querySelector('.ab-title');
+  var say      = sec.querySelector('.ab-say');
+  var orb      = sec.querySelector('.ab-orb');
+  var frame    = sec.querySelector('.ab-id');
+  var clipNote = sec.querySelector('.ab-clip');
+  var plat     = sec.querySelector('.ab-plat');
+  var pNote    = sec.querySelector('.ab-prog');
+
+  /* ---------- 1. anotación CSS en vivo: imprime el valor que se aplica ----- */
+  function roundNums(s){
+    return String(s).replace(/-?\d+\.?\d*/g, function(m){ return String(Math.round(parseFloat(m))); });
+  }
+  function on(el, yes){
+    var base = el.className.replace(/\s*\bis-on\b/g, '');
+    el.className = yes ? base + ' is-on' : base;
+  }
+  function printClip(){
+    if(!clipNote || !frame || reduced) return;
+    on(clipNote, true);
+    var t0 = (new Date()).getTime();
+    (function step(){
+      var cs = window.getComputedStyle ? getComputedStyle(frame) : null;
+      var v  = cs ? (cs.clipPath || cs.webkitClipPath || '') : '';
+      if(v && v !== 'none'){
+        var txt = 'clip-path: ' + roundNums(v);
+        if(clipNote.textContent !== txt) clipNote.textContent = txt;
+      }
+      if((new Date()).getTime() - t0 < 1500){ raf(step); }
+      else{
+        clipNote.textContent = 'clip-path: inset(0% 0% 0% 0%)';
+        on(clipNote, false);                   /* se apaga al llegar al reposo */
+      }
+    })();
+  }
+
+  /* ---------- 2. revelados ------------------------------------------------ */
+  var items = [];
+  function add(el, after){ if(el) items.push({ el: el, after: after || null, done: false }); }
+  add(title); add(say); add(orb); add(frame, printClip); add(plat);
+
+  function reveal(it){
+    if(it.done) return;
+    it.done = true;
+    if(it.el.className.indexOf('is-in') < 0) it.el.className += ' is-in';
+    if(it.after) it.after();
+  }
+  function pending(){
+    for(var i = 0; i < items.length; i++){ if(!items[i].done) return true; }
+    return false;
+  }
+
+  if(reduced){
+    for(var i = 0; i < items.length; i++){ reveal(items[i]); }
+  }else{
+    var io = null;
+    if(window.IntersectionObserver){
+      io = new IntersectionObserver(function(entries){
+        for(var k = 0; k < entries.length; k++){
+          if(!entries[k].isIntersecting) continue;
+          for(var j = 0; j < items.length; j++){
+            if(items[j].el === entries[k].target){ reveal(items[j]); break; }
+          }
+          io.unobserve(entries[k].target);
+        }
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+      for(var n = 0; n < items.length; n++){ io.observe(items[n].el); }
+    }
+
+    /* red de seguridad: si el observador no dispara, el scroll revela lo visible.
+       Síncrona a propósito: son cinco elementos y los oyentes se retiran solos. */
+    var sweep = function(){
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      for(var s = 0; s < items.length; s++){
+        var it = items[s];
+        if(it.done) continue;
+        var r = it.el.getBoundingClientRect();
+        if(r.top < vh * 0.92 && r.bottom > 0){
+          reveal(it);
+          if(io) io.unobserve(it.el);
+        }
+      }
+      if(!pending() && window.removeEventListener){
+        removeEventListener('scroll', sweep);
+        removeEventListener('resize', sweep);
+      }
+    };
+    addEventListener('scroll', sweep, { passive: true });
+    addEventListener('resize', sweep, { passive: true });
+    setTimeout(sweep, 300);
+    setTimeout(sweep, 1200);
+  }
+
+  /* ---------- 3. progreso de sección --> --ab-p (y su anotación) ---------- */
+  if(!reduced && sec.style && sec.style.setProperty){
+    var ticking = false;
+    var progress = function(){
+      if(ticking) return;
+      ticking = true;
+      raf(function(){
+        ticking = false;
+        var r  = sec.getBoundingClientRect();
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        if(r.bottom < -240 || r.top > vh + 240) return;
+        var p = (vh - r.top) / (r.height + vh);
+        if(p < 0) p = 0; if(p > 1) p = 1;
+        sec.style.setProperty('--ab-p', p.toFixed(3));
+        if(pNote){
+          var t = '--ab-p: ' + p.toFixed(2);
+          if(pNote.textContent !== t) pNote.textContent = t;
+        }
+      });
+    };
+    addEventListener('scroll', progress, { passive: true });
+    addEventListener('resize', progress, { passive: true });
+    progress();
+  }
+})();
+</script>
+<script>
+/* ==========================================================================
+   mod-footer — ES5, sin dependencias.
+   1. reveal por clip-path al entrar en viewport (escalonado por celda)
+   2. anotación CSS en vivo: imprime exactamente el valor que aplica (--pie-p)
+   3. envío del formulario: NO hay endpoint; se delega en openForm()
+   4. "Privacidad" / "Cómo revocar": abren el panel de consentimiento existente
+   ========================================================================== */
+(function(){
+  var pie = document.getElementById('pie');
+  if(!pie) return;
+  var reduced = false;
+  try{ reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+
+  /* ---------- 1. reveal escalonado ----------
+     El estado oculto lo activa esta clase, nunca el CSS por sí solo: si este
+     script no llegara a ejecutarse, el pie se ve completo igualmente. */
+  var cells = pie.querySelectorAll('.pie-cell');
+  var i, maxDelay = 0, shown = reduced, io = null;
+  function showAll(){
+    if(shown) return; shown = true;
+    if(io){ io.disconnect(); io = null; }
+    for(var k=0;k<cells.length;k++) cells[k].className += ' is-rv';
+    /* al acabar, se retira el clip-path: así no queda un contexto de recorte
+       permanente sobre la celda del canvas de partículas */
+    setTimeout(function(){
+      pie.className += ' pie-done';
+      for(var k2=0;k2<cells.length;k2++) cells[k2].style.transitionDelay = '';
+    }, (maxDelay*1000) + 1300);
+  }
+  if(!reduced){
+    pie.className += ' pie-anim';
+    for(i=0;i<cells.length;i++){
+      var d = Math.min(i,10) * 0.06;
+      cells[i].style.transitionDelay = d.toFixed(2)+'s';
+      if(d>maxDelay) maxDelay = d;
+    }
+    if(window.IntersectionObserver){
+      io = new IntersectionObserver(function(es){
+        for(var n=0;n<es.length;n++){ if(es[n].isIntersecting){ showAll(); return; } }
+      }, {threshold:0.08, rootMargin:'0px 0px -6% 0px'});
+      io.observe(pie);
+    }else{
+      showAll();
+    }
+  }
+
+  /* ---------- 2. anotación CSS en vivo (lenguaje de la plantilla) ---------- */
+  /* redondea cada número dentro del valor, conservando el resto literal */
+  function roundCSS(v, precision){
+    if(typeof v === 'number') return precision>0 ? v.toFixed(precision) : String(Math.round(v));
+    return String(v).replace(/-?\d+\.?\d*/g, function(m){
+      var n = parseFloat(m);
+      return precision>0 ? n.toFixed(precision) : String(Math.round(n));
+    });
+  }
+  function printCSS(el, label, value, unit, precision){
+    if(!el || !el.parentNode) return;                 /* otro módulo pudo reemplazar la celda */
+    var txt = label + ': ' + roundCSS(value, precision||0) + (unit||'');
+    if(el.firstChild && el.firstChild.nodeValue === txt) return;   /* evita repintar cada frame */
+    el.textContent = txt;
+  }
+  var note = document.getElementById('pieNote');
+  var ticking = false;
+  function measure(){
+    var r = pie.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var p = (vh - r.top) / (vh + r.height);           /* 0 al asomar, 1 al salir */
+    if(p < 0) p = 0; if(p > 1) p = 1;
+    pie.style.setProperty('--pie-p', p.toFixed(3));   /* lo mismo que se imprime */
+    printCSS(note, '--pie-p', p, '', 3);
+    /* red de seguridad: si el IntersectionObserver llegara estrangulado
+       (pestaña en segundo plano, bfcache), el propio scroll destapa el pie */
+    if(!shown && p > 0.02) showAll();
+  }
+  function onScroll(){
+    if(ticking) return; ticking = true;
+    window.requestAnimationFrame(function(){ measure(); ticking = false; });
+  }
+  if(reduced){
+    pie.style.setProperty('--pie-p','1');
+  }else{
+    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', onScroll, {passive:true});
+    measure();
+  }
+
+  /* ---------- 3. formulario sin endpoint ---------- */
+  /* No hay backend ni fetch: el envío real del sitio pasa por el modal #mForm
+     (openForm → submitForm → entrega por WhatsApp). Aquí sólo trasvasamos lo
+     que la persona ya ha escrito y abrimos ese flujo. Nada sale del navegador. */
+  var form = document.getElementById('pieForm');
+  function fill(sel, val){
+    if(!val) return;
+    var el = document.querySelector(sel);
+    if(el && !el.value) el.value = val;
+  }
+  function pieSend(e){
+    if(e && e.preventDefault) e.preventDefault();
+    var n = document.getElementById('pieName'), m = document.getElementById('pieMail'), w = document.getElementById('pieWa');
+    fill('#mForm input[name="name"]',  n ? n.value : '');
+    fill('#mForm input[name="wa"]',    w ? w.value : '');
+    fill('#mForm input[name="email"]', m ? m.value : '');
+    if(typeof window.openForm === 'function') window.openForm();
+    return false;
+  }
+  if(form) form.addEventListener('submit', pieSend, false);
+
+  /* ---------- 4. privacidad / revocación ---------- */
+  /* No inventamos páginas legales: ambas celdas abren el panel de
+     consentimiento que ya existe en el sitio (open_('mConsent'), que el
+     módulo HUD intercepta). Si no estuviera disponible, no hacen nada. */
+  var legals = pie.querySelectorAll('[data-pie="consent"]');
+  function openConsent(){
+    if(typeof window.open_ === 'function'){ try{ window.open_('mConsent'); }catch(err){} }
+  }
+  for(i=0;i<legals.length;i++) legals[i].addEventListener('click', openConsent, false);
+})();
+</script>
+<script>
+/* =========================================================================
+   M-SPHERES · window.AISOrb(canvasEl, opts)
+   opts = { shape:'shell'|'lens'|'eroded'|'orbit', tint:'ink'|'teal'|'navy',
+            speed:0.15, count:0, seed:0, scale:0 }
+   Devuelve { stop, start, setShape, setTint, destroy, shape, el }.
+   Arranque automático: todo <canvas data-orb="..."> se inicializa solo.
+   ES5: var / function. Sin dependencias.
+   ========================================================================= */
+(function () {
+  'use strict';
+  if (window.AISOrb) return;
+
+  var TAU    = Math.PI * 2;
+  var GOLDEN = Math.PI * (3 - Math.sqrt(5));   /* ángulo áureo: reparto de Fibonacci */
+  var LEVELS = 14;                              /* escalones de opacidad por familia  */
+  var MAXA   = 0.78;                            /* opacidad máxima de un punto        */
+  var PERSP  = 3.4;                             /* distancia de cámara (perspectiva)  */
+
+  /* Paleta: SOLO colores ya publicados en el sitio, sobre fondo claro.
+     base = --ink #18181b · --navy #0d1017 | accent = --teal-ink #0f8577
+     faint = --ink-3 #9a9aa3 · --ink-2 #52525b
+     No se introduce ningún color nuevo: lo que cambia entre tintes es cuánto
+     acento hay y cuán profundo es el gris, no la gama. */
+  var TINTS = {
+    ink:  { base: '24,24,27', accent: '15,133,119', faint: '154,154,163', accentP: 0.05 },
+    teal: { base: '24,24,27', accent: '15,133,119', faint: '154,154,163', accentP: 0.22 },
+    navy: { base: '13,16,23', accent: '15,133,119', faint: '82,82,91',    accentP: 0.15 }
+  };
+  /* alias de compatibilidad: 'copper' era una gama inventada, ahora apunta a navy */
+  TINTS.copper = TINTS.navy;
+
+  /* ---------- utilidades --------------------------------------------------- */
+
+  /* PRNG determinista (Park-Miller): la misma forma en cada recarga */
+  function mkRand(seed) {
+    var s = (seed | 0) % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  }
+
+  /* Direcciones DIAGONALES para el ruido.
+     Con senos alineados a los ejes (sin(x), sin(y), sin(z)) los máximos caen en
+     ±X/±Y/±Z y la esfera se abulta en seis sitios: sale un cubo redondeado.
+     Proyectando sobre diagonales el patrón queda repartido y la forma orgánica. */
+  var DIRS = [
+    [ 0.5774,  0.5774,  0.5774],
+    [-0.5774,  0.5774,  0.5774],
+    [ 0.5774, -0.5774,  0.5774],
+    [ 0.5774,  0.5774, -0.5774],
+    [ 0.3568,  0.8628,  0.3568],
+    [ 0.8628, -0.3568,  0.3568]
+  ];
+
+  function nDiag(x, y, z, f, ph) {
+    var a = 0, i, d;
+    for (i = 0; i < 4; i++) {
+      d = DIRS[i];
+      a += Math.sin((x * d[0] + y * d[1] + z * d[2]) * f + ph + i * 1.73);
+    }
+    d = DIRS[4]; a += Math.sin((x * d[0] + y * d[1] + z * d[2]) * f * 1.13 + ph * 1.4 + 0.6);
+    d = DIRS[5]; a += Math.sin((x * d[0] + y * d[1] + z * d[2]) * f * 0.87 - ph * 1.2 + 2.4);
+    return a / 6;
+  }
+
+  /* Tres octavas en razón irracional y, en cada una, el espacio ROTADO: si las
+     tres comparten ejes, las diagonales interfieren y aparecen bandas regulares. */
+  function fbm(x, y, z, ph) {
+    var a = nDiag(x, y, z, 1.90, ph) * 0.56;
+    var x2 =  0.80 * x - 0.42 * y + 0.43 * z,
+        y2 =  0.36 * x + 0.90 * y + 0.24 * z,
+        z2 = -0.48 * x + 0.10 * y + 0.87 * z;
+    a += nDiag(x2, y2, z2, 4.17, ph * 1.7 + 2.1) * 0.29;
+    var x3 =  0.51 * x2 + 0.36 * y2 - 0.78 * z2,
+        y3 = -0.63 * x2 + 0.77 * y2 - 0.05 * z2,
+        z3 =  0.58 * x2 + 0.52 * y2 + 0.62 * z2;
+    a += nDiag(x3, y3, z3, 8.93, ph * 2.3 + 4.7) * 0.15;
+    return a;
+  }
+
+  /* dos octavas: regiones amplias y continuas. Es el mapa que ABRE los huecos;
+     con tres octavas los huecos se pulverizan en moteado y ya no se leen. */
+  function fbm2(x, y, z, ph) {
+    var a = nDiag(x, y, z, 2.05, ph) * 0.72;
+    var x2 =  0.80 * x - 0.42 * y + 0.43 * z,
+        y2 =  0.36 * x + 0.90 * y + 0.24 * z,
+        z2 = -0.48 * x + 0.10 * y + 0.87 * z;
+    return a + nDiag(x2, y2, z2, 4.30, ph * 1.6 + 1.3) * 0.28;
+  }
+
+  function cross(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  function norm(a) {
+    var l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) || 1;
+    return [a[0] / l, a[1] / l, a[2] / l];
+  }
+
+  /* recorte uniforme al objetivo: nunca se trunca por índice (cortaría un polo) */
+  function thin(P, K, N, rand) {
+    var n = K.length, i;
+    if (n <= N) return [P, K];
+    var P2 = [], K2 = [], pr = N / n;
+    for (i = 0; i < n; i++) {
+      if (rand() < pr) { P2.push(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]); K2.push(K[i]); }
+    }
+    return [P2, K2];
+  }
+
+  /* empaqueta arrays sueltos en tipados */
+  function pack(P, K, dyn, tilt, nod, scale) {
+    var n = K.length, pos = new Float32Array(n * 3), kind = new Uint8Array(n), i;
+    for (i = 0; i < n * 3; i++) pos[i] = P[i];
+    for (i = 0; i < n; i++) kind[i] = K[i];
+    return { pos: pos, kind: kind, n: n, dyn: dyn || null, tilt: tilt, nod: nod, scale: scale };
+  }
+
+  /* ---------- 1 · SHELL: esfera con banda enrollada en espiral ------------- */
+  function buildShell(N, rand, cfg) {
+    var P = [], K = [], i;
+    var M = Math.round(N * 2.45);     /* se sobre-muestrea y se filtra por densidad */
+    var turns = 3.4;                  /* vueltas del pliegue de polo a polo         */
+    for (i = 0; i < M; i++) {
+      var y  = 1 - (i / (M - 1)) * 2;
+      var rr = Math.sqrt(Math.max(0, 1 - y * y));
+      var th = i * GOLDEN;
+      var x = Math.cos(th) * rr, z = Math.sin(th) * rr;
+
+      var u   = (y + 1) / 2;                          /* 0 en un polo, 1 en el otro */
+      var lon = Math.atan2(z, x) / TAU + 0.5;         /* 0..1 alrededor del eje     */
+      var ph  = lon + u * turns;                      /* fase helicoidal            */
+      var f   = ph - Math.floor(ph);                  /* posición dentro del paso   */
+
+      /* perfil del pliegue: pulso asimétrico, cae a plomo al cerrar la vuelta */
+      var band = f < 0.64 ? Math.pow(Math.sin(Math.PI * f / 0.64), 1.2) : 0;
+
+      /* la DENSIDAD sigue la fase: no es un corte, es una banda que se difumina */
+      if (rand() > 0.09 + 0.91 * Math.pow(band, 1.4)) continue;
+
+      var rad = 1 + 0.090 * band * band - 0.020 * (1 - band);
+      rad *= 1 - 0.10 * (1 - u) * (1 - u);            /* afilado suave hacia un polo */
+      rad += (rand() - 0.5) * 0.014;
+
+      /* jitter por punto: sin él se ve la rejilla de Fibonacci como filas de puntos */
+      P.push(x * rad + (rand() - 0.5) * 0.020,
+             y * rad + (rand() - 0.5) * 0.020,
+             z * rad + (rand() - 0.5) * 0.020);
+      K.push(band > 0.86 && rand() < cfg.accentP * 2.4 ? 1 : (band < 0.26 ? 2 : 0));
+    }
+    var t = thin(P, K, N, rand);
+    return pack(t[0], t[1], null, -0.34, 0.10, 0.40);
+  }
+
+  /* ---------- 2 · LENS: cascarones elipsoidales anidados ------------------- */
+  function buildLens(N, rand, cfg) {
+    var P = [], K = [], W = [0.28, 0.23, 0.19, 0.16, 0.14], k, i;
+    for (k = 0; k < W.length; k++) {
+      var cnt = Math.max(30, Math.round(N * W[k]));
+      var R   = 1 - 0.180 * k;          /* cada capa, más pequeña                   */
+      var F   = 0.22 + 0.055 * k;       /* y menos achatada: quedan anidadas        */
+      var off = k * 1.13;               /* desfase para que no se alineen las capas */
+      var rimN = Math.round(cnt * 0.46);/* casi la mitad al canto: el anillo se lee  */
+      for (i = 0; i < cnt; i++) {
+        var y, rr, th;
+        if (i < rimN) {                 /* banda estrecha en el ecuador del elipsoide */
+          y  = (rand() - 0.5) * 0.30;
+          rr = Math.sqrt(Math.max(0, 1 - y * y));
+          th = (i / rimN) * TAU + off;
+        } else {                        /* resto del cascarón, reparto de Fibonacci   */
+          var j = i - rimN, m = cnt - rimN;
+          y  = 1 - ((j + 0.5) / m) * 2;
+          rr = Math.sqrt(Math.max(0, 1 - y * y));
+          th = j * GOLDEN + off;
+        }
+        var px = (Math.cos(th) * rr + (rand() - 0.5) * 0.013) * R;
+        var py = (y + (rand() - 0.5) * 0.011) * R * F;
+        var pz = (Math.sin(th) * rr + (rand() - 0.5) * 0.013) * R;
+        P.push(px, py, pz);
+        K.push(k === 0 && i < rimN && rand() < cfg.accentP * 2.6 ? 1 : (k >= 3 ? 2 : 0));
+      }
+    }
+    return pack(P, K, null, -0.46, 0.10, 0.42);
+  }
+
+  /* ---------- 3 · ERODED: superficie comida por el ruido ------------------- */
+  function buildEroded(N, rand, cfg) {
+    var P = [], K = [], i;
+    var M = Math.round(N * 1.85);
+    for (i = 0; i < M; i++) {
+      var y  = 1 - (i / (M - 1)) * 2;
+      var rr = Math.sqrt(Math.max(0, 1 - y * y));
+      var th = i * GOLDEN;
+      var x = Math.cos(th) * rr, z = Math.sin(th) * rr;
+
+      var h = fbm(x * 1.05, y * 1.05, z * 1.05, 0.0);                   /* crestas/surcos */
+      var m = fbm2(x * 1.85 + 5.3, y * 1.85 - 2.7, z * 1.85 + 8.1, 2.3);/* mapa de huecos */
+      var e = m + h * 0.25;
+
+      if (e < -0.19) continue;                                  /* 3-4 huecos amplios   */
+      if (e < 0.02 && rand() > (e + 0.19) * 4.5) continue;      /* borde deshilachado   */
+
+      var rad = 1 + 0.240 * h + 0.050 * m;                      /* crestas y valles     */
+      rad += (rand() - 0.5) * 0.012;
+
+      P.push(x * rad + (rand() - 0.5) * 0.018,
+             y * rad + (rand() - 0.5) * 0.018,
+             z * rad + (rand() - 0.5) * 0.018);
+      /* el relieve se lee por CONTRASTE: cresta oscura, valle desvaído */
+      K.push(h > 0.38 && rand() < cfg.accentP * 2.2 ? 1 : (h < -0.02 ? 2 : 0));
+    }
+    var t = thin(P, K, N, rand);
+    return pack(t[0], t[1], null, -0.30, 0.11, 0.40);
+  }
+
+  /* ---------- 4 · ORBIT: anillos cruzados sobre un núcleo tenue ------------ */
+  function buildOrbit(N, rand, cfg) {
+    var RN = 5;
+    var ringPts = Math.max(40, Math.round(N * 0.60 / RN));
+    var coreN   = Math.max(120, N - ringPts * RN);
+    var n = ringPts * RN + coreN;
+    var pos = new Float32Array(n * 3), kind = new Uint8Array(n);
+    var rings = [], idx = 0, k, i;
+
+    for (k = 0; k < RN; k++) {
+      var beta  = 0.42 + k * 0.52, alpha = k * GOLDEN;
+      var nv = [Math.sin(beta) * Math.cos(alpha), Math.cos(beta), Math.sin(beta) * Math.sin(alpha)];
+      var up = Math.abs(nv[1]) > 0.92 ? [1, 0, 0] : [0, 1, 0];
+      var e1 = norm(cross(nv, up));
+      var e2 = norm(cross(nv, e1));
+      var R  = 0.70 + 0.085 * k;
+      var ring = {
+        e1: e1, e2: e2, n: nv, start: idx, count: ringPts,
+        spin: (k % 2 ? -1 : 1) * (0.55 + 0.20 * k), phase: rand() * TAU,
+        u: new Float32Array(ringPts), v: new Float32Array(ringPts), o: new Float32Array(ringPts)
+      };
+      for (i = 0; i < ringPts; i++) {
+        var a  = (i / ringPts) * TAU + (rand() - 0.5) * 0.03;
+        var r2 = R * (1 + (rand() - 0.5) * 0.040);
+        ring.u[i] = Math.cos(a) * r2;
+        ring.v[i] = Math.sin(a) * r2;
+        ring.o[i] = (rand() - 0.5) * 0.048;           /* grosor fuera del plano */
+        kind[idx + i] = rand() < cfg.accentP * 1.6 ? 1 : 0;
+      }
+      idx += ringPts;
+      rings.push(ring);
+    }
+
+    for (i = 0; i < coreN; i++) {                      /* núcleo: esfera tenue */
+      var yy  = 1 - ((i + 0.5) / coreN) * 2;
+      var rr3 = Math.sqrt(Math.max(0, 1 - yy * yy));
+      var th3 = i * GOLDEN;
+      var cr  = 0.30 * (0.80 + rand() * 0.28);
+      pos[(idx + i) * 3]     = Math.cos(th3) * rr3 * cr;
+      pos[(idx + i) * 3 + 1] = yy * cr;
+      pos[(idx + i) * 3 + 2] = Math.sin(th3) * rr3 * cr;
+      kind[idx + i] = 2;
+    }
+
+    /* cada anillo gira en SU plano: se recoloca sólo la base, 2 trig por anillo */
+    function dyn(t) {
+      for (var j = 0; j < rings.length; j++) {
+        var r = rings[j], ph = r.phase + t * r.spin;
+        var c = Math.cos(ph), s = Math.sin(ph);
+        var a1 = r.e1, a2 = r.e2, nn = r.n;
+        var b1x = a1[0] * c + a2[0] * s, b1y = a1[1] * c + a2[1] * s, b1z = a1[2] * c + a2[2] * s;
+        var b2x = a2[0] * c - a1[0] * s, b2y = a2[1] * c - a1[1] * s, b2z = a2[2] * c - a1[2] * s;
+        var o = r.start * 3, q;
+        for (q = 0; q < r.count; q++) {
+          var u = r.u[q], v = r.v[q], w = r.o[q];
+          pos[o]     = b1x * u + b2x * v + nn[0] * w;
+          pos[o + 1] = b1y * u + b2y * v + nn[1] * w;
+          pos[o + 2] = b1z * u + b2z * v + nn[2] * w;
+          o += 3;
+        }
+      }
+    }
+    dyn(0);
+    return { pos: pos, kind: kind, n: n, dyn: dyn, tilt: -0.26, nod: 0.14, scale: 0.40 };
+  }
+
+  var SHAPES = { shell: buildShell, lens: buildLens, eroded: buildEroded, orbit: buildOrbit };
+
+  /* ---------- instancia ---------------------------------------------------- */
+  function AISOrb(canvas, opts) {
+    if (!canvas || !canvas.getContext) return null;
+    opts = opts || {};
+    var ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return null;
+
+    var shape = SHAPES[opts.shape] ? opts.shape : 'shell';
+    var tint  = TINTS[opts.tint] ? opts.tint : 'ink';
+    var speed = typeof opts.speed === 'number' && !isNaN(opts.speed) ? opts.speed : 0.15;
+    var fixed = opts.count > 0 ? (opts.count | 0) : 0;
+    var seed  = opts.seed > 0 ? (opts.seed | 0) : 20260917;
+    var userScale = opts.scale > 0 ? opts.scale : 0;
+
+    var mqRM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    var reduced = !!(mqRM && mqRM.matches);
+
+    var W = 0, H = 0, DPR = 1, ang = reduced ? 0.85 : 0.0;
+    var g = null, built = 0, raf = 0, running = false, inView = false, last = 0;
+    var dead = false, wanted = true;
+
+    /* estilos precalculados: 3 familias × LEVELS escalones = 42 cadenas */
+    var STY = [];
+    function styles() {
+      var c = TINTS[tint], rgbs = [c.base, c.accent, c.faint], kd, lv;
+      STY = [];
+      for (kd = 0; kd < 3; kd++) {
+        for (lv = 0; lv < LEVELS; lv++) {
+          STY.push('rgba(' + rgbs[kd] + ',' + (((lv + 0.5) / LEVELS) * MAXA).toFixed(3) + ')');
+        }
+      }
+    }
+    styles();
+
+    /* cubos de dibujo: agrupan por color+opacidad para tocar fillStyle 42 veces */
+    var NB = LEVELS * 3, bucket = [], bi;
+    for (bi = 0; bi < NB; bi++) bucket.push({ x: [], y: [], s: [], n: 0 });
+
+    function countFor() {
+      if (fixed) return fixed;
+      var vw = window.innerWidth || document.documentElement.clientWidth || 1024;
+      return vw < 720 ? 900 : 2200;   /* ~2200 escritorio · ~900 en pantalla estrecha */
+    }
+
+    function build() {
+      built = countFor();
+      g = SHAPES[shape](built, mkRand(seed), TINTS[tint]);
+    }
+    build();
+
+    var printEl = null, lastTxt = '';
+    function findPrint() {
+      var p = canvas.parentNode;
+      printEl = p && p.querySelector ? p.querySelector('[data-orb-print]') : null;
+    }
+    findPrint();
+    function annotate() {
+      if (!printEl) return;
+      var d = Math.round(ang * 180 / Math.PI) % 360; if (d < 0) d += 360;
+      var t = 'rotateY: ' + d + 'deg';
+      if (t !== lastTxt) { lastTxt = t; printEl.textContent = t; }
+    }
+
+    function draw() {
+      if (!g || W < 4 || H < 4) return;
+      ctx.clearRect(0, 0, W, H);
+
+      var cx = W / 2, cy = H / 2;
+      var R  = Math.min(W, H) * (userScale || g.scale);
+      /* con 900 puntos (pantalla estrecha) el punto engorda un poco: la nube
+         mantiene cuerpo sin subir el coste de dibujo */
+      var dens  = Math.min(1.35, Math.sqrt(2200 / (built || 2200)));
+      var sizeK = Math.max(0.85, Math.min(1.45, R / 150)) * dens;
+
+      var ca = Math.cos(ang), sa = Math.sin(ang);
+      var tl = g.tilt + g.nod * Math.sin(ang * 0.37);     /* cabeceo lentísimo */
+      var cb = Math.cos(tl), sb = Math.sin(tl);
+
+      var p = g.pos, kk = g.kind, N = g.n, i, b;
+      for (i = 0; i < NB; i++) bucket[i].n = 0;
+
+      for (i = 0; i < N; i++) {
+        var o = i * 3, x = p[o], y = p[o + 1], z = p[o + 2];
+        var X  = x * ca - z * sa, Zr = x * sa + z * ca;   /* giro sobre Y */
+        var Y  = y * cb - Zr * sb, Z = y * sb + Zr * cb;  /* inclinación X */
+
+        var ps = PERSP / (PERSP - Z);
+        var d  = (Z + 1.08) / 2.16; if (d < 0) d = 0; else if (d > 1) d = 1;
+
+        var kd = kk[i];
+        /* profundidad: tamaño por perspectiva + opacidad cuadrática */
+        var dd = 0.35 * d + 0.65 * d * d;   /* caída suave: no aplasta el hemisferio lejano */
+        var a = kd === 1 ? (0.28 + 0.50 * d)
+              : kd === 2 ? (0.050 + 0.34 * dd)
+                         : (0.075 + 0.52 * dd);
+
+        var lv = (a / MAXA * LEVELS) | 0;
+        if (lv < 0) lv = 0; else if (lv > LEVELS - 1) lv = LEVELS - 1;
+
+        b = bucket[kd * LEVELS + lv];
+        var nn = b.n;
+        b.x[nn] = cx + X * R * ps;
+        b.y[nn] = cy + Y * R * ps;
+        b.s[nn] = (0.58 + 0.95 * d) * ps * sizeK;
+        b.n = nn + 1;
+      }
+
+      /* de atrás hacia delante: los escalones tenues primero */
+      for (var lv2 = 0; lv2 < LEVELS; lv2++) {
+        for (var kd2 = 0; kd2 < 3; kd2++) {
+          b = bucket[kd2 * LEVELS + lv2];
+          if (!b.n) continue;
+          ctx.fillStyle = STY[kd2 * LEVELS + lv2];
+          for (i = 0; i < b.n; i++) {
+            var s2 = b.s[i], hs = s2 * 0.5;
+            ctx.fillRect(b.x[i] - hs, b.y[i] - hs, s2, s2);
+          }
+        }
+      }
+    }
+
+    function frame(now) {
+      if (!running) return;
+      var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
+      last = now;
+      ang += dt * speed;
+      if (g.dyn) g.dyn(ang * 3.0);       /* los anillos giran más rápido que el conjunto */
+      draw();
+      annotate();
+      raf = window.requestAnimationFrame(frame);
+    }
+
+    /* 'wanted' es la voluntad de quien llama; inView/hidden son la pausa
+       automática. Así .stop() sigue parado aunque el usuario haga scroll. */
+    function run() {
+      if (running || dead || reduced) return;
+      running = true; last = 0;
+      raf = window.requestAnimationFrame(frame);
+    }
+    function halt() {
+      running = false;
+      if (raf) window.cancelAnimationFrame(raf);
+      raf = 0;
+    }
+    /* pausa fuera del viewport y con la pestaña oculta */
+    function sync() {
+      if (dead) return;
+      if (reduced) { draw(); annotate(); return; }
+      if (wanted && inView && !document.hidden) run(); else halt();
+    }
+
+    function resize() {
+      if (dead) return;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var r = canvas.getBoundingClientRect();
+      var w = Math.max(1, Math.round(r.width) || canvas.offsetWidth || 0);
+      var h = Math.max(1, Math.round(r.height) || canvas.offsetHeight || 0);
+      if (w === W && h === H && dpr === DPR) return;
+      W = w; H = h; DPR = dpr;
+      canvas.width  = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (countFor() !== built) build();   /* cruce de umbral 720px: se regenera */
+      draw();
+      annotate();
+    }
+
+    var io = null, ro = null;
+    if (window.IntersectionObserver) {
+      io = new IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) inView = es[i].isIntersecting;
+        sync();
+      }, { threshold: 0.01 });
+      io.observe(canvas);
+    } else { inView = true; }
+
+    if (window.ResizeObserver) {
+      ro = new ResizeObserver(function () { resize(); });
+      ro.observe(canvas);
+    }
+
+    function onResize() { resize(); }
+    function onVis() { sync(); }
+
+    /* si el usuario activa/desactiva 'reducir movimiento' sin recargar, obedecer */
+    function onRM(e) {
+      reduced = !!(e && 'matches' in e ? e.matches : (mqRM && mqRM.matches));
+      if (reduced) { halt(); draw(); annotate(); } else { last = 0; sync(); }
+    }
+    if (mqRM) {
+      if (mqRM.addEventListener) mqRM.addEventListener('change', onRM);
+      else if (mqRM.addListener) mqRM.addListener(onRM);
+    }
+
+    window.addEventListener('resize', onResize, false);
+    window.addEventListener('orientationchange', onResize, false);
+    document.addEventListener('visibilitychange', onVis, false);
+
+    resize();
+    sync();
+    if (reduced) { draw(); annotate(); }
+
+    var api = {
+      el: canvas,
+      get shape() { return shape; },
+      start: function () { wanted = true;  sync(); return api; },
+      stop:  function () { wanted = false; halt(); return api; },
+      setShape: function (name) {
+        if (!SHAPES[name] || name === shape) return api;
+        shape = name; build(); draw(); annotate();
+        return api;
+      },
+      setTint: function (name) {
+        if (!TINTS[name] || name === tint) return api;
+        tint = name; styles(); build(); draw();
+        return api;
+      },
+      destroy: function () {
+        dead = true; wanted = false; halt();
+        if (io) io.disconnect();
+        if (ro) ro.disconnect();
+        window.removeEventListener('resize', onResize, false);
+        window.removeEventListener('orientationchange', onResize, false);
+        document.removeEventListener('visibilitychange', onVis, false);
+        if (mqRM) {
+          if (mqRM.removeEventListener) mqRM.removeEventListener('change', onRM);
+          else if (mqRM.removeListener) mqRM.removeListener(onRM);
+        }
+        if (W && H) ctx.clearRect(0, 0, W, H);
+        /* marca de destruido: el boot del evento 'load' no debe resucitarlo */
+        if (canvas.__aisOrb === api) { canvas.__aisOrb = null; canvas.__aisOrbDead = 1; }
+      }
+    };
+    return api;
+  }
+
+  /* ---------- arranque automático ----------------------------------------- */
+  function num(el, attr) {
+    var v = parseFloat(el.getAttribute(attr));
+    return isNaN(v) ? 0 : v;
+  }
+  function boot(root) {
+    var list = (root || document).querySelectorAll('canvas[data-orb]'), i, el;
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      if (el.__aisOrb || el.__aisOrbDead) continue;
+      var sp = el.getAttribute('data-orb-speed');
+      sp = (sp === null || sp === '' || isNaN(parseFloat(sp))) ? 0.15 : parseFloat(sp);
+      el.__aisOrb = AISOrb(el, {
+        shape: el.getAttribute('data-orb') || 'shell',
+        tint:  el.getAttribute('data-orb-tint') || 'ink',
+        speed: sp,
+        count: num(el, 'data-orb-count'),
+        seed:  num(el, 'data-orb-seed'),
+        scale: num(el, 'data-orb-scale')
+      });
+    }
+  }
+
+  AISOrb.boot = boot;
+  AISOrb.shapes = ['shell', 'lens', 'eroded', 'orbit'];
+  window.AISOrb = AISOrb;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { boot(); }, false);
+  } else { boot(); }
+  window.addEventListener('load', function () { boot(); }, false);
+})();
 </script>
 </body>
 </html>
