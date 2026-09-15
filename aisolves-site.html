@@ -1416,6 +1416,98 @@ html{overflow-x:clip}
   .m-words .mw-i{transform:none}.m-rvy{opacity:1;transform:none}.m-img{clip-path:none}
 }
 </style>
+<style>
+/* ===== modales-a-claro: overlay del reporte/formulario al template claro =====
+   Capa final: gana por orden a las reglas oscuras previas. El cerebro de
+   Selected Work (.be-panel) queda fuera; esto solo toca los .scrim. */
+#m3d{display:none!important}                                   /* fuera el cerebro tras los modales */
+.scrim{background:rgba(24,24,27,.30)!important;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.scrim .shell{background:var(--card)!important;border:1px solid var(--line)!important;color:var(--ink)!important;
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:0 0 0 8px rgba(24,24,27,.02),0 0 0 9px var(--line),0 50px 120px rgba(24,24,27,.22)!important;transform-style:flat}
+#mSpot .shell,#mForm .shell,#mBehavior .shell{transform:translate(-50%,-50%)!important}
+#mFull .shell{background:var(--paper)!important}
+.scrim .shell:before{background:linear-gradient(90deg,transparent,var(--teal),transparent)!important}
+/* texto y accesorios */
+.scrim .mh{color:var(--ink)!important}
+.scrim .mlead{color:var(--ink-2)!important}.scrim .mlead b{color:var(--ink)!important}
+.scrim .fine{color:var(--ink-3)!important}
+.scrim .eyebrow,.scrim .fmt-tag{color:var(--teal-ink)!important}
+.scrim .fmt-tag{border-color:var(--line)!important}
+.scrim .mclose{color:var(--ink-3)!important}.scrim .mclose:hover{color:var(--ink)!important}
+.scrim .glyph{border-color:var(--teal)!important}.scrim .glyph:before{background:var(--teal)!important}
+.scrim .tick{border-color:var(--teal)!important}
+/* reporte */
+.scrim .rep-summary{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink-2)!important}
+.scrim .rep-summary b{color:var(--ink)!important}.scrim .rep-summary .hl{color:var(--teal-ink)!important}
+.scrim .ringbox .ctr b{color:var(--ink)!important}.scrim .ringbox .ctr b small{color:var(--ink-3)!important}
+.scrim .ringbox svg circle:first-child{stroke:#e6e9f0!important}.scrim .ring{stroke:var(--teal)!important}
+.scrim .rep-band{color:var(--teal-ink)!important}
+.scrim .rep-top .rt .rl{color:var(--ink-3)!important}
+.scrim .journey{border-color:var(--line)!important;background:var(--card)!important}
+.scrim .st{background:transparent!important;border-bottom-color:var(--line-2)!important}
+.scrim .st .n{color:var(--ink)!important}.scrim .st .d{color:var(--ink-2)!important}.scrim .st .p{color:var(--ink-3)!important}
+.scrim .need{background:var(--teal-wash)!important;border-color:var(--teal)!important}
+.scrim .need p{color:var(--ink)!important}.scrim .need .rl{color:var(--teal-ink)!important}
+/* entrega WhatsApp */
+.scrim .delivery{background:var(--paper)!important;border-color:var(--line)!important}
+.scrim .delivery .num{color:var(--ink)!important}.scrim .delivery .dt{color:var(--ink-3)!important}
+.scrim .track-line{background:#e6e9f0!important}
+.scrim .step{color:var(--ink-3)!important}.scrim .step:before{background:var(--card)!important;border-color:var(--line)!important}
+.scrim .step.on{color:var(--teal-ink)!important}.scrim .step.on:before{background:var(--teal)!important;border-color:var(--teal)!important}
+.scrim .step.done{color:var(--confirm)!important}.scrim .step.done:before{background:var(--confirm)!important;border-color:var(--confirm)!important}
+/* formulario */
+.scrim .field label{color:var(--ink-3)!important}
+.scrim .field input{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink)!important}
+.scrim .field input::placeholder{color:var(--ink-3)!important}
+.scrim .field input:focus{background:var(--card)!important;border-color:var(--teal)!important}
+.scrim .consent-row label{color:var(--ink-2)!important}.scrim .consent-row a{color:var(--teal-ink)!important}
+.scrim .measures{background:var(--paper)!important;border-color:var(--line)!important}
+.scrim .measures .mhh{border-bottom-color:var(--line)!important;color:var(--ink-3)!important}
+.scrim .mrow+.mrow{border-top-color:var(--line-2)!important}
+.scrim .mrow p{color:var(--ink-2)!important}.scrim .mrow p b{color:var(--ink)!important}.scrim .mrow .ic{color:var(--teal-ink)!important}
+.scrim .ghostlink{color:var(--ink-2)!important}.scrim .ghostlink:hover{color:var(--ink)!important}
+/* botones dentro del modal: el principal vuelve a navy */
+.scrim .btn.dark{background:var(--navy)!important;color:#fff!important}
+.scrim .btn.dark:hover{background:#171d29!important}
+.scrim .btn.ghost{border-color:var(--ink)!important;color:var(--ink)!important}
+.scrim .btn.ghost:hover{background:var(--ink)!important;color:#fff!important}
+.scrim .btn.confirm{background:var(--confirm)!important;color:#fff!important;border-color:var(--confirm)!important}
+/* reporte ampliado (rep3-*) */
+.scrim .rep3-blk{background:var(--paper)!important;border-color:var(--line)!important}
+.scrim .rep3-bh,.scrim .rep3-mk,.scrim .rep3-nn,.scrim .rep3-np,.scrim .rep3-legend,.scrim .rep3-lip{color:var(--ink-3)!important}
+.scrim .rep3-bv,.scrim .rep3-bv b,.scrim .rep3-mv,.scrim .rep3-mn,.scrim .rep3-mt{color:var(--ink)!important}
+.scrim .rep3-mv.rep3-teal{color:var(--teal-ink)!important}
+.scrim .rep3-chip{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink)!important}
+.scrim .rep3-empty{color:var(--ink-3)!important}.scrim .rep3-micro{color:var(--ink-2)!important}
+/* semáforo dentro del modal: caja clara, solo la lámpara encendida con color */
+.scrim .rep3-lamps{background:var(--paper)!important;border:1px solid var(--line)!important;box-shadow:none!important}
+.scrim .rep3-lens{background:transparent!important;border:1.5px solid var(--line)!important;box-shadow:none!important}
+.scrim .rep3-lens:before{background:transparent!important}
+.scrim .rep3-lamp p{color:var(--ink-3)!important}.scrim .rep3-lamp.rep3-on p{color:var(--ink)!important}
+/* atribución de campañas */
+.scrim [class*="attr-"]{color:var(--ink-2)}
+/* semáforo del reporte: caja clara, la lámpara encendida conserva su color */
+.scrim .rep3-sem{background:var(--paper)!important;border:1px solid var(--line)!important;color:var(--ink)!important;
+  box-shadow:0 10px 26px rgba(24,24,27,.07)!important}
+.scrim .rep3-sem:after{background:linear-gradient(115deg,transparent 40%,rgba(24,24,27,.03) 48%,transparent 56%)!important}
+.scrim .rep3-sem-k{color:var(--teal-ink)!important}
+.scrim .rep3-sem-band{color:var(--ink)!important}
+.scrim .rep3-sem-act{color:var(--ink-3)!important}
+.scrim .rep3-sem-stop .rep3-sem-act{color:#c2373c!important}
+.scrim .rep3-sem-hold .rep3-sem-act{color:#9a6a00!important}
+.scrim .rep3-sem-go .rep3-sem-act{color:#0f7a3d!important}
+.scrim .rep3-sem-trust{color:var(--ink-3)!important;border-top-color:var(--line)!important}
+.scrim .rep3-sem-trust b{color:var(--ink)!important}
+.scrim .rep3-sem-trust span{color:var(--ink-3)!important}
+/* anillo de score: hueco claro */
+.scrim .rep3-well{background:radial-gradient(circle at 50% 30%,#fff,#f3f5f9 85%)!important;
+  box-shadow:0 2px 6px rgba(24,24,27,.10),inset 0 1px 0 #fff!important}
+.scrim .rep3-lip{box-shadow:inset 0 2px 6px rgba(24,24,27,.14),inset 0 -1px 2px rgba(255,255,255,.9)!important}
+.scrim .rep3-ring .ctr b,.scrim .ringbox .ctr b{color:var(--ink)!important}
+.scrim .rep3-ring .ctr b small{color:var(--ink-3)!important}
+.scrim #attr-panel,.scrim .attr-card{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink)!important}
+</style>
 </head>
 <body>
 
