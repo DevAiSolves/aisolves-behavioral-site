@@ -1509,81 +1509,119 @@ html{overflow-x:clip}
 .scrim #attr-panel,.scrim .attr-card{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink)!important}
 </style>
 <style>
-/* ===== hud-lupa-a-claro: widgets flotantes al template claro ===== */
-:root{--lupa-navy:var(--card);--lupa-line:var(--line);--lupa-dim:var(--ink-3);--lupa-mute:var(--ink-2)}
-/* HUD de consentimiento y lectura en vivo */
-#hud .hud-panel{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(250,250,251,.99))!important;
-  border:1px solid var(--line)!important;color:var(--ink)!important;
-  box-shadow:0 30px 80px rgba(24,24,27,.14)!important;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-#hud,.hud-scrim{color:var(--ink)}
-#hud .hud-scrim{background:rgba(24,24,27,.24)!important}
-#hud .eyebrow{color:var(--teal-ink)!important}
-#hud h3,#hud b,#hud strong,#hud .hud-t{color:var(--ink)!important}
-#hud p,#hud li,#hud .hud-p{color:var(--ink-2)!important}
-#hud small,#hud .fine,#hud .hud-f{color:var(--ink-3)!important}
-#hud .hud-lamp p{color:var(--ink-3)!important}
-#hud .hud-lamp.hud-lit p{color:var(--ink)!important}
-#hud .hud-lamps{background:var(--paper)!important;border:1px solid var(--line)!important;box-shadow:none!important}
-#hud .hud-lens{background:transparent!important;border:1.5px solid var(--line)!important;box-shadow:none!important}
-#hud .hud-ringin,#hud .hud-ring{color:var(--ink)!important}
-#hud a{color:var(--teal-ink)!important}
-#hud .btn.dark,#hud button.dark{background:var(--navy)!important;color:#fff!important}
-#hud .btn.ghost,#hud button.ghost{border-color:var(--ink)!important;color:var(--ink)!important;background:transparent!important}
-/* lupa flotante */
-.lupa{background:var(--card)!important}
-.lupa-panel{background:var(--card)!important;border:1px solid var(--line)!important;color:var(--ink)!important;
-  box-shadow:0 30px 80px rgba(24,24,27,.16)!important}
-.lupa-head{border-bottom-color:var(--line)!important}
-.lupa-panel b,.lupa-panel strong,.lupa-mini-score{color:var(--ink)!important}
-.lupa-panel p,.lupa-panel li{color:var(--ink-2)!important}
-.lupa-bar{background:var(--paper)!important;border-color:var(--line)!important}
-.lupa-bar.cur i{background:linear-gradient(90deg,rgba(24,24,27,.18),rgba(24,24,27,.55))!important}
-.lupa-lamps{background:var(--paper)!important;border:1px solid var(--line)!important;box-shadow:none!important}
-.lupa-lamp{background:transparent!important;border:1.5px solid var(--line)!important;box-shadow:none!important}
-.lupa-lamp:before{background:transparent!important}
-.lupa-sem,.lupa-sem-b{background:var(--paper)!important;border-color:var(--line)!important;color:var(--ink)!important}
-.lupa-sem-t,.lupa-sem-band{color:var(--ink)!important}
-/* botón/burbuja que abre la lupa */
-#lupaBtn,.lupa-fab{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important}
-/* cifras y anillo que seguían en blanco sobre blanco */
-#hud .hud-ringin{background:radial-gradient(circle at 40% 32%,#fff,#f3f5f9 78%)!important;
-  border:1px solid var(--line)!important;color:var(--ink)!important}
-#hud .hud-v,#hud .hud-clock{color:var(--ink)!important}
-#hud .hud-st .hud-n{color:var(--ink-2)!important}
-#hud .hud-st.hud-current .hud-n{color:var(--ink)!important}
-#hud .hud-x{color:var(--ink-3)!important}#hud .hud-x:hover{color:var(--ink)!important}
-#hud .hud-k,#hud .hud-lbl{color:var(--ink-3)!important}
-.lupa .lupa-score,.lupa .lupa-stage,.lupa-sem-band{color:var(--ink)!important}
-.lupa-st .lupa-nm,.lupa-st.visited .lupa-nm{color:var(--ink-2)!important}
-.lupa-st.current .lupa-nm{color:var(--ink)!important;text-shadow:none!important}
-.lupa-m span i{color:var(--ink-3)!important}
-.lupa-reads li,.lupa-log li{border-bottom-color:var(--line-2)!important;color:var(--ink-2)!important}
-.lupa-x{color:var(--ink-3)!important}.lupa-x:hover{color:var(--ink)!important}
-.lupa-link{color:var(--teal-ink)!important}.lupa-link:hover{color:var(--ink)!important}
-/* el HUD se aplana: las capas en translateZ se agrandaban con la perspectiva
-   y el pie pisaba el texto de la sección anterior */
-#hud .hud-l{transform:none!important}
-/* preserve-3d anulaba el recorte del cuerpo con scroll: el bloque de
-   honestidad se pintaba fuera, encima del pie. Con contexto plano vuelve
-   a quedar dentro de su área desplazable. */
-#hud .hud-stage,#hud .hud-tilt,#hud .hud-panel,#hud .hud-body,#hud .hud-foot,#hud .hud-box{transform-style:flat!important}
-/* Sólo en escritorio: el cuerpo es una rejilla más alta que el hueco que le
-   daba el flex y su última fila se desbordaba sobre el pie. Ahora el cuerpo
-   toma su alto real, el panel entero desplaza y el pie queda pegado abajo
-   para que la acción principal siga a la vista. En móvil el panel ya
-   funcionaba bien y se deja como estaba. */
-@media(min-width:861px){
-  #hud .hud-body{flex:0 0 auto!important;min-height:auto!important;overflow:visible!important}
-  #hud .hud-panel{overflow-y:auto!important;overscroll-behavior:contain}
-  #hud .hud-foot{position:sticky!important;bottom:0;z-index:4;
-    background:var(--card)!important;box-shadow:0 -10px 20px rgba(255,255,255,.9)}
-}
-#hud .hud-foot{border-top:1px solid var(--line)!important;background:transparent!important}
-#hud .hud-note{color:var(--ink-2)!important}
-#hud .hud-fine{color:var(--ink-3)!important}
-#hud .hud-memo{color:var(--ink-2)!important}
-#hud .hud-memo b{color:#9a6a00!important}
-#hud .hud-memo.hud-saved b{color:#0f7a3d!important}
+/* ===== hud-humo =====
+   El panel de consentimiento vuelve a cristal ahumado translucido y se queda
+   en blancos, negros y grises. El unico color del modal es la valoracion del
+   lead: las tres lamparas del semaforo y la banda del score. ===== */
+:root{--lupa-navy:rgba(16,18,23,.78);--lupa-line:rgba(255,255,255,.12);
+  --lupa-dim:rgba(255,255,255,.42);--lupa-mute:rgba(255,255,255,.62)}
+
+/* --- fondo y panel --- */
+#hud .hud-scrim,.hud-scrim{background:rgba(10,12,16,.52)!important;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#hud .hud-panel{background:linear-gradient(158deg,rgba(28,31,38,.80) 0%,rgba(18,20,26,.84) 52%,rgba(12,14,18,.88) 100%)!important;
+  border:1px solid rgba(255,255,255,.13)!important;color:#f2f3f5!important;
+  -webkit-backdrop-filter:blur(22px) saturate(.85);backdrop-filter:blur(22px) saturate(.85);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 40px 120px rgba(0,0,0,.45)!important}
+
+/* --- tipografia, toda en gama neutra --- */
+#hud .eyebrow,#hud .hud-eyebrow{color:rgba(255,255,255,.62)!important}
+#hud h3,#hud b,#hud strong,#hud .hud-t,#hud .hud-title{color:#fff!important}
+#hud .hud-title b{color:#fff!important;font-weight:400}
+#hud p,#hud li,#hud .hud-p{color:rgba(255,255,255,.72)!important}
+#hud small,#hud .fine,#hud .hud-f,#hud .hud-k,#hud .hud-lbl,#hud .hud-note,
+#hud .hud-fine,#hud .hud-memo{color:rgba(255,255,255,.52)!important}
+#hud .hud-memo b{color:rgba(255,255,255,.88)!important}
+#hud .hud-v,#hud .hud-clock{color:#fff!important}
+#hud a,#hud .hud-ess{color:rgba(255,255,255,.72)!important}
+#hud a:hover,#hud .hud-ess:hover{color:#fff!important}
+#hud .hud-x{color:rgba(255,255,255,.5)!important}#hud .hud-x:hover{color:#fff!important}
+#hud .hud-chip{border-color:rgba(255,255,255,.16)!important;background:rgba(255,255,255,.05)!important;
+  color:rgba(255,255,255,.75)!important}
+/* los puntitos de las etiquetas dejan de ser de color */
+#hud .hud-chip i{background:rgba(255,255,255,.75)!important;box-shadow:none!important}
+/* los grises del HUD original tiran a azul (#4f5869, #6f7889, #8b93a5, #aeb6c6,
+   #5c6475, #7c8598). Se neutralizan: la gama queda en blanco, negro y gris. */
+#hud .hud-k em,#hud .hud-note,#hud .hud-empty,#hud .hud-hint{color:rgba(255,255,255,.44)!important}
+#hud [class*="hud-"],#hud [class*="hud-"] *{border-color:rgba(255,255,255,.12)}
+#hud .hud-k{color:rgba(255,255,255,.50)!important}
+#hud .hud-v small{color:rgba(255,255,255,.48)!important}
+#hud .hud-n .hud-i{color:rgba(255,255,255,.38)!important}
+
+/* --- cajas internas --- */
+#hud .hud-box{background:rgba(255,255,255,.035)!important;border-color:rgba(255,255,255,.10)!important}
+#hud .hud-foot{border-top-color:rgba(255,255,255,.10)!important;background:transparent!important;
+  box-shadow:none!important}
+#hud .hud-lamps{background:rgba(0,0,0,.22)!important;border-color:rgba(255,255,255,.10)!important}
+
+/* --- rail de etapas, en grises: visitada clara, pendiente apagada --- */
+#hud .hud-st .hud-n,#hud .hud-st .hud-nm{color:rgba(255,255,255,.62)!important}
+#hud .hud-st.hud-current .hud-n,#hud .hud-st.hud-current .hud-nm{color:#fff!important}
+#hud .hud-dot{background:rgba(255,255,255,.22)!important;box-shadow:none!important}
+#hud .hud-st.hud-pending .hud-dot{background:rgba(255,255,255,.28)!important;box-shadow:none!important}
+#hud .hud-st.hud-visited .hud-dot{background:rgba(255,255,255,.80)!important;box-shadow:none!important}
+#hud .hud-st.hud-current .hud-dot{background:#fff!important;
+  box-shadow:0 0 0 3px rgba(255,255,255,.18)!important;animation:none!important}
+#hud .hud-here{background:#fff!important;color:#101216!important}
+#hud .hud-d,#hud .hud-p{color:rgba(255,255,255,.55)!important}
+#hud .hud-st.hud-visited .hud-p{color:rgba(255,255,255,.82)!important}
+#hud .hud-i{color:rgba(255,255,255,.38)!important}
+
+/* --- anillo de score, neutro --- */
+#hud .hud-ring{--hud-c:rgba(255,255,255,.85)!important;box-shadow:0 0 0 6px rgba(0,0,0,.28)!important}
+#hud .hud-ringin{background:radial-gradient(circle at 40% 32%,rgba(255,255,255,.10),rgba(0,0,0,.35) 72%)!important;
+  border-color:rgba(255,255,255,.12)!important;color:#fff!important}
+#hud .hud-score{color:#fff!important}
+#hud .hud-score small,#hud .hud-band{color:rgba(255,255,255,.55)!important}
+
+/* --- micro-metricas y barras, en blanco --- */
+#hud .hud-spark polyline{stroke:rgba(255,255,255,.85)!important}
+#hud .hud-spark line{stroke:rgba(255,255,255,.10)!important}
+#hud .hud-bar{background:rgba(255,255,255,.10)!important}
+#hud .hud-bar i,#hud .hud-bar.hud-amber i{background:rgba(255,255,255,.85)!important}
+#hud .hud-hon li{color:rgba(255,255,255,.72)!important}
+#hud .hud-hon li b{color:#fff!important}
+#hud .hud-hon li:before{color:rgba(255,255,255,.55)!important}
+#hud .hud-hon .hud-never li{color:rgba(255,255,255,.48)!important}
+#hud .hud-hon .hud-never li:before{color:rgba(255,255,255,.3)!important}
+
+/* --- accion principal: blanco sobre humo --- */
+#hud .btn.hud-cta{background:#fff!important;color:#101216!important;border-color:#fff!important}
+#hud .btn.hud-cta:hover{background:rgba(255,255,255,.9)!important}
+#hud .btn.hud-cta .spin{border-color:rgba(0,0,0,.2)!important;border-top-color:#101216!important}
+#hud .btn.dark,#hud button.dark{background:#fff!important;color:#101216!important}
+#hud .btn.ghost,#hud button.ghost{border-color:rgba(255,255,255,.4)!important;color:#fff!important;background:transparent!important}
+
+/* ===== UNICO COLOR DEL MODAL: la valoracion del lead ===== */
+#hud .hud-lamp p{color:rgba(255,255,255,.42)!important}
+#hud .hud-lamp.hud-lit p{color:#fff!important}
+#hud .hud-lens{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.14)!important;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.12)!important}
+#hud .hud-lens:before{background:rgba(255,255,255,.10)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-go:before{background:radial-gradient(circle at 35% 30%,#c8fff5,#2fc5b1 45%,#0f8577 82%)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-hold:before{background:radial-gradient(circle at 35% 30%,#ffe7a8,#e0a400 48%,#8a5a00 82%)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-stop:before{background:radial-gradient(circle at 35% 30%,#ffb3b3,#e5484d 48%,#8f1c22 82%)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-go{box-shadow:0 0 16px rgba(47,197,177,.45)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-hold{box-shadow:0 0 16px rgba(224,164,0,.45)!important}
+#hud .hud-lamp.hud-lit .hud-lens.hud-stop{box-shadow:0 0 16px rgba(229,72,77,.45)!important}
+/* la banda del score conserva el color de su nivel */
+#hud .hud-band.hud-go,#hud .hud-band[data-band="go"]{color:#2fc5b1!important}
+#hud .hud-band.hud-hold,#hud .hud-band[data-band="hold"]{color:#e0a400!important}
+#hud .hud-band.hud-stop,#hud .hud-band[data-band="stop"]{color:#e5484d!important}
+
+/* --- la lupa flotante acompaña, mismo humo --- */
+.lupa-panel,.lupa-card{background:linear-gradient(160deg,rgba(28,31,38,.82),rgba(14,16,21,.88))!important;
+  border:1px solid rgba(255,255,255,.12)!important;color:#f2f3f5!important;
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.lupa-panel b,.lupa-panel strong,.lupa-mini-score,.lupa-sem-band,.lupa .lupa-score,.lupa .lupa-stage{color:#fff!important}
+.lupa-panel p,.lupa-panel li,.lupa-st .lupa-nm{color:rgba(255,255,255,.70)!important}
+.lupa-bar{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.12)!important}
+.lupa-bar i,.lupa-bar.cur i{background:rgba(255,255,255,.85)!important}
+.lupa-lens{border-color:rgba(255,255,255,.35)!important;
+  background:radial-gradient(circle at 36% 32%,rgba(255,255,255,.28),rgba(255,255,255,.06) 45%,rgba(0,0,0,.2) 78%)!important;
+  box-shadow:none!important}
+.lupa-lens:after{background:rgba(255,255,255,.7)!important}
+#lupaBtn,.lupa-fab{background:#fff!important;color:#101216!important;border-color:#fff!important}
 </style>
 <style>
 /* ==========================================================================
