@@ -2435,57 +2435,68 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 }
 </style>
 <style>
-/* ===== cifras-con-diseno =====
-   Las tres cifras del bloque de datos pasan de número suelto a dato explicado:
-   cada una lleva su índice y una micro-visualización que dice lo mismo en
-   forma. En pantalla estrecha desaparecen las celdas de relleno, que se
-   convertían en bloques vacíos grandes. ===== */
-#servicios .svx-c--data{position:relative;padding:20px 20px 18px!important;
-  display:flex;flex-direction:column;gap:0;transition:background .3s}
-#servicios .svx-c--data:hover{background:rgba(47,197,177,.035)}
-#servicios .svx-ix{position:absolute;top:13px;right:15px;font-family:"IBM Plex Mono",monospace;
-  font-size:8.5px;letter-spacing:.2em;color:var(--ink-3)}
-#servicios .svx-c--data .svx-k{margin-top:4px}
-#servicios .svx-viz{display:block;margin-top:15px}
+/* ===== cifras-con-diseno (v2) =====
+   Antes las celdas se pisaban: la rejilla modular da filas de alto fijo (56px)
+   y la micro-visualizacion no cabia. Ahora las filas crecen con su contenido.
+   Gama de negros, blancos y grises. Las barras se llenan con el scroll. ===== */
+#servicios .svx-mods{grid-auto-rows:auto!important;grid-template-rows:none!important;align-items:stretch}
+#servicios .svx-c{min-height:var(--svx-cu)}
+#servicios .svx-c--data{position:relative;padding:18px 18px 16px!important;
+  display:flex!important;flex-direction:column;justify-content:flex-start;
+  min-height:calc(var(--svx-cu) * 2.6);overflow:visible;transition:background .35s}
+#servicios .svx-c--data:hover{background:#f4f5f7}
+#servicios .svx-ix{position:absolute;top:12px;right:14px;font-family:"IBM Plex Mono",monospace;
+  font-size:8.5px;letter-spacing:.2em;color:#9a9aa3}
+#servicios .svx-c--data .svx-n{line-height:1.05}
+#servicios .svx-c--data .svx-k{margin-top:3px}
+#servicios .svx-viz{display:block;margin-top:auto;padding-top:14px}
 
-/* 01 · ocho marcas, el mismo lenguaje que el indicador de pasos */
-.svx-viz--ticks{display:flex!important;gap:5px;align-items:flex-end;height:16px}
-.svx-viz--ticks i{display:block;width:10px;height:10px;background:var(--ink-3);opacity:.32;
-  transition:opacity .4s,background .4s,height .4s}
-.svx-c--data:hover .svx-viz--ticks i{opacity:.85}
-.svx-viz--ticks i:nth-child(-n+3){background:var(--ink);opacity:.9;height:16px}
+/* --- 01 · ocho marcas; se encienden segun avanza el scroll --- */
+.svx-viz--ticks{display:flex!important;gap:5px;align-items:flex-end;height:15px}
+.svx-viz--ticks i{display:block;width:9px;height:9px;background:#d8dade;
+  transition:background .45s cubic-bezier(.22,1,.36,1),height .45s cubic-bezier(.22,1,.36,1)}
+.svx-c--data[style*="--p"] .svx-viz--ticks i{background:#d8dade}
+.svx-viz--ticks i.on{background:#18181b;height:15px}
 
-/* 02 · la escala con las cinco bandas reales del sistema */
+/* --- 02 · cinco bandas en grises; se revelan con el scroll --- */
 .svx-viz--scale{display:block}
 .svx-bands{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;height:7px}
-.svx-bands i{display:block;background:var(--ink-3);opacity:.28;transition:opacity .4s}
-.svx-bands i[data-b="mql"]{opacity:.42}
-.svx-bands i[data-b="warm"]{background:var(--hold);opacity:.5}
-.svx-bands i[data-b="hot"]{background:var(--teal);opacity:.62}
-.svx-bands i[data-b="sql"]{background:var(--teal-ink);opacity:.92}
-.svx-c--data:hover .svx-bands i{opacity:1}
+.svx-bands i{display:block;background:#e6e8ec;position:relative;overflow:hidden}
+.svx-bands i:after{content:"";position:absolute;inset:0;transform:scaleX(0);transform-origin:left;
+  transition:transform .55s cubic-bezier(.22,1,.36,1)}
+.svx-bands i[data-b="cold"]:after{background:#c9ccd2}
+.svx-bands i[data-b="mql"]:after{background:#9a9aa3}
+.svx-bands i[data-b="warm"]:after{background:#6d6f77}
+.svx-bands i[data-b="hot"]:after{background:#3f4149}
+.svx-bands i[data-b="sql"]:after{background:#18181b}
+.svx-bands i.on:after{transform:scaleX(1)}
 .svx-blab{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:6px}
-.svx-blab em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7.5px;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:center}
+.svx-blab em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7px;
+  letter-spacing:.06em;text-transform:uppercase;color:#9a9aa3;text-align:center;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* 03 · la ventana 48-72 sobre un eje de 0 a 96 h */
+/* --- 03 · la ventana 48-72 se dibuja con el scroll --- */
 .svx-viz--range{display:block}
-.svx-axis{display:block;position:relative;height:7px;background:var(--line-2);overflow:hidden}
-.svx-win{position:absolute;top:0;bottom:0;left:50%;width:25%;background:var(--teal);
-  opacity:.75;transition:opacity .4s}      /* 48/96 = 50% · (72-48)/96 = 25% */
-.svx-c--data:hover .svx-win{opacity:1}
+.svx-axis{display:block;position:relative;height:7px;background:#e6e8ec;overflow:hidden}
+.svx-win{position:absolute;top:0;bottom:0;left:50%;width:25%;background:#18181b;
+  transform:scaleX(var(--p,0));transform-origin:left;
+  transition:transform .55s cubic-bezier(.22,1,.36,1)}
 .svx-ticks{display:flex;justify-content:space-between;margin-top:6px}
-.svx-ticks em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7.5px;
-  letter-spacing:.08em;color:var(--ink-3)}
+.svx-ticks em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7px;
+  letter-spacing:.06em;color:#9a9aa3}
 
-/* pantalla estrecha: fuera las celdas de relleno, que quedaban como huecos grandes */
-@media(max-width:860px){
+/* --- responsive: fuera el relleno, una columna, nada se pisa --- */
+@media(max-width:1000px){
   #servicios .svx-c:not(.svx-c--data){display:none!important}
-  #servicios .svx-mods{grid-template-columns:1fr!important}
-  #servicios .svx-c--data{grid-column:1 / -1!important;padding:18px 18px 16px!important}
+  #servicios .svx-mods{grid-template-columns:1fr!important;gap:0}
+  #servicios .svx-c--data{grid-column:1 / -1!important;min-height:0;padding:16px 16px 14px!important}
+}
+@media(max-width:420px){
+  #servicios .svx-blab em{font-size:6.5px;letter-spacing:0}
+  #servicios .svx-c--data{padding:14px 14px 12px!important}
 }
 @media(prefers-reduced-motion:reduce){
-  #servicios .svx-c--data,.svx-viz--ticks i,.svx-bands i,.svx-win{transition:none}
+  .svx-viz--ticks i,.svx-bands i:after,.svx-win,#servicios .svx-c--data{transition:none}
 }
 </style>
 </head>
@@ -7354,6 +7365,70 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     document.addEventListener('DOMContentLoaded', function () { boot(); }, false);
   } else { boot(); }
   window.addEventListener('load', function () { boot(); }, false);
+})();
+</script>
+<!-- ===== script mod-statmotion ===== -->
+<script>
+/* Las tres cifras se dibujan con el scroll: marcas que se encienden, bandas
+   que se revelan y la ventana horaria que se traza. El progreso se lee de la
+   geometria en cada fotograma (no de eventos de scroll, que no siempre llegan)
+   y el bucle solo corre mientras el bloque esta en pantalla. */
+(function(){
+  'use strict';
+  var cells = [].slice.call(document.querySelectorAll('#servicios .svx-c--data'));
+  if (!cells.length) return;
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var items = cells.map(function(c){
+    return { el:c,
+      ticks:[].slice.call(c.querySelectorAll('.svx-viz--ticks i')),
+      bands:[].slice.call(c.querySelectorAll('.svx-bands i')),
+      last:-1 };
+  });
+
+  function progOf(el){
+    var r = el.getBoundingClientRect(), vh = window.innerHeight || 1;
+    /* 0 justo antes de entrar por abajo · 1 cuando ya subio un tercio de pantalla */
+    var p = (vh - r.top) / (vh * 0.75 + r.height);
+    return p < 0 ? 0 : (p > 1 ? 1 : p);
+  }
+
+  function apply(it, p){
+    if (Math.abs(p - it.last) < 0.008) return;
+    it.last = p;
+    it.el.style.setProperty('--p', p.toFixed(3));
+    var k, on;
+    if (it.ticks.length){
+      on = Math.round(p * it.ticks.length);
+      for (k = 0; k < it.ticks.length; k++) it.ticks[k].classList.toggle('on', k < on);
+    }
+    if (it.bands.length){
+      on = Math.round(p * it.bands.length);
+      for (k = 0; k < it.bands.length; k++) it.bands[k].classList.toggle('on', k < on);
+    }
+  }
+
+  function paint(){ for (var i = 0; i < items.length; i++) apply(items[i], progOf(items[i].el)); }
+
+  if (reduced){ items.forEach(function(it){ apply(it, 1); }); return; }
+
+  var live = false, raf = 0;
+  function loop(){ if (!live) return; paint(); raf = requestAnimationFrame(loop); }
+  function start(){ if (live || document.hidden) return; live = true; raf = requestAnimationFrame(loop); }
+  function stop(){ live = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+  var seen = 0;
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ seen += e.isIntersecting ? 1 : -1; });
+    if (seen < 0) seen = 0;
+    if (seen > 0) start(); else { stop(); paint(); }
+  }, { rootMargin: '20% 0px' });
+  cells.forEach(function(c){ io.observe(c); });
+
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) stop(); else if (seen > 0) start(); });
+  addEventListener('resize', paint, { passive:true });
+  addEventListener('scroll', paint, { passive:true });   /* refuerzo, no unica via */
+  paint();
 })();
 </script>
 </body>
