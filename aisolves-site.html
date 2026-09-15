@@ -1483,6 +1483,12 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
 @media(max-width:719px){.brain-master{width:96vw;top:42%}}
 @media(prefers-reduced-motion:reduce){.brain-master{transform:translate(-50%,-50%)}}
 </style>
+<style>
+.sys-theme{position:absolute;left:50%;bottom:clamp(120px,17vh,190px);transform:translateX(-50%);z-index:3;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.24em;text-transform:uppercase;
+  color:#fff;opacity:0;transition:opacity .3s,color .3s;pointer-events:none;text-align:center;text-shadow:0 0 18px rgba(0,0,0,.6)}
+@media(max-width:719px){.sys-theme{font-size:10px;bottom:clamp(96px,14vh,140px)}}
+</style>
 </head>
 <body>
 
@@ -1594,6 +1600,7 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
   <div class="sys-scene"><div class="sys-pin">
     <img class="brain-master" id="brainMaster" src="brain.webp" alt="Cerebro AISOLVES" />
     <canvas id="sysCanvas" aria-hidden="true"></canvas>
+    <div class="sys-theme" id="sysTheme" aria-hidden="true"></div>
     <div class="sys-phase">01 · captura · guardando metadata</div>
     <div class="sys-meta" id="sysMeta" aria-live="polite"></div>
     <div class="sys-progress"><i></i></div>
@@ -4738,183 +4745,7 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
     return clamp(-r.top / total, 0, 1);
   }
 
-  /* ======================= SISTEMA ======================= */
-  var sys = document.getElementById('sistema');
-  var cv  = document.getElementById('sysCanvas');
-  if(sys && cv){
-    var ctx = cv.getContext('2d'), W=0, H=0, dpr=1, vertical=false;
-    var SOURCES = ['scroll','cursor','tiempo por etapa','clics','formulario'];
-    var OUTS    = ['Meta Pixel','Conversions API','GA4 · Consent v2','TikTok · LinkedIn'];
-    var particles = [], pulses = [], tokens = [], tokenN = 0, lastSpawn = 0, t = 0;
-    var cards = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
-    var master = document.getElementById('brainMaster');
-    var metaEl = document.getElementById('sysMeta'), progEl = sys.querySelector('.sys-progress i');
-    var phaseEl = sys.querySelector('.sys-phase');
-    var P = 0, run = false, raf = 0, vis = false;
-
-    function size(){
-      dpr = Math.min(devicePixelRatio||1, 2);
-      var r = cv.getBoundingClientRect(); W = Math.max(1, r.width|0); H = Math.max(1, r.height|0);
-      cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-      vertical = W < 720;
-    }
-    // geometría: fuentes → cerebro → salidas
-    function geo(){
-      var g = {};
-      if(!vertical){
-        g.brain = {x: W*0.5, y: H*0.44, r: Math.min(W,H)*0.11};
-        g.src = SOURCES.map(function(s,i){ return {x: W*0.12, y: H*(0.22 + i*0.13), label:s}; });
-        g.out = OUTS.map(function(s,i){ return {x: W*0.88, y: H*(0.26 + i*0.14), label:s}; });
-      } else {
-        g.brain = {x: W*0.5, y: H*0.47, r: Math.min(W,H)*0.13};
-        g.src = SOURCES.map(function(s,i){ return {x: W*(0.14 + i*0.18), y: H*0.12, label:s}; });
-        g.out = OUTS.map(function(s,i){ return {x: W*(0.17 + i*0.22), y: H*0.85, label:s}; });
-      }
-      return g;
-    }
-    function bez(a,b,k){ // punto k (0..1) sobre una curva suave entre a y b
-      var cx1 = vertical ? a.x : a.x + (b.x-a.x)*0.5, cy1 = vertical ? a.y + (b.y-a.y)*0.5 : a.y;
-      var cx2 = vertical ? b.x : a.x + (b.x-a.x)*0.5, cy2 = vertical ? a.y + (b.y-a.y)*0.5 : b.y;
-      var u=1-k;
-      return { x: u*u*u*a.x + 3*u*u*k*cx1 + 3*u*k*k*cx2 + k*k*k*b.x,
-               y: u*u*u*a.y + 3*u*u*k*cy1 + 3*u*k*k*cy2 + k*k*k*b.y };
-    }
-    function path(a,b){
-      ctx.beginPath(); ctx.moveTo(a.x,a.y);
-      if(!vertical) ctx.bezierCurveTo(a.x+(b.x-a.x)*0.5, a.y, a.x+(b.x-a.x)*0.5, b.y, b.x, b.y);
-      else ctx.bezierCurveTo(a.x, a.y+(b.y-a.y)*0.5, b.x, a.y+(b.y-a.y)*0.5, b.x, b.y);
-      ctx.stroke();
-    }
-    function mono(size){ ctx.font = size+'px "IBM Plex Mono", ui-monospace, monospace'; }
-
-    function tokenLabel(){
-      var s = A(); var pool;
-      if(s && s.events && s.events.length){
-        var e = s.events[(tokenN) % s.events.length];
-        pool = [(e.type||'evento')+' · '+(e.label||''), 'scroll '+s.scroll.current+'%', 'cursor '+s.cursor.speed+'px/s', 'etapa '+(s.current||'—')];
-      } else pool = ['scroll 62%','dwell 4.1s · Paquetes','hover · Engine','cursor 340px/s','relectura · Sistema','exit-intent'];
-      return pool[tokenN % pool.length];
-    }
-
-    function frame(){
-      if(!run) return;
-      t += 0.016;
-      P = progressOf(sys);
-      var g = geo();
-      var pCap = clamp(P/0.42, 0, 1);               // 0 → .42  captura
-      var pSco = clamp((P-0.30)/0.38, 0, 1);        // .30 → .68 puntuación
-      var pAct = clamp((P-0.60)/0.40, 0, 1);        // .60 → 1   activación
-      var phase = P < 0.33 ? 0 : P < 0.66 ? 1 : 2;
-
-      ctx.clearRect(0,0,W,H);
-
-      // --- rutas de captura (se dibujan progresivamente) ---
-      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,'+(0.10+0.18*pCap).toFixed(3)+')';
-      g.src.forEach(function(s){ path(s, g.brain); });
-      // --- rutas de activación ---
-      ctx.strokeStyle = 'rgba(255,255,255,'+(0.06+0.22*pAct).toFixed(3)+')';
-      g.out.forEach(function(o){ path(g.brain, o); });
-
-      // --- fuentes ---
-      mono(11);
-      g.src.forEach(function(s,i){
-        var on = pCap > i/SOURCES.length;
-        ctx.fillStyle = on ? '#fff' : 'rgba(255,255,255,.28)';
-        ctx.beginPath(); ctx.arc(s.x, s.y, on?4:3, 0, Math.PI*2); ctx.fill();
-        if(on){ ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(s.x,s.y,9+Math.sin(t*3+i)*1.5,0,Math.PI*2); ctx.stroke(); }
-        ctx.fillStyle = on ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.35)';
-        ctx.textAlign = vertical ? 'center' : 'right'; ctx.textBaseline = 'middle';
-        ctx.fillText(s.label, vertical ? s.x : s.x-14, vertical ? s.y-16 : s.y);
-      });
-
-      // --- partículas de metadata: nacen en las fuentes y llegan al cerebro ---
-      if(pCap > 0.02 && pCap < 1 && !reduced && t - lastSpawn > 0.09){
-        lastSpawn = t; var si = (Math.random()*SOURCES.length)|0;
-        if(pCap > si/SOURCES.length) particles.push({s:si, k:0, v:0.010+Math.random()*0.008});
-      }
-      ctx.fillStyle = '#fff';
-      for(var i=particles.length-1;i>=0;i--){
-        var pt = particles[i]; pt.k += pt.v;
-        if(pt.k >= 1){ particles.splice(i,1); tokenN++;
-          tokens.unshift(tokenLabel()); if(tokens.length>7) tokens.pop();
-          if(metaEl) metaEl.innerHTML = tokens.map(function(x,j){ return '<div style="opacity:'+(1-j*0.12).toFixed(2)+'">'+x+'</div>'; }).join('');
-          continue; }
-        var q = bez(g.src[pt.s], g.brain, pt.k);
-        ctx.globalAlpha = 0.35 + 0.65*pt.k;
-        ctx.beginPath(); ctx.arc(q.x, q.y, 2.2, 0, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
-      }
-
-      // --- cerebro maestro (imagen Higgsfield): su giro y escala van con el scroll ---
-      var b = g.brain, R = b.r;
-      if(master){
-        var brY = (-16 + 32*P);                            // barrido -16° → +16°: el cerebelo bascula
-        var brS = 0.92 + 0.14*ease(clamp(P/0.75,0,1));      // respira al recorrer
-        var brO = 0.30 + 0.70*clamp(P/0.28,0,1);            // aparece con la captura
-        var brB = 0.72 + 0.5*pSco;                          // se enciende con la puntuación
-        master.style.setProperty('--brY', brY.toFixed(2)+'deg');
-        master.style.setProperty('--brS', brS.toFixed(3));
-        master.style.setProperty('--brO', brO.toFixed(2));
-        master.style.setProperty('--brB', brB.toFixed(2));
-      }
-      // score en una esquina, sin tapar el cerebro
-      var s = A(); var target = (s && s.consent && s.score) ? s.score.total : 64;
-      var score = Math.round(target * ease(pSco));
-      var cxs = vertical ? W*0.5 : W-116, cys = vertical ? 78 : 116, Rr = vertical ? 26 : 38;
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.14)';
-      ctx.beginPath(); ctx.arc(cxs,cys,Rr,0,Math.PI*2); ctx.stroke();
-      ctx.strokeStyle = '#fff'; ctx.lineCap='round';
-      ctx.beginPath(); ctx.arc(cxs,cys,Rr,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke(); ctx.lineCap='butt';
-      mono(Math.round(Rr*0.72)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(pSco>0 ? String(score) : '—', cxs, cys);
-      mono(9); ctx.fillStyle='rgba(255,255,255,.55)';
-      var band = score>=80?'SQL':score>=65?'HOT':score>=45?'WARM':score>=25?'MQL':'COLD';
-      ctx.fillText(pSco>0 ? 'score · '+band : 'esperando', cxs, cys+Rr+13);
-
-      // --- activación: pulsos hacia píxeles y CAPI ---
-      if(pAct > 0.02 && !reduced && t - lastSpawn > 0.06 && Math.random() < 0.5){
-        lastSpawn = t; pulses.push({o:(Math.random()*OUTS.length)|0, k:0, v:0.012+Math.random()*0.008});
-      }
-      for(var j=pulses.length-1;j>=0;j--){
-        var pu = pulses[j]; pu.k += pu.v;
-        if(pu.k>=1){ pulses.splice(j,1); continue; }
-        var q2 = bez(b, g.out[pu.o], pu.k);
-        ctx.fillStyle = 'rgba(31,170,90,'+(0.4+0.6*pu.k).toFixed(2)+')';
-        ctx.beginPath(); ctx.arc(q2.x,q2.y,2.4,0,Math.PI*2); ctx.fill();
-      }
-      mono(11);
-      g.out.forEach(function(o,i){
-        var on = pAct > (i+0.5)/OUTS.length;
-        ctx.strokeStyle = on ? '#1faa5a' : 'rgba(255,255,255,.3)'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(o.x,o.y,7,0,Math.PI*2); ctx.stroke();
-        if(on){ ctx.fillStyle='#1faa5a'; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill();
-          ctx.shadowColor='rgba(31,170,90,.8)'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
-        ctx.fillStyle = on ? '#fff' : 'rgba(255,255,255,.4)';
-        ctx.textAlign = vertical ? 'center' : 'left'; ctx.textBaseline='middle';
-        ctx.fillText(o.label, vertical ? o.x : o.x+16, vertical ? o.y+18 : o.y);
-        if(on){ ctx.fillStyle='rgba(31,170,90,.9)'; mono(9);
-          ctx.fillText('event_id ✓ dedup', vertical ? o.x : o.x+16, vertical ? o.y+32 : o.y+14); mono(11); }
-      });
-
-      // --- tarjetas: una por fase ---
-      cards.forEach(function(c,i){ c.classList.toggle('is-on', i===phase); });
-      if(progEl) progEl.style.width = (P*100).toFixed(1)+'%';
-      if(phaseEl) phaseEl.textContent = ['01 · captura · guardando metadata','02 · puntuación · análisis de la data','03 · activación · píxeles y CAPI'][phase];
-
-      if(run) raf = requestAnimationFrame(frame);
-    }
-    function start(){ if(run||document.hidden||!vis) return; run=true; size(); raf=requestAnimationFrame(frame); }
-    function stop(){ run=false; if(raf) cancelAnimationFrame(raf); raf=0; }
-    addEventListener('resize', function(){ if(run) size(); }, {passive:true});
-    document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
-    new IntersectionObserver(function(es){ es.forEach(function(e){ vis=e.isIntersecting; if(vis) start(); else stop(); }); },{threshold:0.02}).observe(sys);
-    // Robustez: no dependemos del IntersectionObserver ni de rAF sostenido (que
-    // el navegador estrangula en pestañas no pintadas). Una comprobación de
-    // geometría en el scroll dispara un fotograma, así el relato siempre cuadra.
-    function nearView(){ var r=sys.getBoundingClientRect(); return r.bottom>0 && r.top<innerHeight; }
-    addEventListener('scroll', function(){ if(document.hidden || !nearView()) return; if(W===0) size(); requestAnimationFrame(frame); }, {passive:true});
-    size();
-  }
+  /* SISTEMA lo gestiona mod-brainscroll (vídeo scrubbeado por scroll) */
 
   /* ======================= MÉTODO ======================= */
   var met = document.getElementById('metodo');
@@ -4960,6 +4791,204 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
     document.addEventListener('visibilitychange', function(){ if(document.hidden) on=false; });
     tick();
   }
+})();
+
+</script>
+<!-- ===== script mod-brainscroll ===== -->
+<script>window.BRAIN_FRAMES=121;</script>
+<script>
+/* ==========================================================================
+   mod-brainscroll — un solo vídeo del cerebro, scrubbeado por scroll.
+   FASE 1 (giro): el cerebro gira 360° con el scroll y las neuronas cambian de
+     color por tema. Termina en el frame 0 = alineado de frente.
+   FASE 2 (enlaces): el cerebro queda frenado y alineado; arrancan las
+     conexiones de captura → puntuación → activación.
+   Los frames se sirven desde brainframes/NNN.webp (extraídos del vídeo).
+   ========================================================================== */
+(function(){
+  var sys = document.getElementById('sistema');
+  var cv  = document.getElementById('sysCanvas');
+  if(!sys || !cv) return;
+  var ctx = cv.getContext('2d');
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function A(){ return window.AIS && window.AIS.state ? window.AIS.state : null; }
+  function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+  function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+  var FRAMES = window.BRAIN_FRAMES || 96;          // el integrador fija el nº real
+  var BASE   = 'brainframes/';
+  var imgs = new Array(FRAMES), loaded = 0, ready = false;
+  for(var i=0;i<FRAMES;i++){ (function(i){
+    var im = new Image();
+    im.onload = function(){ loaded++; if(loaded >= Math.min(6,FRAMES)) ready = true; };
+    im.onerror = function(){ loaded++; };
+    im.src = BASE + String(i).padStart(3,'0') + '.webp';
+    imgs[i] = im;
+  })(i); }
+
+  // temas: cada uno tiñe las neuronas de un color durante el giro
+  var THEMES = [
+    { k:'META PIXEL + CAPI',      c:[47,197,177] },
+    { k:'LEAD SCORING',           c:[124,150,255] },
+    { k:'SEO · SEM · AIO · GEO',  c:[224,164,0] },
+    { k:'WHATSAPP · INTENCIÓN',   c:[37,211,102] },
+    { k:'RETARGETING',            c:[255,120,90] },
+    { k:'CONTENIDO · VIRALIDAD',  c:[210,130,255] }
+  ];
+
+  var SOURCES = ['scroll','cursor','tiempo por etapa','clics','formulario'];
+  var OUTS    = ['Meta Pixel','Conversions API','GA4 · Consent v2','TikTok · LinkedIn'];
+  var phaseEl = sys.querySelector('.sys-phase'), progEl = sys.querySelector('.sys-progress i');
+  var metaEl  = document.getElementById('sysMeta'), themeEl = document.getElementById('sysTheme');
+  var cards   = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
+  var master  = document.getElementById('brainMaster');
+  if(master) master.style.display = 'none';        // el vídeo sustituye a la imagen fija
+
+  var W=0,H=0,dpr=1,vertical=false,t=0,run=false,raf=0;
+  var particles=[], pulses=[], tokens=[], tokenN=0, lastSpawn=0;
+  var SPIN = 0.5;                                   // 0 → .5 gira; .5 → 1 enlaza
+
+  function size(){ dpr=Math.min(devicePixelRatio||1,2); var r=cv.getBoundingClientRect();
+    W=Math.max(1,r.width|0); H=Math.max(1,r.height|0); cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); vertical=W<720; }
+
+  function progressOf(){ var r=sys.getBoundingClientRect(); return clamp(-r.top/Math.max(1,r.height-innerHeight),0,1); }
+
+  function geo(){ var g={};
+    if(!vertical){ g.cx=W*0.5; g.cy=H*0.46; g.R=Math.min(W,H)*0.30;
+      g.src=SOURCES.map(function(s,i){return {x:W*0.13,y:H*(0.24+i*0.12),label:s};});
+      g.out=OUTS.map(function(s,i){return {x:W*0.87,y:H*(0.28+i*0.13),label:s};}); }
+    else { g.cx=W*0.5; g.cy=H*0.45; g.R=Math.min(W,H)*0.34;
+      g.src=SOURCES.map(function(s,i){return {x:W*(0.14+i*0.18),y:H*0.12,label:s};});
+      g.out=OUTS.map(function(s,i){return {x:W*(0.17+i*0.22),y:H*0.86,label:s};}); }
+    return g; }
+  function bez(a,b,k){ var u=1-k, c1x=vertical?a.x:a.x+(b.x-a.x)*.5, c1y=vertical?a.y+(b.y-a.y)*.5:a.y,
+      c2x=vertical?b.x:a.x+(b.x-a.x)*.5, c2y=vertical?a.y+(b.y-a.y)*.5:b.y;
+    return { x:u*u*u*a.x+3*u*u*k*c1x+3*u*k*k*c2x+k*k*k*b.x, y:u*u*u*a.y+3*u*u*k*c1y+3*u*k*k*c2y+k*k*k*b.y }; }
+  function path(a,b){ ctx.beginPath(); ctx.moveTo(a.x,a.y);
+    if(!vertical) ctx.bezierCurveTo(a.x+(b.x-a.x)*.5,a.y,a.x+(b.x-a.x)*.5,b.y,b.x,b.y);
+    else ctx.bezierCurveTo(a.x,a.y+(b.y-a.y)*.5,b.x,a.y+(b.y-a.y)*.5,b.x,b.y); ctx.stroke(); }
+  function mono(s){ ctx.font=s+'px "IBM Plex Mono", ui-monospace, monospace'; }
+  function lerp(a,b,k){ return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]; }
+
+  // dibuja el frame del cerebro teñido del color del tema en curso
+  function drawBrain(g, spin, tint){
+    var idx = Math.round(clamp(spin,0,0.9999) * (FRAMES-1));
+    var im = imgs[idx];
+    var bw = Math.min(W*0.62, g.R*3.4), bh = bw*(9/16);
+    var bx = g.cx - bw/2, by = g.cy - bh/2 - H*0.02;
+    if(im && im.complete && im.naturalWidth){
+      ctx.drawImage(im, bx, by, bw, bh);
+      // teñir el trazo blanco: multiply deja el negro y colorea las líneas
+      ctx.save(); ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.9;
+      ctx.fillStyle='rgb('+(tint[0]|0)+','+(tint[1]|0)+','+(tint[2]|0)+')';
+      ctx.fillRect(bx,by,bw,bh); ctx.restore();
+      // un realce de brillo del mismo tono
+      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.10;
+      ctx.fillStyle='rgb('+(tint[0]|0)+','+(tint[1]|0)+','+(tint[2]|0)+')';
+      ctx.fillRect(bx,by,bw,bh); ctx.restore();
+    } else {
+      // respaldo mientras cargan los frames
+      ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(g.cx,g.cy,g.R*0.7,0,Math.PI*2); ctx.stroke();
+    }
+    return {x:g.cx,y:g.cy};
+  }
+
+  function frame(){
+    if(!run) return;
+    t += 0.016;
+    var P = progressOf();
+    var g = geo();
+    ctx.clearRect(0,0,W,H);
+
+    if(P < SPIN){
+      /* ---- FASE 1: giro 360° + neuronas por tema ---- */
+      var p1 = P / SPIN;                             // 0 → 1 = 0° → 360°
+      var seg = p1 * THEMES.length;
+      var ti = Math.min(THEMES.length-1, seg|0);
+      var frac = seg - ti;
+      var tint = lerp(THEMES[ti].c, THEMES[(ti+1)%THEMES.length].c, ease(clamp((frac-0.6)/0.4,0,1)));
+      drawBrain(g, p1, tint);
+      if(themeEl){ themeEl.textContent = THEMES[ti].k; themeEl.style.color='rgb('+tint.map(function(x){return x|0;}).join(',')+')'; themeEl.style.opacity=1; }
+      if(phaseEl) phaseEl.textContent = '360° · girando · '+Math.round(p1*360)+'°';
+      cards.forEach(function(c){ c.classList.remove('is-on'); });
+      // limpiar acumuladores para que la fase 2 arranque de cero
+      particles.length=0; pulses.length=0; tokens.length=0; tokenN=0;
+      if(metaEl) metaEl.innerHTML='';
+    } else {
+      /* ---- FASE 2: cerebro alineado (frame 0) + enlaces ---- */
+      var p2 = (P - SPIN) / (1 - SPIN);              // 0 → 1
+      var pCap = clamp(p2/0.42,0,1), pSco = clamp((p2-0.30)/0.38,0,1), pAct = clamp((p2-0.60)/0.40,0,1);
+      var phase = p2 < 0.33 ? 0 : p2 < 0.66 ? 1 : 2;
+      var lockTint = pSco>0.3 ? [47,197,177] : [235,238,245];
+      var b = drawBrain(g, 0, lockTint);            // frame 0 = alineado, congelado
+      if(themeEl){ themeEl.style.opacity=0; }
+
+      // rutas
+      ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,'+(0.10+0.18*pCap).toFixed(3)+')';
+      g.src.forEach(function(s){ path(s,{x:b.x,y:b.y}); });
+      ctx.strokeStyle='rgba(255,255,255,'+(0.06+0.22*pAct).toFixed(3)+')';
+      g.out.forEach(function(o){ path({x:b.x,y:b.y},o); });
+
+      // fuentes
+      mono(11);
+      g.src.forEach(function(s,i){ var on=pCap>i/SOURCES.length;
+        ctx.fillStyle=on?'#fff':'rgba(255,255,255,.28)'; ctx.beginPath(); ctx.arc(s.x,s.y,on?4:3,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle=on?'rgba(255,255,255,.85)':'rgba(255,255,255,.35)';
+        ctx.textAlign=vertical?'center':'right'; ctx.textBaseline='middle';
+        ctx.fillText(s.label, vertical?s.x:s.x-14, vertical?s.y-16:s.y); });
+
+      // partículas de metadata → cerebro (captura)
+      if(pCap>0.02 && pCap<1 && !reduced && t-lastSpawn>0.09){ lastSpawn=t; var si=(Math.random()*SOURCES.length)|0; if(pCap>si/SOURCES.length) particles.push({s:si,k:0,v:0.010+Math.random()*0.008}); }
+      ctx.fillStyle='#fff';
+      for(var i=particles.length-1;i>=0;i--){ var pt=particles[i]; pt.k+=pt.v;
+        if(pt.k>=1){ particles.splice(i,1); tokenN++; tokens.unshift(tokLabel()); if(tokens.length>6) tokens.pop();
+          if(metaEl) metaEl.innerHTML=tokens.map(function(x,j){return '<div style="opacity:'+(1-j*.14).toFixed(2)+'">'+x+'</div>';}).join(''); continue; }
+        var q=bez(g.src[pt.s],{x:b.x,y:b.y},pt.k); ctx.globalAlpha=0.35+0.65*pt.k; ctx.beginPath(); ctx.arc(q.x,q.y,2.2,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
+
+      // anillo de score en esquina (puntuación)
+      var s=A(); var target=(s&&s.consent&&s.score)?s.score.total:64; var score=Math.round(target*ease(pSco));
+      var cxs=vertical?W*0.5:W-116, cys=vertical?78:116, Rr=vertical?26:38;
+      ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.beginPath(); ctx.arc(cxs,cys,Rr,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle='#fff'; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(cxs,cys,Rr,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke(); ctx.lineCap='butt';
+      mono(Math.round(Rr*0.72)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(pSco>0?String(score):'—', cxs, cys);
+      mono(9); ctx.fillStyle='rgba(255,255,255,.55)'; var band=score>=80?'SQL':score>=65?'HOT':score>=45?'WARM':score>=25?'MQL':'COLD';
+      ctx.fillText(pSco>0?('score · '+band):'esperando', cxs, cys+Rr+13);
+
+      // pulsos → píxeles y CAPI (activación)
+      if(pAct>0.02 && !reduced && t-lastSpawn>0.06 && Math.random()<0.5){ lastSpawn=t; pulses.push({o:(Math.random()*OUTS.length)|0,k:0,v:0.012+Math.random()*0.008}); }
+      for(var j=pulses.length-1;j>=0;j--){ var pu=pulses[j]; pu.k+=pu.v; if(pu.k>=1){ pulses.splice(j,1); continue; }
+        var q2=bez({x:b.x,y:b.y},g.out[pu.o],pu.k); ctx.fillStyle='rgba(31,170,90,'+(0.4+0.6*pu.k).toFixed(2)+')'; ctx.beginPath(); ctx.arc(q2.x,q2.y,2.4,0,Math.PI*2); ctx.fill(); }
+      mono(11);
+      g.out.forEach(function(o,i){ var on=pAct>(i+0.5)/OUTS.length;
+        ctx.strokeStyle=on?'#1faa5a':'rgba(255,255,255,.3)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.x,o.y,7,0,Math.PI*2); ctx.stroke();
+        if(on){ ctx.fillStyle='#1faa5a'; ctx.shadowColor='rgba(31,170,90,.8)'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
+        ctx.fillStyle=on?'#fff':'rgba(255,255,255,.4)'; ctx.textAlign=vertical?'center':'left'; ctx.textBaseline='middle';
+        ctx.fillText(o.label, vertical?o.x:o.x+16, vertical?o.y+18:o.y);
+        if(on){ ctx.fillStyle='rgba(31,170,90,.9)'; mono(9); ctx.fillText('event_id ✓ dedup', vertical?o.x:o.x+16, vertical?o.y+32:o.y+14); mono(11); } });
+
+      cards.forEach(function(c,i){ c.classList.toggle('is-on', i===phase); });
+      if(phaseEl) phaseEl.textContent=['02 · captura · guardando metadata','03 · puntuación · análisis de la data','04 · activación · píxeles y CAPI'][phase];
+    }
+
+    if(progEl) progEl.style.width=(P*100).toFixed(1)+'%';
+    if(run) raf=requestAnimationFrame(frame);
+  }
+
+  function tokLabel(){ var s=A(); var pool;
+    if(s&&s.events&&s.events.length){ var e=s.events[tokenN%s.events.length];
+      pool=[(e.type||'evento')+' · '+(e.label||''),'scroll '+s.scroll.current+'%','cursor '+s.cursor.speed+'px/s','etapa '+(s.current||'—')]; }
+    else pool=['scroll 62%','dwell 4.1s · Paquetes','hover · Engine','cursor 340px/s','relectura','exit-intent'];
+    return pool[tokenN%pool.length]; }
+
+  var vis=false;
+  function start(){ if(run||document.hidden||!vis) return; run=true; size(); raf=requestAnimationFrame(frame); }
+  function stop(){ run=false; if(raf) cancelAnimationFrame(raf); raf=0; }
+  addEventListener('resize', function(){ if(run) size(); }, {passive:true});
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
+  new IntersectionObserver(function(es){ es.forEach(function(e){ vis=e.isIntersecting; if(vis) start(); else stop(); }); },{threshold:0.02}).observe(sys);
+  function near(){ var r=sys.getBoundingClientRect(); return r.bottom>0 && r.top<innerHeight; }
+  addEventListener('scroll', function(){ if(document.hidden||!near()) return; if(W===0) size(); requestAnimationFrame(frame); }, {passive:true});
+  size();
 })();
 
 </script>
