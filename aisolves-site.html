@@ -2697,6 +2697,116 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   #sistema,#metodo,#servicios,#paquetes,#about,#equipo,#pie{contain-intrinsic-size:auto 1400px}
 }
 </style>
+<style>
+/* ==================================================================
+   ÓRBITA · seis formatos girando alrededor del cerebro
+   ------------------------------------------------------------------
+   Arquitectura de planos (del enfoque proyectado): .carousel es
+   position:sticky y por tanto ES el contexto de apilado real, así que
+   el z-index de cada tarjeta compite de verdad con el canvas:
+
+        1 … 9   tarjetas traseras   <- pasan POR DETRÁS del cerebro
+          10    #brainCanvas
+       11 … 19  tarjetas delanteras <- pasan POR DELANTE
+          20    note / hint / stream / stack
+          24    brain-hud
+          40    brain-emit
+
+   Diseño de tarjeta (del enfoque css3d): grande, opaca y con texto
+   escalado desde su propio ancho, para que se LEA. Ese era el encargo.
+   ================================================================== */
+
+.stage #brainCanvas{z-index:10}
+.stage .note,.stage .brain-hint,.stage .brain-stream,.stage .stack{z-index:20}
+.stage .brain-hud{z-index:24}
+.stage .brain-emit{z-index:40}
+/* con la órbita viva el panel lateral sobra: la tarjeta ya lo cuenta */
+.stage.orb-on .car-desc{display:none}
+
+/* ---------------- contenedor ---------------- */
+.orb{
+  position:absolute;inset:0;z-index:auto;   /* SIN z-index: ver planos */
+  pointer-events:none;                      /* el cerebro se sigue arrastrando */
+  --cw:320px;                               /* ancho de tarjeta, lo fija el JS */
+  --oy:50%;
+  /* estado base sin JS y con movimiento reducido: rejilla legible */
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;align-content:center;justify-items:center;
+  padding:0 clamp(16px,4vw,74px);
+}
+.orb.is-orb{display:block;padding:0}
+
+/* ---------------- tarjeta ---------------- */
+.orb-card{
+  pointer-events:auto;position:relative;z-index:16;
+  width:100%;max-width:var(--cw);
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:18px 19px 16px;
+  text-align:left;font-family:Montserrat,system-ui,sans-serif;color:#fff;
+  cursor:pointer;border:1px solid rgba(255,255,255,.16);border-radius:0;
+  /* opaca de verdad: las partículas no deben atravesar el texto */
+  background:linear-gradient(180deg,rgba(16,19,25,.93),rgba(8,9,12,.96));
+  box-shadow:0 22px 54px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+  transition:border-color .25s,box-shadow .25s;
+  -webkit-tap-highlight-color:transparent;
+  /* tipografía escalada desde el ancho de la tarjeta */
+  font-size:clamp(11px,calc(var(--cw) / 24),15px);
+}
+.orb.is-orb .orb-card{
+  position:absolute;left:50%;top:var(--oy);
+  width:var(--cw);max-width:none;z-index:1;
+  transform-origin:50% 50%;
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
+  opacity:0;                                 /* hasta el primer pintado */
+}
+.orb-card:focus-visible{outline:2px solid #fff;outline-offset:3px;z-index:23}
+.orb-card:hover{border-color:rgba(255,255,255,.34)}
+
+/* --- contenido, en em: crece y encoge con la tarjeta --- */
+.orb-n{font-family:"IBM Plex Mono",monospace;font-size:.72em;letter-spacing:.2em;
+  color:rgba(255,255,255,.52)}
+.orb-t{font-weight:200;text-transform:uppercase;letter-spacing:.045em;
+  font-size:1.58em;line-height:1.08;margin:.42em 0 .3em;color:#fff}
+.orb-d{font-size:.92em;line-height:1.5;color:rgba(255,255,255,.76);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+.orb-u{font-family:"IBM Plex Mono",monospace;font-size:.80em;line-height:1.45;
+  color:rgba(255,255,255,.62);margin-top:.6em}
+.orb-go{font-family:"IBM Plex Mono",monospace;font-size:.74em;letter-spacing:.14em;
+  text-transform:uppercase;color:#fff;margin-top:auto;padding-top:.9em;
+  display:flex;align-items:center;gap:.5em;
+  opacity:0;transition:opacity .3s}          /* opacidad, NO display: sin saltos de alto */
+.orb-card.is-front .orb-go{opacity:1}
+.orb-live{font-family:"IBM Plex Mono",monospace;font-size:.72em;
+  color:rgba(255,255,255,.58);margin-top:.5em;
+  opacity:0;transition:opacity .3s;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.orb-card.is-front .orb-live{opacity:1}
+
+/* --- rejilla (sin JS / movimiento reducido): todo visible y legible --- */
+@media(prefers-reduced-motion:reduce){
+  .orb{display:grid!important}
+  .orb-card{position:relative!important;opacity:1!important;transform:none!important;
+    left:auto!important;top:auto!important;z-index:16!important}
+  .orb-go,.orb-live{opacity:1}
+}
+@media(max-width:1000px){.orb{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.orb{grid-template-columns:1fr}}
+</style>
+<style>
+/* ===== orbe-pie-detalle =====
+   La nube del pie ocupaba una celda cuadrada a todo el ancho y competía con el
+   contenido. Pasa a detalle discreto antes de Contacto: pequeña, alineada a la
+   izquierda y sin caja propia. ===== */
+#pie .pie-orb{
+  width:clamp(104px,13vw,148px)!important;
+  aspect-ratio:1/1;
+  margin:6px 0 2px;
+  align-self:flex-start;
+  border:0!important;box-shadow:none!important;background:transparent!important;
+  opacity:.82;
+}
+@media(max-width:720px){#pie .pie-orb{width:96px!important;margin:4px 0 0}}
+</style>
 </head>
 <body>
 
@@ -2780,21 +2890,13 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
           </div>
         </div>
         <div class="note">transform: rotateY(0deg)</div>
-<div data-bx="" style="--z:80px" class="stage-l car-bar">
-      <button onclick="carPrev()" aria-label="anterior">‹</button>
-      <button onclick="carOpen()" aria-label="abrir formato" title="Abrir formato en vivo">⧉</button>
-      <div class="title" id="carTitle">center spotlight</div>
+<div class="orb" id="orb" role="group" aria-label="Formatos de modal, en órbita alrededor del cerebro"></div>
       <button class="nx" onclick="carNext()" aria-label="siguiente">›</button>
     </div>
 <div data-bx="" style="--z:46px" class="stage-l car-desc" id="carDesc"></div>
 <div data-bx="" style="--z:34px" class="stage-l stack">
         <div class="sq hatch"></div>
         <div class="sq">META</div><div class="sq">CAPI</div><div class="sq">GA4</div><div class="sq">WA</div><div class="sq">GSAP</div>
-      </div>
-<div data-bx="translateX(-50%)" style="--z:92px" class="stage-l car-foot">
-      <div class="dots" id="carDots"></div>
-      <button class="btn dark" onclick="carOpen()"><span>Ver este formato en vivo</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
-    </div>
       </div>
       
     </div>
@@ -7791,6 +7893,193 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   pinta();
   setInterval(pinta, 1500);            /* el WhatsApp puede llegar más tarde */
   document.addEventListener('ais:lead', pinta);
+})();
+</script>
+<!-- ===== script mod-orbita ===== -->
+<script>
+/* ==========================================================================
+   mod-orbita · las seis tarjetas giran alrededor del cerebro con el scroll.
+   La matemática 3D vive aquí: de cada ángulo salen la posición en pantalla,
+   la escala por perspectiva, la opacidad y —lo importante— el z-index, que
+   es lo que hace que una tarjeta pase de verdad por detrás del cerebro.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var host = document.getElementById('orb');
+  var stage = document.querySelector('#work .stage');
+  var pin = document.querySelector('#work .carousel');
+  if (!host || !stage || !pin) return;
+
+  /* los seis formatos, con su descripción: la tarjeta tiene que contar algo */
+  var F = [
+    { id:'mSpot',   t:'center spotlight',      d:'Overlay central que detiene la página y entrega el reporte completo: score de 0 a 100, recorrido por etapa y qué necesita el visitante.', u:'máxima jerarquía · el que más convierte' },
+    { id:'mDrawer', t:'drawer lateral',        d:'Cajón que entra por el lado sin tapar la página. El visitante sigue viendo dónde estaba mientras lee la lectura de su visita.',           u:'escritorio · no intrusivo' },
+    { id:'mSheet',  t:'bottom sheet',          d:'Hoja que sube desde abajo con tirador, el patrón nativo de iOS y Android. Queda dentro del alcance del pulgar.',                          u:'móvil · alcance del pulgar' },
+    { id:'mToast',  t:'toast expandible',      d:'Aviso discreto en una esquina que se despliega si interesa. No interrumpe la lectura y deja la decisión en quien navega.',                u:'ambiente · baja fricción' },
+    { id:'mInline', t:'inline expand',         d:'El bloque se abre dentro de la propia página, sin capa por encima. El contenido crece donde ya estaba mirando.',                          u:'integrado · sin overlay' },
+    { id:'mFull',   t:'full-screen takeover',  d:'La pantalla completa para el lead caliente: todo el reporte, sin distracciones y con una sola acción posible.',                           u:'lead HOT · alto impacto' }
+  ];
+  var N = F.length, TAU = Math.PI * 2, STEP = TAU / N;
+  /* el recorrido termina en la tarjeta 06, no da la vuelta entera para volver
+     a la 01: son seis formatos que enseñar, no un bucle */
+  var SPAN = STEP * (N - 1);
+
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cards = [], zPrev = [], W = 0, H = 0, R = 0, PERSP = 700, narrow = false;
+
+  /* ---------- construir ---------- */
+  var frag = document.createDocumentFragment();
+  F.forEach(function (f, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'orb-card';
+    b.setAttribute('aria-label', 'Formato ' + f.t + ': ' + f.u);
+    b.innerHTML =
+      '<span class="orb-n">' + ('0' + (i + 1)) + ' / 0' + N + '</span>' +
+      '<span class="orb-t">' + f.t + '</span>' +
+      '<span class="orb-d">' + f.d + '</span>' +
+      '<span class="orb-u">' + f.u + '</span>' +
+      '<span class="orb-live" data-live></span>' +
+      '<span class="orb-go">ver en vivo <i aria-hidden="true">&rarr;</i></span>';
+    b.addEventListener('click', function (e) {
+      e.preventDefault();
+      abrir(i);
+    });
+    b.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      e.stopPropagation();          /* el sitio ya tiene flechas globales: no avanzar dos veces */
+      var j = (i + (e.key === 'ArrowRight' ? 1 : -1) + N) % N;
+      cards[j].focus();
+    });
+    frag.appendChild(b);
+    cards.push(b);
+    zPrev.push(-1);
+  });
+  host.appendChild(frag);
+
+  function abrir(i) {
+    try {
+      if (typeof window.openVariant === 'function') { window.openVariant(F[i].id); return; }
+      if (typeof window.carGo === 'function') { window.carGo(i); }
+      if (typeof window.carOpen === 'function') { window.carOpen(); }
+    } catch (e) { /* nunca romper la página por el módulo */ }
+  }
+
+  /* ---------- medidas ---------- */
+  function medir() {
+    var r = pin.getBoundingClientRect();
+    W = Math.max(1, r.width); H = Math.max(1, r.height);
+    narrow = W < 860;
+    /* Ancho de tarjeta: grande de verdad, pero acotado para que la vecina
+       no se salga del viewport, que es lo que fallaba en el enfoque css3d. */
+    var cw = narrow ? Math.min(W - 54, 330) : Math.max(280, Math.min(380, W * 0.30));
+    host.style.setProperty('--cw', Math.round(cw) + 'px');
+    host.style.setProperty('--oy', narrow ? '46%' : '50%');
+    /* Radio: en estrecho se encoge para que la vecina quepa en pantalla. */
+    R = narrow ? Math.max(84, W * 0.20) : Math.max(210, Math.min(430, W * 0.30));
+    PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
+  }
+
+  /* ---------- progreso del escenario ---------- */
+  function prog() {
+    var r = stage.getBoundingClientRect();
+    var total = Math.max(1, r.height - window.innerHeight);
+    var p = -r.top / total;
+    return p < 0 ? 0 : (p > 1 ? 1 : p);
+  }
+
+  /* ---------- pintar ---------- */
+  var base = 0, cur = 0, primed = false, lastP = -1, quieto = 0;
+  function pintar() {
+    if (!W) medir();
+    var p = prog();
+    var target = p * SPAN;
+    /* Imantado: si el scroll lleva un momento quieto, la orbita se asienta en
+       el paso mas cercano. Sin esto, a mitad de camino dos tarjetas empatan al
+       frente y se solapan, que es justo lo que se queria evitar. */
+    if (Math.abs(p - lastP) < 0.0008) { quieto++; } else { quieto = 0; lastP = p; }
+    /* sesgo continuo hacia el paso mas cercano: incluso desplazandose hay
+       siempre una tarjeta dominante, en vez de dos empatadas a medio camino */
+    var paso = Math.round(target / STEP) * STEP;
+    var m = quieto > 12 ? 1 : 0.42;
+    target = target + (paso - target) * m;
+    /* suavizado, pero sin rebobinados: si el salto es grande, se planta */
+    if (!primed) { cur = target; primed = true; }
+    else if (Math.abs(target - cur) > STEP * 1.6) cur = target;
+    else cur += (target - cur) * 0.16;
+
+    var frontI = 0, frontD = -2;
+    for (var i = 0; i < N; i++) {
+      var a = i * STEP - cur;
+      var s = Math.sin(a), c = Math.cos(a);
+      var d = (c + 1) / 2;                       /* 0 atrás · 1 delante */
+      var z = R * c;
+      var k = PERSP / (PERSP - z);               /* escala por perspectiva */
+      var x = R * s * k;
+      var y = (narrow ? 8 : 14) * (1 - d);       /* las lejanas caen un poco */
+
+      var op = Math.pow(d, 3.4);                 /* caida marcada: a mitad de paso la vecina ya cede */
+      var esc = (narrow ? 0.62 : 0.70) + (narrow ? 0.38 : 0.30) * d;
+
+      var el = cards[i];
+      el.style.transform = 'translate3d(' + (x - 0).toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) ' +
+                           'translate(-50%,-50%) scale(' + (k * esc).toFixed(3) + ')';
+      el.style.opacity = op.toFixed(3);
+      /* z-index real: por debajo de 10 pasa DETRÁS del cerebro */
+      var zi = c >= 0 ? 11 + Math.round(c * 8) : 9 - Math.round(-c * 8);
+      if (zi !== zPrev[i]) { el.style.zIndex = zi; zPrev[i] = zi; }
+      /* sólo la frontal es pulsable: las de atrás no deben robar el clic */
+      el.style.pointerEvents = d > 0.72 ? 'auto' : 'none';
+      el.setAttribute('tabindex', d > 0.72 ? '0' : '-1');
+      el.classList.toggle('is-front', false);   /* se decide despues, una sola */
+      if (d > frontD) { frontD = d; frontI = i; }
+    }
+    cards[frontI].classList.add('is-front');      /* exactamente una */
+    vivo(frontI);
+  }
+
+  /* ---------- dato en vivo dentro de la tarjeta frontal ---------- */
+  var ultimo = '';
+  function vivo(i) {
+    var s = null;
+    try { s = window.AIS && AIS.state ? AIS.state : null; } catch (e) {}
+    var txt = '—';
+    if (s) {
+      var sc = (s.score && typeof s.score.total === 'number') ? s.score.total : null;
+      txt = (s.current || '—') + ' · scroll ' + (s.scroll ? s.scroll.current : 0) + '%' +
+            (sc !== null ? ' · score ' + sc : '');
+    }
+    if (txt === ultimo) return;
+    ultimo = txt;
+    var el = cards[i] && cards[i].querySelector('[data-live]');
+    if (el) el.textContent = txt;
+  }
+
+  /* ---------- ciclo ---------- */
+  var vivoLoop = false, raf = 0;
+  function loop() { if (!vivoLoop) return; pintar(); raf = requestAnimationFrame(loop); }
+  function arrancar() {
+    if (vivoLoop || reduced || document.hidden) return;
+    vivoLoop = true; raf = requestAnimationFrame(loop);
+  }
+  function parar() { vivoLoop = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+  if (reduced) { host.classList.remove('is-orb'); return; }   /* rejilla legible */
+
+  host.classList.add('is-orb');
+  stage.classList.add('orb-on');
+  medir(); pintar();
+
+  new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) arrancar(); else { parar(); pintar(); } });
+  }, { rootMargin: '25% 0px' }).observe(stage);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) parar(); else arrancar();
+  });
+  addEventListener('resize', function () { medir(); pintar(); }, { passive: true });
 })();
 </script>
 </body>
