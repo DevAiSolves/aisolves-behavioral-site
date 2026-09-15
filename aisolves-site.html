@@ -1403,6 +1403,73 @@ html{overflow-x:clip}
 @media(max-width:860px){.plans{gap:22px;padding:8px 0 16px}.plan{transform:none!important}}
 @media(prefers-reduced-motion:reduce){.plan{transform:none!important}.plan-msg{animation:none}}
 </style>
+<style>
+/* ===== mod-scenes: narrativa por scroll ===== */
+.scene-sec{padding-bottom:0}
+.scene-sec>.wrap .sec-top{margin-bottom:0}
+
+/* --- SISTEMA: escenario negro a sangre, pegado mientras se recorre --- */
+.sys-scene{min-height:300vh;min-height:300svh;position:relative}
+.sys-pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
+  background:radial-gradient(1000px 600px at 50% 40%,rgba(255,255,255,.07),transparent 62%),linear-gradient(180deg,#0b0d12,#06070a 55%,#0a0c10);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+#sysCanvas{position:absolute;inset:0;width:100%;height:100%}
+.sys-phase{position:absolute;left:clamp(18px,4vw,64px);top:clamp(18px,3.5vw,44px);font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.62)}
+.sys-progress{position:absolute;left:0;right:0;top:0;height:2px;background:rgba(255,255,255,.08)}
+.sys-progress i{display:block;height:100%;width:0;background:#fff;transition:width .12s linear}
+.sys-meta{position:absolute;left:clamp(18px,4vw,64px);top:clamp(52px,7vw,84px);font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.9;color:rgba(255,255,255,.55);pointer-events:none;max-width:44%}
+.sys-meta div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:sysIn .45s ease both}
+@keyframes sysIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.sys-cards{position:absolute;left:clamp(18px,4vw,64px);right:clamp(18px,4vw,64px);bottom:clamp(18px,3.5vw,44px);pointer-events:none}
+.sys-cards .grid3{display:block;border:0;background:none;position:relative;min-height:170px}
+.sys-cards .cell{position:absolute;left:0;bottom:0;width:min(440px,100%);padding:20px 22px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(9,11,14,.62);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:#fff;
+  box-shadow:0 0 0 8px rgba(255,255,255,.03),0 0 0 9px rgba(255,255,255,.09),0 30px 70px rgba(0,0,0,.55);
+  opacity:0;transform:translateY(18px);transition:opacity .5s,transform .6s cubic-bezier(.16,1,.3,1);pointer-events:auto}
+.sys-cards .cell.is-on{opacity:1;transform:none}
+.sys-cards .cell .cn{color:rgba(255,255,255,.55)}
+.sys-cards .cell h3{color:#fff;font-size:18px;margin:10px 0 8px}
+.sys-cards .cell .lead{color:rgba(255,255,255,.66);font-size:12.5px;margin-bottom:12px}
+.sys-cards .cell li{color:rgba(255,255,255,.72);font-size:10.5px}
+.sys-cards .cell li:before{color:#fff}
+@media(max-width:719px){
+  .sys-meta{display:none}
+  .sys-cards .cell{width:100%;padding:14px 16px}
+  .sys-cards .cell ul{display:none}
+}
+
+/* --- MÉTODO: fases que se aprueban al recorrer --- */
+.met-scene{min-height:220vh;min-height:220svh;position:relative}
+.met-pin{position:sticky;top:0;min-height:100vh;min-height:100svh;display:flex;align-items:center;padding:40px 0}
+.met-pin>.wrap{width:100%}
+.met-progress{position:absolute;left:0;right:0;top:0;height:2px;background:var(--line)}
+.met-progress i{display:block;height:100%;width:0;background:var(--ink);transition:width .12s linear}
+.met-pin .phases{border:0;background:none;gap:22px;perspective:1200px}
+.met-pin .phase{position:relative;color:#fff;border:1px solid rgba(255,255,255,.14)!important;
+  background:linear-gradient(180deg,rgba(14,16,20,.94),rgba(8,9,12,.97));
+  box-shadow:0 0 0 8px rgba(255,255,255,.03),0 0 0 9px rgba(255,255,255,.09),0 40px 90px rgba(13,16,23,.32);
+  padding-bottom:64px;transition:box-shadow .5s,transform .6s cubic-bezier(.16,1,.3,1);transform:translateY(10px);opacity:.55}
+.met-pin .phase.is-active{opacity:1;transform:none;border-color:rgba(255,255,255,.3)!important}
+.met-pin .phase.is-approved{opacity:1;transform:none;border-color:rgba(31,170,90,.55)!important;
+  box-shadow:0 0 0 8px rgba(31,170,90,.05),0 0 0 9px rgba(31,170,90,.35),0 40px 90px rgba(13,16,23,.32)}
+.met-pin .phase .ph{color:rgba(255,255,255,.45)}
+.met-pin .phase h3{color:#fff}
+.met-pin .phase .goal{color:rgba(255,255,255,.7)}
+.met-pin .phase p{color:rgba(255,255,255,.5);display:flex;gap:10px;align-items:flex-start;transition:color .35s}
+.met-pin .phase p b{color:rgba(255,255,255,.7);transition:color .35s}
+.met-pin .phase p.is-ok{color:rgba(255,255,255,.82)}
+.met-pin .phase p.is-ok b{color:#fff}
+.met-dot{flex:none;width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);margin-top:3px;transition:border-color .3s,background .3s,box-shadow .3s}
+p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgba(31,170,90,.7)}
+.met-stamp{position:absolute;left:30px;right:30px;bottom:20px;display:flex;align-items:center;gap:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.met-lamp{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);flex:none;transition:all .35s}
+.is-active .met-lamp{border-color:#e0a400;background:#e0a400;box-shadow:0 0 12px rgba(224,164,0,.6)}
+.is-approved .met-lamp{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 14px rgba(31,170,90,.75)}
+.is-approved .met-txt{color:#fff}
+@media(max-width:860px){.met-pin .phases{grid-template-columns:1fr;gap:14px}.met-pin .phase{padding:22px 22px 60px;border-right:1px solid rgba(255,255,255,.14)!important}.met-scene{min-height:260svh}}
+@media(prefers-reduced-motion:reduce){.sys-cards .cell,.met-pin .phase{transition:none}}
+</style>
 </head>
 <body>
 
@@ -1509,23 +1576,32 @@ html{overflow-x:clip}
 </section>
 
 <!-- SISTEMA -->
-<section class="sec wrap" id="sistema" data-sec="Sistema">
-  <div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento.</p></div></div>
-  <div class="grid3">
+<section class="sec scene-sec" id="sistema" data-sec="Sistema">
+  <div class="wrap"><div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento. Recorre la sección: la metadata viaja al cerebro, se puntúa y activa los píxeles.</p></div></div></div>
+  <div class="sys-scene"><div class="sys-pin">
+    <canvas id="sysCanvas" aria-hidden="true"></canvas>
+    <div class="sys-phase">01 · captura · guardando metadata</div>
+    <div class="sys-meta" id="sysMeta" aria-live="polite"></div>
+    <div class="sys-progress"><i></i></div>
+    <div class="sys-cards"><div class="grid3">
     <div class="cell"><div class="cn">01 / Captura</div><h3>Absorción de metadata</h3><div class="lead">Cada sección y bloque emite eventos estructurados. Medimos la señal, nunca lo que la persona escribe.</div><ul><li>Observers por sección y bloque</li><li>Metadata de formularios sin leer valores</li><li>Velocidad de scroll y relectura</li><li>Fricción: rage click, exit intent</li></ul></div>
     <div class="cell"><div class="cn">02 / Puntuación</div><h3>Lead scoring conductual</h3><div class="lead">Un motor en cuatro dimensiones convierte el ruido en un número de 0 a 100 y una banda accionable.</div><ul><li>Intención 0-40 · Engagement 0-25</li><li>Fit 0-20 · Identidad 0-15</li><li>COLD → WARM → HOT → MQL → SQL</li><li>Histórico con causa de cada salto</li></ul></div>
     <div class="cell"><div class="cn">03 / Activación</div><h3>Píxeles y CAPI</h3><div class="lead">El mismo event_id viaja por navegador y servidor. Meta deduplica y se queda con la mejor señal.</div><ul><li>Meta Pixel + Conversions API</li><li>Consent Mode v2 + GA4 server-side</li><li>TikTok Events API · LinkedIn</li><li>PII hasheada SHA-256 en origen</li></ul></div>
-  </div>
+  </div></div>
+  </div></div>
 </section>
 
 <!-- METODO -->
-<section class="sec wrap" id="metodo" data-sec="Método">
-  <div class="sec-top"><div class="st-l"><h2>Método</h2><p class="sub2">90 días para que el sistema decida por ti.</p></div></div>
-  <div class="phases">
+<section class="sec scene-sec" id="metodo" data-sec="Método">
+  <div class="wrap"><div class="sec-top"><div class="st-l"><h2>Método</h2><p class="sub2">90 días para que el sistema decida por ti. Cada fase se aprueba con lo que el sistema ya midió de tu visita.</p></div></div></div>
+  <div class="met-scene"><div class="met-pin">
+    <div class="met-progress"><i></i></div>
+    <div class="wrap"><div class="phases">
     <div class="phase"><div class="ph">Semanas 1–3</div><h3>Instrumentación</h3><div class="goal">Que el negocio empiece a ver.</div><p><b>Auditoría de pérdida de señal</b> entre navegador y servidor.</p><p><b>Taxonomía de eventos</b> única para todos los canales.</p><p><b>Data layer y CAPI</b> deduplicados con Consent Mode v2.</p></div>
     <div class="phase"><div class="ph">Semanas 4–7</div><h3>Ignición</h3><div class="goal">Convertir datos en conversaciones.</div><p><b>Activos de viralidad</b> sobre las objeciones que revelan los datos.</p><p><b>Campañas de intención</b> con audiencias conductuales.</p><p><b>WhatsApp como canal</b> con detección de intención.</p></div>
     <div class="phase"><div class="ph">Semanas 8–12</div><h3>Escala</h3><div class="goal">Que el sistema decida solo.</div><p><b>Enrutamiento automático</b>: SQL a llamada en &lt;15 min.</p><p><b>Retargeting secuencial</b> por etapa.</p><p><b>Onboarding</b> de las primeras 48-72 h, medido.</p></div>
-  </div>
+  </div></div>
+  </div></div>
 </section>
 
 <!-- PAQUETES -->
@@ -4625,6 +4701,256 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
     c.addEventListener('pointerleave',function(){ c.style.setProperty('--py','0deg'); c.style.setProperty('--px','0deg'); });
   });
 })();
+</script>
+<!-- ===== script mod-scenes ===== -->
+<script>
+/* ==========================================================================
+   mod-scenes — narrativa por scroll.
+   SISTEMA: motion graphics en canvas. Las fuentes de señal emiten metadata
+   que viaja al cerebro (captura), el cerebro puntúa (análisis) y dispara los
+   píxeles y CAPI (activación). Todo ligado al progreso del scroll.
+   MÉTODO: cada fase se aprueba con lámparas verdes según los datos reales
+   que el sistema ha ido capturando (AIS.state).
+   ========================================================================== */
+(function(){
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function A(){ return window.AIS && window.AIS.state ? window.AIS.state : null; }
+  function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+  function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  // progreso 0..1 de una escena pegajosa: 0 al entrar por arriba, 1 al soltarse
+  function progressOf(section){
+    var r = section.getBoundingClientRect();
+    var total = Math.max(1, r.height - innerHeight);
+    return clamp(-r.top / total, 0, 1);
+  }
+
+  /* ======================= SISTEMA ======================= */
+  var sys = document.getElementById('sistema');
+  var cv  = document.getElementById('sysCanvas');
+  if(sys && cv){
+    var ctx = cv.getContext('2d'), W=0, H=0, dpr=1, vertical=false;
+    var SOURCES = ['scroll','cursor','tiempo por etapa','clics','formulario'];
+    var OUTS    = ['Meta Pixel','Conversions API','GA4 · Consent v2','TikTok · LinkedIn'];
+    var particles = [], pulses = [], tokens = [], tokenN = 0, lastSpawn = 0, t = 0;
+    var cards = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
+    var metaEl = document.getElementById('sysMeta'), progEl = sys.querySelector('.sys-progress i');
+    var phaseEl = sys.querySelector('.sys-phase');
+    var P = 0, run = false, raf = 0, vis = false;
+
+    function size(){
+      dpr = Math.min(devicePixelRatio||1, 2);
+      var r = cv.getBoundingClientRect(); W = Math.max(1, r.width|0); H = Math.max(1, r.height|0);
+      cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+      vertical = W < 720;
+    }
+    // geometría: fuentes → cerebro → salidas
+    function geo(){
+      var g = {};
+      if(!vertical){
+        g.brain = {x: W*0.5, y: H*0.44, r: Math.min(W,H)*0.11};
+        g.src = SOURCES.map(function(s,i){ return {x: W*0.12, y: H*(0.22 + i*0.13), label:s}; });
+        g.out = OUTS.map(function(s,i){ return {x: W*0.88, y: H*(0.26 + i*0.14), label:s}; });
+      } else {
+        g.brain = {x: W*0.5, y: H*0.47, r: Math.min(W,H)*0.13};
+        g.src = SOURCES.map(function(s,i){ return {x: W*(0.14 + i*0.18), y: H*0.12, label:s}; });
+        g.out = OUTS.map(function(s,i){ return {x: W*(0.17 + i*0.22), y: H*0.85, label:s}; });
+      }
+      return g;
+    }
+    function bez(a,b,k){ // punto k (0..1) sobre una curva suave entre a y b
+      var cx1 = vertical ? a.x : a.x + (b.x-a.x)*0.5, cy1 = vertical ? a.y + (b.y-a.y)*0.5 : a.y;
+      var cx2 = vertical ? b.x : a.x + (b.x-a.x)*0.5, cy2 = vertical ? a.y + (b.y-a.y)*0.5 : b.y;
+      var u=1-k;
+      return { x: u*u*u*a.x + 3*u*u*k*cx1 + 3*u*k*k*cx2 + k*k*k*b.x,
+               y: u*u*u*a.y + 3*u*u*k*cy1 + 3*u*k*k*cy2 + k*k*k*b.y };
+    }
+    function path(a,b){
+      ctx.beginPath(); ctx.moveTo(a.x,a.y);
+      if(!vertical) ctx.bezierCurveTo(a.x+(b.x-a.x)*0.5, a.y, a.x+(b.x-a.x)*0.5, b.y, b.x, b.y);
+      else ctx.bezierCurveTo(a.x, a.y+(b.y-a.y)*0.5, b.x, a.y+(b.y-a.y)*0.5, b.x, b.y);
+      ctx.stroke();
+    }
+    function mono(size){ ctx.font = size+'px "IBM Plex Mono", ui-monospace, monospace'; }
+
+    function tokenLabel(){
+      var s = A(); var pool;
+      if(s && s.events && s.events.length){
+        var e = s.events[(tokenN) % s.events.length];
+        pool = [(e.type||'evento')+' · '+(e.label||''), 'scroll '+s.scroll.current+'%', 'cursor '+s.cursor.speed+'px/s', 'etapa '+(s.current||'—')];
+      } else pool = ['scroll 62%','dwell 4.1s · Paquetes','hover · Engine','cursor 340px/s','relectura · Sistema','exit-intent'];
+      return pool[tokenN % pool.length];
+    }
+
+    function frame(){
+      if(!run) return;
+      t += 0.016;
+      P = progressOf(sys);
+      var g = geo();
+      var pCap = clamp(P/0.42, 0, 1);               // 0 → .42  captura
+      var pSco = clamp((P-0.30)/0.38, 0, 1);        // .30 → .68 puntuación
+      var pAct = clamp((P-0.60)/0.40, 0, 1);        // .60 → 1   activación
+      var phase = P < 0.33 ? 0 : P < 0.66 ? 1 : 2;
+
+      ctx.clearRect(0,0,W,H);
+
+      // --- rutas de captura (se dibujan progresivamente) ---
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,'+(0.10+0.18*pCap).toFixed(3)+')';
+      g.src.forEach(function(s){ path(s, g.brain); });
+      // --- rutas de activación ---
+      ctx.strokeStyle = 'rgba(255,255,255,'+(0.06+0.22*pAct).toFixed(3)+')';
+      g.out.forEach(function(o){ path(g.brain, o); });
+
+      // --- fuentes ---
+      mono(11);
+      g.src.forEach(function(s,i){
+        var on = pCap > i/SOURCES.length;
+        ctx.fillStyle = on ? '#fff' : 'rgba(255,255,255,.28)';
+        ctx.beginPath(); ctx.arc(s.x, s.y, on?4:3, 0, Math.PI*2); ctx.fill();
+        if(on){ ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(s.x,s.y,9+Math.sin(t*3+i)*1.5,0,Math.PI*2); ctx.stroke(); }
+        ctx.fillStyle = on ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.35)';
+        ctx.textAlign = vertical ? 'center' : 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(s.label, vertical ? s.x : s.x-14, vertical ? s.y-16 : s.y);
+      });
+
+      // --- partículas de metadata: nacen en las fuentes y llegan al cerebro ---
+      if(pCap > 0.02 && pCap < 1 && !reduced && t - lastSpawn > 0.09){
+        lastSpawn = t; var si = (Math.random()*SOURCES.length)|0;
+        if(pCap > si/SOURCES.length) particles.push({s:si, k:0, v:0.010+Math.random()*0.008});
+      }
+      ctx.fillStyle = '#fff';
+      for(var i=particles.length-1;i>=0;i--){
+        var pt = particles[i]; pt.k += pt.v;
+        if(pt.k >= 1){ particles.splice(i,1); tokenN++;
+          tokens.unshift(tokenLabel()); if(tokens.length>7) tokens.pop();
+          if(metaEl) metaEl.innerHTML = tokens.map(function(x,j){ return '<div style="opacity:'+(1-j*0.12).toFixed(2)+'">'+x+'</div>'; }).join('');
+          continue; }
+        var q = bez(g.src[pt.s], g.brain, pt.k);
+        ctx.globalAlpha = 0.35 + 0.65*pt.k;
+        ctx.beginPath(); ctx.arc(q.x, q.y, 2.2, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // --- cerebro: núcleo + anillo de score ---
+      var b = g.brain, R = b.r;
+      var grad = ctx.createRadialGradient(b.x, b.y, R*0.2, b.x, b.y, R*1.8);
+      grad.addColorStop(0, 'rgba(255,255,255,'+(0.10+0.10*pSco).toFixed(3)+')'); grad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(b.x,b.y,R*1.8,0,Math.PI*2); ctx.fill();
+      // hemisferios: dos arcos con pliegues
+      ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2;
+      for(var h=-1; h<=1; h+=2){
+        ctx.beginPath();
+        for(var a=0; a<=Math.PI*2; a+=0.05){
+          var rr = R*0.62 + Math.sin(a*7 + t*1.4)*R*0.05 + Math.sin(a*13)*R*0.025;
+          var x = b.x + h*R*0.34 + Math.cos(a)*rr*0.72, y = b.y + Math.sin(a)*rr;
+          if(a===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+      // anillo del score
+      var s = A(); var target = (s && s.consent && s.score) ? s.score.total : 64;
+      var score = Math.round(target * ease(pSco));
+      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.14)';
+      ctx.beginPath(); ctx.arc(b.x,b.y,R*1.18,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(b.x,b.y,R*1.18,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke();
+      ctx.lineCap='butt';
+      mono(Math.round(R*0.42)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(pSco>0 ? String(score) : '—', b.x, b.y + R*1.62);
+      mono(10); ctx.fillStyle='rgba(255,255,255,.5)';
+      var band = score>=80?'SQL':score>=65?'HOT':score>=45?'WARM':score>=25?'MQL':'COLD';
+      ctx.fillText(pSco>0 ? 'score · '+band : 'esperando metadata', b.x, b.y + R*1.62 + R*0.36);
+
+      // --- activación: pulsos hacia píxeles y CAPI ---
+      if(pAct > 0.02 && !reduced && t - lastSpawn > 0.06 && Math.random() < 0.5){
+        lastSpawn = t; pulses.push({o:(Math.random()*OUTS.length)|0, k:0, v:0.012+Math.random()*0.008});
+      }
+      for(var j=pulses.length-1;j>=0;j--){
+        var pu = pulses[j]; pu.k += pu.v;
+        if(pu.k>=1){ pulses.splice(j,1); continue; }
+        var q2 = bez(b, g.out[pu.o], pu.k);
+        ctx.fillStyle = 'rgba(31,170,90,'+(0.4+0.6*pu.k).toFixed(2)+')';
+        ctx.beginPath(); ctx.arc(q2.x,q2.y,2.4,0,Math.PI*2); ctx.fill();
+      }
+      mono(11);
+      g.out.forEach(function(o,i){
+        var on = pAct > (i+0.5)/OUTS.length;
+        ctx.strokeStyle = on ? '#1faa5a' : 'rgba(255,255,255,.3)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(o.x,o.y,7,0,Math.PI*2); ctx.stroke();
+        if(on){ ctx.fillStyle='#1faa5a'; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill();
+          ctx.shadowColor='rgba(31,170,90,.8)'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
+        ctx.fillStyle = on ? '#fff' : 'rgba(255,255,255,.4)';
+        ctx.textAlign = vertical ? 'center' : 'left'; ctx.textBaseline='middle';
+        ctx.fillText(o.label, vertical ? o.x : o.x+16, vertical ? o.y+18 : o.y);
+        if(on){ ctx.fillStyle='rgba(31,170,90,.9)'; mono(9);
+          ctx.fillText('event_id ✓ dedup', vertical ? o.x : o.x+16, vertical ? o.y+32 : o.y+14); mono(11); }
+      });
+
+      // --- tarjetas: una por fase ---
+      cards.forEach(function(c,i){ c.classList.toggle('is-on', i===phase); });
+      if(progEl) progEl.style.width = (P*100).toFixed(1)+'%';
+      if(phaseEl) phaseEl.textContent = ['01 · captura · guardando metadata','02 · puntuación · análisis de la data','03 · activación · píxeles y CAPI'][phase];
+
+      if(run) raf = requestAnimationFrame(frame);
+    }
+    function start(){ if(run||document.hidden||!vis) return; run=true; size(); raf=requestAnimationFrame(frame); }
+    function stop(){ run=false; if(raf) cancelAnimationFrame(raf); raf=0; }
+    addEventListener('resize', function(){ if(run) size(); }, {passive:true});
+    document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
+    new IntersectionObserver(function(es){ es.forEach(function(e){ vis=e.isIntersecting; if(vis) start(); else stop(); }); },{threshold:0.02}).observe(sys);
+    // Robustez: no dependemos del IntersectionObserver ni de rAF sostenido (que
+    // el navegador estrangula en pestañas no pintadas). Una comprobación de
+    // geometría en el scroll dispara un fotograma, así el relato siempre cuadra.
+    function nearView(){ var r=sys.getBoundingClientRect(); return r.bottom>0 && r.top<innerHeight; }
+    addEventListener('scroll', function(){ if(document.hidden || !nearView()) return; if(W===0) size(); requestAnimationFrame(frame); }, {passive:true});
+    size();
+  }
+
+  /* ======================= MÉTODO ======================= */
+  var met = document.getElementById('metodo');
+  if(met){
+    var phases = [].slice.call(met.querySelectorAll('.phase'));
+    var items = [];
+    phases.forEach(function(ph,i){
+      // lámpara + sello de aprobación por fase
+      var stamp = document.createElement('div'); stamp.className='met-stamp';
+      stamp.innerHTML = '<i class="met-lamp"></i><span class="met-txt">pendiente</span>';
+      ph.appendChild(stamp);
+      ph.querySelectorAll('p').forEach(function(p,j){
+        var lamp = document.createElement('i'); lamp.className='met-dot'; p.insertBefore(lamp, p.firstChild);
+        items.push({el:p, lamp:lamp, ph:i, j:j});
+      });
+    });
+    var total = items.length, metProg = met.querySelector('.met-progress i');
+    function evidence(i){
+      var s = A();
+      var n = s ? s.signals : 0, ev = s && s.events ? s.events.length : 0, sc = s && s.score ? s.score.total : 0;
+      return [ 'aprobado · '+ev+' eventos capturados', 'aprobado · score '+sc+' · '+n+' señales', 'aprobado · enrutamiento activo' ][i];
+    }
+    var lastK = -1;
+    function tick(){
+      var P = progressOf(met);
+      var k = Math.floor(P * (total + 1));            // ítems aprobados hasta ahora
+      if(k !== lastK){
+        lastK = k;
+        items.forEach(function(it,idx){ it.el.classList.toggle('is-ok', idx < k); });
+        phases.forEach(function(ph,i){
+          var mine = items.filter(function(it){ return it.ph===i; });
+          var done = mine.every(function(it){ return items.indexOf(it) < k; });
+          ph.classList.toggle('is-approved', done);
+          ph.classList.toggle('is-active', !done && mine.some(function(it){ return items.indexOf(it) < k; }) || (!done && i===0 && k>0 && !phases[0].classList.contains('is-approved')));
+          var txt = ph.querySelector('.met-txt'); if(txt) txt.textContent = done ? evidence(i) : (ph.classList.contains('is-active') ? 'validando…' : 'pendiente');
+        });
+      }
+      if(metProg) metProg.style.width = (P*100).toFixed(1)+'%';
+    }
+    var on=false;
+    function loop(){ if(!on) return; tick(); requestAnimationFrame(loop); }
+    new IntersectionObserver(function(es){ es.forEach(function(e){ on=e.isIntersecting && !document.hidden; if(on) requestAnimationFrame(loop); }); },{threshold:0.02}).observe(met);
+    document.addEventListener('visibilitychange', function(){ if(document.hidden) on=false; });
+    tick();
+  }
+})();
+
 </script>
 </body>
 </html>
