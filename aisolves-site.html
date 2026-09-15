@@ -2434,6 +2434,60 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   .be-ring b{font-size:17px!important}
 }
 </style>
+<style>
+/* ===== cifras-con-diseno =====
+   Las tres cifras del bloque de datos pasan de número suelto a dato explicado:
+   cada una lleva su índice y una micro-visualización que dice lo mismo en
+   forma. En pantalla estrecha desaparecen las celdas de relleno, que se
+   convertían en bloques vacíos grandes. ===== */
+#servicios .svx-c--data{position:relative;padding:20px 20px 18px!important;
+  display:flex;flex-direction:column;gap:0;transition:background .3s}
+#servicios .svx-c--data:hover{background:rgba(47,197,177,.035)}
+#servicios .svx-ix{position:absolute;top:13px;right:15px;font-family:"IBM Plex Mono",monospace;
+  font-size:8.5px;letter-spacing:.2em;color:var(--ink-3)}
+#servicios .svx-c--data .svx-k{margin-top:4px}
+#servicios .svx-viz{display:block;margin-top:15px}
+
+/* 01 · ocho marcas, el mismo lenguaje que el indicador de pasos */
+.svx-viz--ticks{display:flex!important;gap:5px;align-items:flex-end;height:16px}
+.svx-viz--ticks i{display:block;width:10px;height:10px;background:var(--ink-3);opacity:.32;
+  transition:opacity .4s,background .4s,height .4s}
+.svx-c--data:hover .svx-viz--ticks i{opacity:.85}
+.svx-viz--ticks i:nth-child(-n+3){background:var(--ink);opacity:.9;height:16px}
+
+/* 02 · la escala con las cinco bandas reales del sistema */
+.svx-viz--scale{display:block}
+.svx-bands{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;height:7px}
+.svx-bands i{display:block;background:var(--ink-3);opacity:.28;transition:opacity .4s}
+.svx-bands i[data-b="mql"]{opacity:.42}
+.svx-bands i[data-b="warm"]{background:var(--hold);opacity:.5}
+.svx-bands i[data-b="hot"]{background:var(--teal);opacity:.62}
+.svx-bands i[data-b="sql"]{background:var(--teal-ink);opacity:.92}
+.svx-c--data:hover .svx-bands i{opacity:1}
+.svx-blab{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:6px}
+.svx-blab em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:center}
+
+/* 03 · la ventana 48-72 sobre un eje de 0 a 96 h */
+.svx-viz--range{display:block}
+.svx-axis{display:block;position:relative;height:7px;background:var(--line-2);overflow:hidden}
+.svx-win{position:absolute;top:0;bottom:0;left:50%;width:25%;background:var(--teal);
+  opacity:.75;transition:opacity .4s}      /* 48/96 = 50% · (72-48)/96 = 25% */
+.svx-c--data:hover .svx-win{opacity:1}
+.svx-ticks{display:flex;justify-content:space-between;margin-top:6px}
+.svx-ticks em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7.5px;
+  letter-spacing:.08em;color:var(--ink-3)}
+
+/* pantalla estrecha: fuera las celdas de relleno, que quedaban como huecos grandes */
+@media(max-width:860px){
+  #servicios .svx-c:not(.svx-c--data){display:none!important}
+  #servicios .svx-mods{grid-template-columns:1fr!important}
+  #servicios .svx-c--data{grid-column:1 / -1!important;padding:18px 18px 16px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #servicios .svx-c--data,.svx-viz--ticks i,.svx-bands i,.svx-win{transition:none}
+}
+</style>
 </head>
 <body>
 
@@ -2596,24 +2650,36 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
     <div class="svx-right">
       <div class="svx-mods" role="group" aria-label="Datos del sistema">
         <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-ix">01</span>
           <span class="svx-n">8</span>
           <span class="svx-k">Etapas medidas por visita</span>
+          <span class="svx-viz svx-viz--ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
         </div>
         <div class="svx-c" aria-hidden="true"></div>
         <div class="svx-c svx-c--hatch" aria-hidden="true"></div>
 
         <div class="svx-c svx-c--mhide" aria-hidden="true"></div>
         <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-ix">02</span>
           <span class="svx-n">0-100</span>
           <span class="svx-k">Score de comportamiento</span>
+          <span class="svx-viz svx-viz--scale" aria-hidden="true">
+            <span class="svx-bands"><i data-b="cold"></i><i data-b="mql"></i><i data-b="warm"></i><i data-b="hot"></i><i data-b="sql"></i></span>
+            <span class="svx-blab"><em>cold</em><em>mql</em><em>warm</em><em>hot</em><em>sql</em></span>
+          </span>
         </div>
         <div class="svx-c svx-c--mhide" aria-hidden="true"></div>
 
         <div class="svx-c svx-c--hatch" aria-hidden="true"></div>
         <div class="svx-c" aria-hidden="true"></div>
         <div class="svx-c svx-c--data svx-c--w2">
+          <span class="svx-ix">03</span>
           <span class="svx-n">48-72 <i>h</i></span>
           <span class="svx-k">Onboarding de alta activación</span>
+          <span class="svx-viz svx-viz--range" aria-hidden="true">
+            <span class="svx-axis"><i class="svx-win"></i></span>
+            <span class="svx-ticks"><em>0</em><em>48</em><em>72</em><em>96 h</em></span>
+          </span>
         </div>
       </div>
     </div>
