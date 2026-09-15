@@ -2807,6 +2807,46 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 @media(max-width:720px){#pie .pie-orb{width:96px!important;margin:4px 0 0}}
 </style>
+<style>
+/* ===== hud-resumido =====
+   Era demasiada información. Quedan dos tarjetas: score con canal de entrada,
+   y micro-métricas con el control porcentual. Fondos al 1% de negro sobre el
+   propio cristal del panel. La línea "comportamiento, nunca contenido" sube al
+   encabezado, que es donde importa leerla. ===== */
+#hud .hud-a-rail,#hud .hud-a-know,#hud .hud-a-hon{display:none!important}
+#hud .hud-body{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  grid-template-areas:"score metrics"!important;
+  gap:18px!important;padding:16px 26px 8px!important}
+@media(max-width:860px){
+  #hud .hud-body{grid-template-columns:1fr!important;grid-template-areas:"score" "metrics"!important;
+    gap:12px!important;padding:12px 16px!important}
+}
+/* fondos transparentes: 1% de negro, sin cajas que compitan */
+#hud .hud-box{background:rgba(0,0,0,.01)!important;border-color:rgba(255,255,255,.09)!important}
+#hud .hud-lamps{background:rgba(0,0,0,.01)!important}
+#hud .hud-ch{background:rgba(0,0,0,.01)!important}
+#hud .hud-ringin{background:radial-gradient(circle at 40% 32%,rgba(255,255,255,.06),rgba(0,0,0,.14) 72%)!important}
+
+/* la etiqueta y su nota salían pegadas: "CANAL DE ENTRADAdirecto" */
+#hud .hud-src>.hud-k{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#hud .hud-src>.hud-k em{text-align:right;min-width:0}
+
+/* ---- control de tracking: sólo porcentajes ---- */
+#hud .hud-pct{display:flex;flex-direction:column;gap:7px;margin-top:11px;
+  padding-top:11px;border-top:1px solid rgba(255,255,255,.09)}
+#hud .hud-pr{display:grid;grid-template-columns:78px 1fr 34px;gap:9px;align-items:center}
+#hud .hud-pr span{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(255,255,255,.44);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hud .hud-pr i{display:block;height:4px;background:rgba(255,255,255,.10);overflow:hidden}
+#hud .hud-pr b{display:block;height:100%;width:0;background:#fff;
+  transition:width .5s cubic-bezier(.22,1,.36,1)}
+#hud .hud-pr em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  color:#fff;text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:860px){#hud .hud-pr{grid-template-columns:72px 1fr 32px}}
+@media(prefers-reduced-motion:reduce){#hud .hud-pr b{transition:none}}
+</style>
 </head>
 <body>
 
@@ -3566,7 +3606,7 @@ function loopNotes(){
 
         <header class="hud-head">
           <div class="hud-l" style="--hz:40px;--hd:.05s">
-            <div class="hud-eyebrow">AISOLVES · consentimiento de visita</div>
+            <div class="hud-eyebrow">AISOLVES · consentimiento de visita · COMPORTAMIENTO, NUNCA CONTENIDO</div>
             <h2 class="hud-title" id="hud-title">Esta web lee <b>cómo navegas</b>, no lo que escribes.</h2>
             <div class="hud-chips">
               <span class="hud-chip hud-mem" id="hud-mem"><i></i><span id="hud-memtext">solo memoria · nada se guarda hasta que aceptes</span></span>
@@ -3636,6 +3676,13 @@ function loopNotes(){
 
           <section class="hud-box hud-l hud-a-metrics" style="--hz:56px;--hd:.26s" aria-label="Micro-métricas en vivo">
             <div class="hud-k"><span>micro-métricas</span><em>en vivo · estimación</em></div>
+            <div class="hud-pct" aria-label="Control de tracking, sólo porcentajes">
+              <div class="hud-pr"><span>cobertura</span><i><b id="pct-cob"></b></i><em id="pct-cob-n">—</em></div>
+              <div class="hud-pr"><span>profundidad</span><i><b id="pct-pro"></b></i><em id="pct-pro-n">—</em></div>
+              <div class="hud-pr"><span>atención</span><i><b id="pct-ate"></b></i><em id="pct-ate-n">—</em></div>
+              <div class="hud-pr"><span>señal</span><i><b id="pct-sen"></b></i><em id="pct-sen-n">—</em></div>
+              <div class="hud-pr"><span>consentimiento</span><i><b id="pct-con"></b></i><em id="pct-con-n">—</em></div>
+            </div>
             <div class="hud-m">
               <div class="hud-k">velocidad del cursor <em>· últimos 20 ticks</em></div><div class="hud-v" id="hud-cv">—<small>px/s</small></div>
               <div class="hud-viz"><svg class="hud-spark" id="hud-spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="21" x2="100" y2="21"/><polyline id="hud-sparkline" points=""/></svg></div>
@@ -8080,6 +8127,49 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     if (document.hidden) parar(); else arrancar();
   });
   addEventListener('resize', function () { medir(); pintar(); }, { passive: true });
+})();
+</script>
+<!-- ===== script mod-pct ===== -->
+<script>
+/* Control de tracking en porcentajes, para leerlo de un vistazo. Todo sale de
+   AIS.state: nada estimado a ojo ni inventado. Si un dato no existe, queda en
+   guion en vez de en cero, que diría algo falso. */
+(function(){
+  'use strict';
+  if (!document.getElementById('pct-cob')) return;
+  function set(id, v){
+    var b = document.getElementById('pct-' + id), e = document.getElementById('pct-' + id + '-n');
+    if (!b || !e) return;
+    if (v === null || isNaN(v)) { b.style.width = '0%'; e.textContent = '—'; return; }
+    var p = Math.max(0, Math.min(100, Math.round(v)));
+    b.style.width = p + '%'; e.textContent = p + '%';
+  }
+  function pinta(){
+    var s = null;
+    try { s = window.AIS && AIS.state ? AIS.state : null; } catch(e){}
+    if (!s) { ['cob','pro','ate','sen','con'].forEach(function(k){ set(k, null); }); return; }
+
+    /* stages es un array de {id,name,index,status,enteredAt,dwell,depth,reads} */
+    var et = (s.stages && s.stages.length) ? s.stages : null;
+    if (et) {
+      var vistas = 0;
+      for (var i = 0; i < et.length; i++) {
+        if (et[i] && (et[i].status !== 'pending' || et[i].dwell > 0)) vistas++;
+      }
+      set('cob', (vistas / et.length) * 100);
+    } else set('cob', null);
+
+    set('pro', s.scroll && typeof s.scroll.depth === 'number' ? s.scroll.depth : null);
+
+    /* atención = tiempo con la pestaña visible sobre el tiempo total */
+    set('ate', (s.seconds > 0 && typeof s.attention === 'number')
+                 ? (s.attention / s.seconds) * 100 : null);
+
+    set('sen', s.score && typeof s.score.total === 'number' ? s.score.total : null);
+    set('con', s.consent ? 100 : 0);
+  }
+  pinta();
+  setInterval(pinta, 900);
 })();
 </script>
 </body>
