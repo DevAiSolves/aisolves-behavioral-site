@@ -7083,6 +7083,14 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     var reduced = !!(mqRM && mqRM.matches);
 
     var W = 0, H = 0, DPR = 1, ang = reduced ? 0.85 : 0.0;
+    var drift = 0;                       /* deriva lenta propia, para que nunca quede congelada */
+    var TURNS = 1.45;                    /* vueltas que da al recorrer su tramo de scroll */
+    /* progreso del propio lienzo: 0 cuando entra por abajo, 1 cuando sale por arriba */
+    function scrollProg(){
+      var r = canvas.getBoundingClientRect(), vh = window.innerHeight || 1;
+      var p = 1 - (r.top + r.height) / (vh + r.height);
+      return p < 0 ? 0 : (p > 1 ? 1 : p);
+    }
     var g = null, built = 0, raf = 0, running = false, inView = false, last = 0;
     var dead = false, wanted = true;
 
@@ -7106,7 +7114,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     function countFor() {
       if (fixed) return fixed;
       var vw = window.innerWidth || document.documentElement.clientWidth || 1024;
-      return vw < 720 ? 1700 : 4400;  /* densidad alta: la nube gana cuerpo y volumen */
+      return vw < 720 ? 2400 : 6000;  /* densidad alta: la nube gana cuerpo y volumen */
     }
 
     function build() {
@@ -7136,7 +7144,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       var R  = Math.min(W, H) * (userScale || g.scale);
       /* con 900 puntos (pantalla estrecha) el punto engorda un poco: la nube
          mantiene cuerpo sin subir el coste de dibujo */
-      var dens  = Math.min(1.35, Math.sqrt(4400 / (built || 4400)));
+      var dens  = Math.min(1.35, Math.sqrt(6000 / (built || 6000)));
       var sizeK = Math.max(0.85, Math.min(1.45, R / 150)) * dens;
 
       /* cuanto se mueve la nube ahora mismo: giro propio + empuje del scroll.
@@ -7200,8 +7208,11 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       if (!running) return;
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
       last = now;
-      ang += dt * speed * (1 + SCROLLV * 2.1);   /* el scroll acelera el giro */
-      SCROLLV -= SCROLLV * Math.min(1, dt * 2.2); /* y decae suave al parar */
+      /* el movimiento lo manda el scroll: la posicion del lienzo en pantalla
+         fija el angulo. Encima, una deriva lenta para que respire parada. */
+      drift += dt * speed * 0.30;
+      ang = drift + scrollProg() * TAU * TURNS;
+      SCROLLV -= SCROLLV * Math.min(1, dt * 2.2); /* solo alimenta el grosor */
       if (g.dyn) g.dyn(ang * 3.0);       /* los anillos giran más rápido que el conjunto */
       draw();
       annotate();
