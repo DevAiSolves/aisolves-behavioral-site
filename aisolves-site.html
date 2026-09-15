@@ -7980,7 +7980,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   var SPAN = STEP * (N - 1);
 
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var cards = [], zPrev = [], W = 0, H = 0, R = 0, PERSP = 700, narrow = false;
+  var cards = [], zPrev = [], W = 0, H = 0, R = 0, PERSP = 700, narrow = false, PUSH = 0;
 
   /* ---------- construir ---------- */
   var frag = document.createDocumentFragment();
@@ -8033,6 +8033,14 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     host.style.setProperty('--oy', narrow ? '74%' : '80%');
     /* Radio: en estrecho se encoge para que la vecina quepa en pantalla. */
     R = narrow ? Math.max(84, W * 0.20) : Math.max(210, Math.min(430, W * 0.30));
+    /* Empuje hacia abajo: se pide ~3 cm (113px a 96 ppp), pero se recorta a lo
+       que realmente cabe. En pantallas bajas un empuje fijo expulsaba las seis
+       tarjetas fuera del escenario. */
+    var oyPx = H * (narrow ? 0.74 : 0.80);
+    var alto = (cards[0] && cards[0].offsetHeight) ? cards[0].offsetHeight : 230;
+    var margen = 14;
+    var libre = H - margen - oyPx - alto / 2;
+    PUSH = Math.max(0, Math.min(113, libre));   /* los 3 cm pedidos; 'libre' evita que se salgan */
     PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
   }
 
@@ -8072,7 +8080,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       var z = R * c;
       var k = PERSP / (PERSP - z);               /* escala por perspectiva */
       var x = R * s * k;
-      var y = (narrow ? 8 : 14) * (1 - d);       /* las lejanas caen un poco */
+      var y = PUSH + (narrow ? 8 : 14) * (1 - d);   /* las lejanas caen un poco más */
 
       var op = Math.pow(d, 3.4);                 /* caida marcada: a mitad de paso la vecina ya cede */
       var esc = (narrow ? 0.62 : 0.70) + (narrow ? 0.38 : 0.30) * d;
