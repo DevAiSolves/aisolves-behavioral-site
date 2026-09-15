@@ -1471,23 +1471,48 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
 @media(prefers-reduced-motion:reduce){.sys-cards .cell,.met-pin .phase{transition:none}}
 </style>
 <style>
-/* ===== cerebro maestro (Higgsfield) atado al scroll ===== */
-.sys-pin{perspective:1400px;perspective-origin:50% 42%}
-.brain-master{position:absolute;left:50%;top:44%;z-index:1;pointer-events:none;
-  width:min(74vw,860px);max-height:82vh;object-fit:contain;
-  transform:translate(-50%,-50%) rotateY(var(--brY,0deg)) scale(var(--brS,1));
-  filter:brightness(var(--brB,1)) contrast(1.05);opacity:var(--brO,1);
-  will-change:transform,opacity,filter;transition:opacity .3s}
-#sysCanvas{z-index:2}
-.sys-phase,.sys-meta,.sys-progress,.sys-cards{z-index:3}
-@media(max-width:719px){.brain-master{width:96vw;top:42%}}
-@media(prefers-reduced-motion:reduce){.brain-master{transform:translate(-50%,-50%)}}
 </style>
 <style>
 .sys-theme{position:absolute;left:50%;bottom:clamp(120px,17vh,190px);transform:translateX(-50%);z-index:3;
   font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.24em;text-transform:uppercase;
   color:#fff;opacity:0;transition:opacity .3s,color .3s;pointer-events:none;text-align:center;text-shadow:0 0 18px rgba(0,0,0,.6)}
 @media(max-width:719px){.sys-theme{font-size:10px;bottom:clamp(96px,14vh,140px)}}
+</style>
+<style>
+/* ===== escena 3D del sistema, responsive ===== */
+#brain3d{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:block}
+#linksCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.sys-theme,.sys-phase,.sys-meta,.sys-progress,.s3-col,.s3-score,.sys-cards{z-index:4}
+/* columnas de nodos, ancladas a los lados; en móvil pasan arriba/abajo */
+.s3-col{position:absolute;display:flex;flex-direction:column;gap:clamp(14px,3.4vh,30px);pointer-events:none}
+.s3-src{left:clamp(16px,4vw,60px);top:50%;transform:translateY(-50%);align-items:flex-start}
+.s3-out{right:clamp(16px,4vw,60px);top:50%;transform:translateY(-50%);align-items:flex-end}
+.s3-node{display:flex;align-items:center;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:clamp(9px,1vw,11.5px);
+  letter-spacing:.06em;color:rgba(255,255,255,.4);transition:color .3s;white-space:nowrap}
+.s3-out .s3-node{flex-direction:row-reverse}
+.s3-node i{width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(255,255,255,.32);flex:none;transition:all .3s}
+.s3-node.is-on{color:#fff}
+.s3-src .s3-node.is-on i{background:#fff;border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.8)}
+.s3-out .s3-node.is-on i{background:#1faa5a;border-color:#1faa5a;box-shadow:0 0 12px rgba(31,170,90,.8)}
+.s3-out .s3-node.is-on{color:#8ff0b8}
+/* score */
+.s3-score{position:absolute;right:clamp(16px,4vw,60px);top:clamp(80px,12vh,120px);width:84px;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}
+.s3-score svg{display:block}
+.s3-score b{position:absolute;left:0;right:0;top:26px;font-family:"IBM Plex Mono",monospace;font-size:22px;color:#fff;font-weight:400}
+.s3-score em{display:block;margin-top:6px;font-family:"IBM Plex Mono",monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5);font-style:normal}
+/* móvil: fuentes arriba en fila, salidas abajo en fila, score arriba-derecha compacto */
+@media(max-width:719px){
+  /* columnas verticales compactas a los lados; el cerebro se achica para caber */
+  .s3-src{left:10px;gap:14px}
+  .s3-out{right:10px;gap:14px}
+  .s3-node{font-size:8.5px;letter-spacing:.02em;gap:7px}
+  .s3-node i{width:7px;height:7px}
+  .s3-node span{max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .s3-score{right:10px;top:clamp(70px,10vh,96px);width:52px}
+  .s3-score b{top:15px;font-size:14px}
+  .s3-score em{display:none}
+  .s3-score svg{width:52px;height:52px}
+}
 </style>
 </head>
 <body>
@@ -1598,12 +1623,28 @@ p.is-ok .met-dot{border-color:#1faa5a;background:#1faa5a;box-shadow:0 0 12px rgb
 <section class="sec scene-sec" id="sistema" data-sec="Sistema">
   <div class="wrap"><div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento. Recorre la sección: la metadata viaja al cerebro, se puntúa y activa los píxeles.</p></div></div></div>
   <div class="sys-scene"><div class="sys-pin">
-    <img class="brain-master" id="brainMaster" src="brain.webp" alt="Cerebro AISOLVES" />
-    <canvas id="sysCanvas" aria-hidden="true"></canvas>
+    <canvas id="brain3d" aria-hidden="true"></canvas>
+    <canvas id="linksCanvas" aria-hidden="true"></canvas>
     <div class="sys-theme" id="sysTheme" aria-hidden="true"></div>
     <div class="sys-phase">01 · captura · guardando metadata</div>
     <div class="sys-meta" id="sysMeta" aria-live="polite"></div>
     <div class="sys-progress"><i></i></div>
+    <div class="s3-col s3-src">
+        <div class="s3-node"><i></i><span>scroll</span></div>
+        <div class="s3-node"><i></i><span>cursor</span></div>
+        <div class="s3-node"><i></i><span>tiempo por etapa</span></div>
+        <div class="s3-node"><i></i><span>clics</span></div>
+        <div class="s3-node"><i></i><span>formulario</span></div>
+    </div>
+    <div class="s3-col s3-out">
+        <div class="s3-node"><i></i><span>Meta Pixel</span></div>
+        <div class="s3-node"><i></i><span>Conversions API</span></div>
+        <div class="s3-node"><i></i><span>GA4 · Consent v2</span></div>
+        <div class="s3-node"><i></i><span>TikTok · LinkedIn</span></div>
+    </div>
+    <div class="s3-score" id="s3Score">
+      <svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="32" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="4"/><circle id="s3Ring" cx="42" cy="42" r="32" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 42 42)"/></svg><b id="s3Num">—</b><em id="s3Band">score</em>
+    </div>
     <div class="sys-cards"><div class="grid3">
     <div class="cell"><div class="cn">01 / Captura</div><h3>Absorción de metadata</h3><div class="lead">Cada sección y bloque emite eventos estructurados. Medimos la señal, nunca lo que la persona escribe.</div><ul><li>Observers por sección y bloque</li><li>Metadata de formularios sin leer valores</li><li>Velocidad de scroll y relectura</li><li>Fricción: rage click, exit intent</li></ul></div>
     <div class="cell"><div class="cn">02 / Puntuación</div><h3>Lead scoring conductual</h3><div class="lead">Un motor en cuatro dimensiones convierte el ruido en un número de 0 a 100 y una banda accionable.</div><ul><li>Intención 0-40 · Engagement 0-25</li><li>Fit 0-20 · Identidad 0-15</li><li>COLD → WARM → HOT → MQL → SQL</li><li>Histórico con causa de cada salto</li></ul></div>
@@ -4794,201 +4835,243 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
 })();
 
 </script>
-<!-- ===== script mod-brainscroll ===== -->
-<script>window.BRAIN_FRAMES=121;</script>
+
+<!-- ===== script mod-brain3d ===== -->
 <script>
 /* ==========================================================================
-   mod-brainscroll — un solo vídeo del cerebro, scrubbeado por scroll.
-   FASE 1 (giro): el cerebro gira 360° con el scroll y las neuronas cambian de
-     color por tema. Termina en el frame 0 = alineado de frente.
-   FASE 2 (enlaces): el cerebro queda frenado y alineado; arrancan las
-     conexiones de captura → puntuación → activación.
-   Los frames se sirven desde brainframes/NNN.webp (extraídos del vídeo).
+   mod-brain3d — cerebro 3D real (Three.js) scrubbeado por scroll, responsive.
+   FASE 1 (0→.5): el cerebro gira 360° en 3D con profundidad y las neuronas
+     cambian de color por tema.
+   FASE 2 (.5→1): el giro se frena alineado de frente y arrancan los enlaces
+     en el espacio: captura (fuentes→cerebro), puntuación (anillo) y
+     activación (cerebro→píxeles y CAPI). Los enlaces se dibujan en una capa
+     2D que lee las posiciones reales del DOM, así encajan en cualquier tamaño.
    ========================================================================== */
 (function(){
   var sys = document.getElementById('sistema');
-  var cv  = document.getElementById('sysCanvas');
-  if(!sys || !cv) return;
-  var ctx = cv.getContext('2d');
+  var pin = sys && sys.querySelector('.sys-pin');
+  var glc = document.getElementById('brain3d');
+  var lkc = document.getElementById('linksCanvas');
+  if(!sys || !pin || !glc || !lkc) return;
+
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   function A(){ return window.AIS && window.AIS.state ? window.AIS.state : null; }
   function clamp(v,a,b){ return v<a?a:v>b?b:v; }
   function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  function lerp(a,b,k){ return [a[0]+(b[0]-a[0])*k, a[1]+(b[1]-a[1])*k, a[2]+(b[2]-a[2])*k]; }
+  function progressOf(){ var r=sys.getBoundingClientRect(); return clamp(-r.top/Math.max(1,r.height-innerHeight),0,1); }
 
-  var FRAMES = window.BRAIN_FRAMES || 96;          // el integrador fija el nº real
-  var BASE   = 'brainframes/';
-  var imgs = new Array(FRAMES), loaded = 0, ready = false;
-  for(var i=0;i<FRAMES;i++){ (function(i){
-    var im = new Image();
-    im.onload = function(){ loaded++; if(loaded >= Math.min(6,FRAMES)) ready = true; };
-    im.onerror = function(){ loaded++; };
-    im.src = BASE + String(i).padStart(3,'0') + '.webp';
-    imgs[i] = im;
-  })(i); }
-
-  // temas: cada uno tiñe las neuronas de un color durante el giro
   var THEMES = [
     { k:'META PIXEL + CAPI',      c:[47,197,177] },
     { k:'LEAD SCORING',           c:[124,150,255] },
-    { k:'SEO · SEM · AIO · GEO',  c:[224,164,0] },
+    { k:'SEO · SEM · AIO · GEO',  c:[224,164,0]  },
     { k:'WHATSAPP · INTENCIÓN',   c:[37,211,102] },
     { k:'RETARGETING',            c:[255,120,90] },
-    { k:'CONTENIDO · VIRALIDAD',  c:[210,130,255] }
+    { k:'CONTENIDO · VIRALIDAD',  c:[210,130,255]}
   ];
-
-  var SOURCES = ['scroll','cursor','tiempo por etapa','clics','formulario'];
-  var OUTS    = ['Meta Pixel','Conversions API','GA4 · Consent v2','TikTok · LinkedIn'];
   var phaseEl = sys.querySelector('.sys-phase'), progEl = sys.querySelector('.sys-progress i');
-  var metaEl  = document.getElementById('sysMeta'), themeEl = document.getElementById('sysTheme');
-  var cards   = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
-  var master  = document.getElementById('brainMaster');
-  if(master) master.style.display = 'none';        // el vídeo sustituye a la imagen fija
+  var themeEl = document.getElementById('sysTheme'), metaEl = document.getElementById('sysMeta');
+  var scoreWrap = document.getElementById('s3Score'), scoreRing = document.getElementById('s3Ring'), scoreNum = document.getElementById('s3Num'), scoreLab = document.getElementById('s3Band');
+  var cards = [].slice.call(sys.querySelectorAll('.sys-cards .cell'));
+  var srcNodes = [].slice.call(sys.querySelectorAll('.s3-src .s3-node'));
+  var outNodes = [].slice.call(sys.querySelectorAll('.s3-out .s3-node'));
+  var SPIN = 0.5;
 
-  var W=0,H=0,dpr=1,vertical=false,t=0,run=false,raf=0;
-  var particles=[], pulses=[], tokens=[], tokenN=0, lastSpawn=0;
-  var SPIN = 0.5;                                   // 0 → .5 gira; .5 → 1 enlaza
-
-  function size(){ dpr=Math.min(devicePixelRatio||1,2); var r=cv.getBoundingClientRect();
-    W=Math.max(1,r.width|0); H=Math.max(1,r.height|0); cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); vertical=W<720; }
-
-  function progressOf(){ var r=sys.getBoundingClientRect(); return clamp(-r.top/Math.max(1,r.height-innerHeight),0,1); }
-
-  function geo(){ var g={};
-    if(!vertical){ g.cx=W*0.5; g.cy=H*0.46; g.R=Math.min(W,H)*0.30;
-      g.src=SOURCES.map(function(s,i){return {x:W*0.13,y:H*(0.24+i*0.12),label:s};});
-      g.out=OUTS.map(function(s,i){return {x:W*0.87,y:H*(0.28+i*0.13),label:s};}); }
-    else { g.cx=W*0.5; g.cy=H*0.45; g.R=Math.min(W,H)*0.34;
-      g.src=SOURCES.map(function(s,i){return {x:W*(0.14+i*0.18),y:H*0.12,label:s};});
-      g.out=OUTS.map(function(s,i){return {x:W*(0.17+i*0.22),y:H*0.86,label:s};}); }
-    return g; }
-  function bez(a,b,k){ var u=1-k, c1x=vertical?a.x:a.x+(b.x-a.x)*.5, c1y=vertical?a.y+(b.y-a.y)*.5:a.y,
-      c2x=vertical?b.x:a.x+(b.x-a.x)*.5, c2y=vertical?a.y+(b.y-a.y)*.5:b.y;
-    return { x:u*u*u*a.x+3*u*u*k*c1x+3*u*k*k*c2x+k*k*k*b.x, y:u*u*u*a.y+3*u*u*k*c1y+3*u*k*k*c2y+k*k*k*b.y }; }
-  function path(a,b){ ctx.beginPath(); ctx.moveTo(a.x,a.y);
-    if(!vertical) ctx.bezierCurveTo(a.x+(b.x-a.x)*.5,a.y,a.x+(b.x-a.x)*.5,b.y,b.x,b.y);
-    else ctx.bezierCurveTo(a.x,a.y+(b.y-a.y)*.5,b.x,a.y+(b.y-a.y)*.5,b.x,b.y); ctx.stroke(); }
-  function mono(s){ ctx.font=s+'px "IBM Plex Mono", ui-monospace, monospace'; }
-  function lerp(a,b,k){ return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]; }
-
-  // dibuja el frame del cerebro teñido del color del tema en curso
-  function drawBrain(g, spin, tint){
-    var idx = Math.round(clamp(spin,0,0.9999) * (FRAMES-1));
-    var im = imgs[idx];
-    var bw = Math.min(W*0.62, g.R*3.4), bh = bw*(9/16);
-    var bx = g.cx - bw/2, by = g.cy - bh/2 - H*0.02;
-    if(im && im.complete && im.naturalWidth){
-      ctx.drawImage(im, bx, by, bw, bh);
-      // teñir el trazo blanco: multiply deja el negro y colorea las líneas
-      ctx.save(); ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.9;
-      ctx.fillStyle='rgb('+(tint[0]|0)+','+(tint[1]|0)+','+(tint[2]|0)+')';
-      ctx.fillRect(bx,by,bw,bh); ctx.restore();
-      // un realce de brillo del mismo tono
-      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.10;
-      ctx.fillStyle='rgb('+(tint[0]|0)+','+(tint[1]|0)+','+(tint[2]|0)+')';
-      ctx.fillRect(bx,by,bw,bh); ctx.restore();
-    } else {
-      // respaldo mientras cargan los frames
-      ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(g.cx,g.cy,g.R*0.7,0,Math.PI*2); ctx.stroke();
-    }
-    return {x:g.cx,y:g.cy};
+  /* ---------- geometría del cerebro (nube de puntos) ---------- */
+  function fold(x,y,z){ var u=x*.62+y*.48+z*.62, v=-x*.55+y*.70+z*.45, w=x*.45-y*.55+z*.70;
+    return .038*Math.sin(u*9.5)+.030*Math.sin(v*12)+.022*Math.sin(w*15.5)+.014*Math.sin((u+v)*22); }
+  function buildBrain(n){
+    var p=[],i;
+    for(i=0;i<n;i++){ var t=(i+.5)/n, y0=1-t*2, r0=Math.sqrt(Math.max(0,1-y0*y0)), th=i*2.399963229;
+      var x=Math.cos(th)*r0, z=Math.sin(th)*r0, y=y0; x*=.86; y*=.60; z*=1;
+      if(y<-.18) y=-.18+(y+.18)*.55; z+=.06*Math.sin(y*2.2);
+      var f=fold(x,y,z), L=Math.sqrt(x*x+y*y+z*z)||1; x+=x/L*f; y+=y/L*f; z+=z/L*f;
+      var sg=x>=0?1:-1; x=sg*(Math.abs(x)*.90+.052); p.push(x,y,z); }
+    var nc=Math.round(n*.16);
+    for(i=0;i<nc;i++){ var t2=(i+.5)/nc, y2=1-t2*2, r2=Math.sqrt(Math.max(0,1-y2*y2)), a2=i*2.399963229;
+      p.push(Math.cos(a2)*r2*.42, y2*.26-.52, Math.sin(a2)*r2*.34-.62); }
+    var nb=Math.round(n*.05);
+    for(i=0;i<nb;i++){ var a=Math.random()*Math.PI*2, rr=.085*Math.sqrt(Math.random()), hh=-.30-Math.random()*.68;
+      p.push(Math.cos(a)*rr, hh, Math.sin(a)*rr-.14+hh*.10); }
+    return new Float32Array(p);
   }
+
+  var ctx2 = lkc.getContext('2d');
+  var raw, count, THREE_, renderer, scene, camera, group, points, sparks, sparkGeo, pair, life, MAXS=110, zoneIdx=[];
+  var W=0,H=0,dpr=1, run=false, raf=0, vis=false, t=0, tint=[235,238,245], rotY=0, started=false;
+  var caps=[], puls=[], toks=[], tokN=0, lastSpawn=0;
+
+  function glowTex(){ var c=document.createElement('canvas'); c.width=c.height=64; var g=c.getContext('2d');
+    var rg=g.createRadialGradient(32,32,0,32,32,32); rg.addColorStop(0,'#fff'); rg.addColorStop(.4,'rgba(255,255,255,.5)'); rg.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=rg; g.fillRect(0,0,64,64); var tx=new THREE_.CanvasTexture(c); tx.needsUpdate=true; return tx; }
+
+  function initGL(){
+    THREE_ = window.THREE; if(!THREE_||!THREE_.WebGLRenderer){ return false; }
+    raw = buildBrain(reduced?3600:9000); count = raw.length/3;
+    try{ renderer = new THREE_.WebGLRenderer({canvas:glc, alpha:true, antialias:false}); }catch(e){ return false; }
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    scene = new THREE_.Scene(); camera = new THREE_.PerspectiveCamera(42,1,0.1,100); camera.position.set(0,0.04,3.15); camera.lookAt(0,-0.16,0);
+    group = new THREE_.Group(); scene.add(group);
+
+    var geo = new THREE_.BufferGeometry(); geo.setAttribute('position', new THREE_.BufferAttribute(raw,3));
+    var sizes=new Float32Array(count); for(var i=0;i<count;i++) sizes[i]=0.9+Math.random()*1.5;
+    geo.setAttribute('aSize', new THREE_.BufferAttribute(sizes,1));
+    var mat = new THREE_.ShaderMaterial({
+      uniforms:{ uTex:{value:glowTex()}, uScale:{value:26*Math.min(devicePixelRatio||1,2)}, uTint:{value:new THREE_.Color(0.92,0.93,0.96)} },
+      vertexShader:['uniform float uScale;','attribute float aSize;','varying float vD;',
+        'void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=-mv.z;',
+        '  vD = 1.0 - smoothstep(1.9,4.2,d);',                 // profundidad → sombreado
+        '  gl_PointSize = aSize*(uScale/d);',
+        '  gl_Position = projectionMatrix*mv; }'].join('\n'),
+      fragmentShader:['uniform sampler2D uTex; uniform vec3 uTint; varying float vD;',
+        'void main(){ float a=texture2D(uTex,gl_PointCoord).a; if(a<0.02) discard;',
+        '  gl_FragColor=vec4(uTint,a*mix(0.28,1.0,vD)); }'].join('\n'),
+      transparent:true, depthWrite:false, blending:THREE_.AdditiveBlending
+    });
+    points = new THREE_.Points(geo, mat); group.add(points);
+
+    // destellos eléctricos entre neuronas cercanas
+    sparkGeo = new THREE_.BufferGeometry();
+    sparkGeo.setAttribute('position', new THREE_.BufferAttribute(new Float32Array(MAXS*6),3));
+    sparks = new THREE_.LineSegments(sparkGeo, new THREE_.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.7, blending:THREE_.AdditiveBlending, depthWrite:false}));
+    group.add(sparks);
+    pair=new Int32Array(MAXS*2); life=new Float32Array(MAXS);
+    // rejilla de vecinos para las chispas
+    for(var k=0;k<MAXS;k++) life[k]=0;
+    return true;
+  }
+  function reseedSpark(k){ var a=(Math.random()*count)|0, ax=raw[a*3],ay=raw[a*3+1],az=raw[a*3+2], b=-1, tries=0;
+    while(tries++<20){ var c=(Math.random()*count)|0; if(c===a) continue; var dx=raw[c*3]-ax,dy=raw[c*3+1]-ay,dz=raw[c*3+2]-az; if(dx*dx+dy*dy+dz*dz<0.09){ b=c; break; } }
+    if(b<0) return; pair[k*2]=a; pair[k*2+1]=b; life[k]=1; }
+
+  function size(){
+    dpr=Math.min(devicePixelRatio||1,2); var r=pin.getBoundingClientRect(); W=Math.max(1,r.width|0); H=Math.max(1,r.height|0);
+    if(renderer){ renderer.setSize(W,H,false); camera.aspect=W/H; camera.updateProjectionMatrix();
+      // responsive: el cerebro llena una fracción del lado menor
+      var fit=clamp(Math.min(W,H)/780,0.58,1.55); group.scale.setScalar(fit);
+      // en móvil, cámara algo más atrás
+      camera.position.z = W<720 ? (W<430?4.6:4.15) : 3.15; camera.lookAt(0,-0.14,0);
+    }
+    lkc.width=W*dpr; lkc.height=H*dpr; ctx2.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // centro del cerebro proyectado a pantalla (para alinear los enlaces)
+  function brainScreen(){
+    if(!renderer) return {x:W/2,y:H*0.46};
+    var v=new THREE_.Vector3(0,-0.05,0).project(camera);
+    return { x:(v.x*0.5+0.5)*W, y:(-v.y*0.5+0.5)*H };
+  }
+  function rectCenter(el){ var r=el.getBoundingClientRect(), p=pin.getBoundingClientRect(); return {x:r.left-p.left+r.width/2, y:r.top-p.top+r.height/2}; }
+  function bez(a,b,k){ var mx=(a.x+b.x)/2, my=(a.y+b.y)/2 - Math.abs(b.x-a.x)*0.12; var u=1-k;
+    return { x:u*u*a.x+2*u*k*mx+k*k*b.x, y:u*u*a.y+2*u*k*my+k*k*b.y }; }
+
+  function setActive(nodes, upto){ nodes.forEach(function(n,i){ n.classList.toggle('is-on', i/nodes.length < upto); }); }
+  function tokLabel(){ var s=A(); var pool = (s&&s.events&&s.events.length)
+      ? [(function(e){return (e.type||'evento')+' · '+(e.label||'');})(s.events[tokN%s.events.length]),'scroll '+s.scroll.current+'%','cursor '+s.cursor.speed+'px/s','etapa '+(s.current||'—')]
+      : ['scroll 62%','dwell 4.1s · Paquetes','hover · Engine','cursor 340px/s','relectura']; return pool[tokN%pool.length]; }
 
   function frame(){
     if(!run) return;
     t += 0.016;
     var P = progressOf();
-    var g = geo();
-    ctx.clearRect(0,0,W,H);
+    if(progEl) progEl.style.width=(P*100).toFixed(1)+'%';
 
-    if(P < SPIN){
-      /* ---- FASE 1: giro 360° + neuronas por tema ---- */
-      var p1 = P / SPIN;                             // 0 → 1 = 0° → 360°
-      var seg = p1 * THEMES.length;
-      var ti = Math.min(THEMES.length-1, seg|0);
-      var frac = seg - ti;
-      var tint = lerp(THEMES[ti].c, THEMES[(ti+1)%THEMES.length].c, ease(clamp((frac-0.6)/0.4,0,1)));
-      drawBrain(g, p1, tint);
-      if(themeEl){ themeEl.textContent = THEMES[ti].k; themeEl.style.color='rgb('+tint.map(function(x){return x|0;}).join(',')+')'; themeEl.style.opacity=1; }
-      if(phaseEl) phaseEl.textContent = '360° · girando · '+Math.round(p1*360)+'°';
+    // ---------- fase → rotación y tinte ----------
+    var phase1 = P < SPIN;
+    if(phase1){
+      var p1 = P/SPIN;
+      rotY = p1 * Math.PI*2;                                  // 360° reales en 3D
+      var seg=p1*THEMES.length, ti=Math.min(THEMES.length-1,seg|0), fr=seg-ti;
+      tint = lerp(THEMES[ti].c, THEMES[(ti+1)%THEMES.length].c, ease(clamp((fr-0.6)/0.4,0,1)));
+      if(themeEl){ themeEl.textContent=THEMES[ti].k; themeEl.style.color='rgb('+tint.map(function(x){return x|0;}).join(',')+')'; themeEl.style.opacity=1; }
+      if(phaseEl) phaseEl.textContent='360° · girando · '+Math.round(p1*360)+'°';
+      if(scoreWrap) scoreWrap.style.opacity=0;
       cards.forEach(function(c){ c.classList.remove('is-on'); });
-      // limpiar acumuladores para que la fase 2 arranque de cero
-      particles.length=0; pulses.length=0; tokens.length=0; tokenN=0;
-      if(metaEl) metaEl.innerHTML='';
+      setActive(srcNodes,0); setActive(outNodes,0);
+      caps.length=0; puls.length=0; toks.length=0; tokN=0; if(metaEl) metaEl.innerHTML='';
+      ctx2.clearRect(0,0,W,H);
     } else {
-      /* ---- FASE 2: cerebro alineado (frame 0) + enlaces ---- */
-      var p2 = (P - SPIN) / (1 - SPIN);              // 0 → 1
-      var pCap = clamp(p2/0.42,0,1), pSco = clamp((p2-0.30)/0.38,0,1), pAct = clamp((p2-0.60)/0.40,0,1);
-      var phase = p2 < 0.33 ? 0 : p2 < 0.66 ? 1 : 2;
-      var lockTint = pSco>0.3 ? [47,197,177] : [235,238,245];
-      var b = drawBrain(g, 0, lockTint);            // frame 0 = alineado, congelado
-      if(themeEl){ themeEl.style.opacity=0; }
-
-      // rutas
-      ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,'+(0.10+0.18*pCap).toFixed(3)+')';
-      g.src.forEach(function(s){ path(s,{x:b.x,y:b.y}); });
-      ctx.strokeStyle='rgba(255,255,255,'+(0.06+0.22*pAct).toFixed(3)+')';
-      g.out.forEach(function(o){ path({x:b.x,y:b.y},o); });
-
-      // fuentes
-      mono(11);
-      g.src.forEach(function(s,i){ var on=pCap>i/SOURCES.length;
-        ctx.fillStyle=on?'#fff':'rgba(255,255,255,.28)'; ctx.beginPath(); ctx.arc(s.x,s.y,on?4:3,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle=on?'rgba(255,255,255,.85)':'rgba(255,255,255,.35)';
-        ctx.textAlign=vertical?'center':'right'; ctx.textBaseline='middle';
-        ctx.fillText(s.label, vertical?s.x:s.x-14, vertical?s.y-16:s.y); });
-
-      // partículas de metadata → cerebro (captura)
-      if(pCap>0.02 && pCap<1 && !reduced && t-lastSpawn>0.09){ lastSpawn=t; var si=(Math.random()*SOURCES.length)|0; if(pCap>si/SOURCES.length) particles.push({s:si,k:0,v:0.010+Math.random()*0.008}); }
-      ctx.fillStyle='#fff';
-      for(var i=particles.length-1;i>=0;i--){ var pt=particles[i]; pt.k+=pt.v;
-        if(pt.k>=1){ particles.splice(i,1); tokenN++; tokens.unshift(tokLabel()); if(tokens.length>6) tokens.pop();
-          if(metaEl) metaEl.innerHTML=tokens.map(function(x,j){return '<div style="opacity:'+(1-j*.14).toFixed(2)+'">'+x+'</div>';}).join(''); continue; }
-        var q=bez(g.src[pt.s],{x:b.x,y:b.y},pt.k); ctx.globalAlpha=0.35+0.65*pt.k; ctx.beginPath(); ctx.arc(q.x,q.y,2.2,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; }
-
-      // anillo de score en esquina (puntuación)
-      var s=A(); var target=(s&&s.consent&&s.score)?s.score.total:64; var score=Math.round(target*ease(pSco));
-      var cxs=vertical?W*0.5:W-116, cys=vertical?78:116, Rr=vertical?26:38;
-      ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.beginPath(); ctx.arc(cxs,cys,Rr,0,Math.PI*2); ctx.stroke();
-      ctx.strokeStyle='#fff'; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(cxs,cys,Rr,-Math.PI/2,-Math.PI/2+Math.PI*2*(score/100)); ctx.stroke(); ctx.lineCap='butt';
-      mono(Math.round(Rr*0.72)); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(pSco>0?String(score):'—', cxs, cys);
-      mono(9); ctx.fillStyle='rgba(255,255,255,.55)'; var band=score>=80?'SQL':score>=65?'HOT':score>=45?'WARM':score>=25?'MQL':'COLD';
-      ctx.fillText(pSco>0?('score · '+band):'esperando', cxs, cys+Rr+13);
-
-      // pulsos → píxeles y CAPI (activación)
-      if(pAct>0.02 && !reduced && t-lastSpawn>0.06 && Math.random()<0.5){ lastSpawn=t; pulses.push({o:(Math.random()*OUTS.length)|0,k:0,v:0.012+Math.random()*0.008}); }
-      for(var j=pulses.length-1;j>=0;j--){ var pu=pulses[j]; pu.k+=pu.v; if(pu.k>=1){ pulses.splice(j,1); continue; }
-        var q2=bez({x:b.x,y:b.y},g.out[pu.o],pu.k); ctx.fillStyle='rgba(31,170,90,'+(0.4+0.6*pu.k).toFixed(2)+')'; ctx.beginPath(); ctx.arc(q2.x,q2.y,2.4,0,Math.PI*2); ctx.fill(); }
-      mono(11);
-      g.out.forEach(function(o,i){ var on=pAct>(i+0.5)/OUTS.length;
-        ctx.strokeStyle=on?'#1faa5a':'rgba(255,255,255,.3)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(o.x,o.y,7,0,Math.PI*2); ctx.stroke();
-        if(on){ ctx.fillStyle='#1faa5a'; ctx.shadowColor='rgba(31,170,90,.8)'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(o.x,o.y,3.5,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
-        ctx.fillStyle=on?'#fff':'rgba(255,255,255,.4)'; ctx.textAlign=vertical?'center':'left'; ctx.textBaseline='middle';
-        ctx.fillText(o.label, vertical?o.x:o.x+16, vertical?o.y+18:o.y);
-        if(on){ ctx.fillStyle='rgba(31,170,90,.9)'; mono(9); ctx.fillText('event_id ✓ dedup', vertical?o.x:o.x+16, vertical?o.y+32:o.y+14); mono(11); } });
-
-      cards.forEach(function(c,i){ c.classList.toggle('is-on', i===phase); });
-      if(phaseEl) phaseEl.textContent=['02 · captura · guardando metadata','03 · puntuación · análisis de la data','04 · activación · píxeles y CAPI'][phase];
+      var p2=(P-SPIN)/(1-SPIN);
+      // frenar alineado de frente
+      var tgt = Math.round(rotY/(Math.PI*2))*(Math.PI*2);     // múltiplo de 360 más cercano
+      rotY += (tgt-rotY)*0.18;
+      tint = lerp([235,238,245],[47,197,177], clamp((p2-0.1)/0.4,0,1));
+      if(themeEl) themeEl.style.opacity=0;
+      var pCap=clamp(p2/0.42,0,1), pSco=clamp((p2-0.30)/0.38,0,1), pAct=clamp((p2-0.60)/0.40,0,1);
+      var ph=p2<0.33?0:p2<0.66?1:2;
+      if(phaseEl) phaseEl.textContent=['02 · captura · guardando metadata','03 · puntuación · análisis de la data','04 · activación · píxeles y CAPI'][ph];
+      cards.forEach(function(c,i){ c.classList.toggle('is-on', i===ph); });
+      setActive(srcNodes,pCap); setActive(outNodes,pAct);
+      drawLinks(pCap,pSco,pAct);
+      updateScore(pSco);
     }
 
-    if(progEl) progEl.style.width=(P*100).toFixed(1)+'%';
+    // ---------- render 3D ----------
+    if(renderer){
+      group.rotation.y = rotY; group.rotation.x = 0.05;
+      points.material.uniforms.uTint.value.setRGB(tint[0]/255,tint[1]/255,tint[2]/255);
+      sparks.material.color.setRGB(tint[0]/255,tint[1]/255,tint[2]/255);
+      // chispas
+      var sp=sparkGeo.attributes.position.array;
+      for(var k=0;k<MAXS;k++){
+        if(life[k]<=0){ if(!reduced && Math.random()<0.5) reseedSpark(k); }
+        if(life[k]>0){ life[k]-=reduced?0.1:0.04; var a=pair[k*2],b=pair[k*2+1];
+          sp[k*6]=raw[a*3];sp[k*6+1]=raw[a*3+1];sp[k*6+2]=raw[a*3+2];
+          sp[k*6+3]=raw[b*3];sp[k*6+4]=raw[b*3+1];sp[k*6+5]=raw[b*3+2]; }
+        else { for(var z=0;z<6;z++) sp[k*6+z]=0; }
+      }
+      sparkGeo.attributes.position.needsUpdate=true;
+      sparks.material.opacity = 0.35 + 0.4*(0.5+0.5*Math.sin(t*6));
+      renderer.render(scene,camera);
+    }
     if(run) raf=requestAnimationFrame(frame);
   }
 
-  function tokLabel(){ var s=A(); var pool;
-    if(s&&s.events&&s.events.length){ var e=s.events[tokenN%s.events.length];
-      pool=[(e.type||'evento')+' · '+(e.label||''),'scroll '+s.scroll.current+'%','cursor '+s.cursor.speed+'px/s','etapa '+(s.current||'—')]; }
-    else pool=['scroll 62%','dwell 4.1s · Paquetes','hover · Engine','cursor 340px/s','relectura','exit-intent'];
-    return pool[tokenN%pool.length]; }
+  /* ---------- enlaces (capa 2D alineada al DOM) ---------- */
+  function drawLinks(pCap,pSco,pAct){
+    ctx2.clearRect(0,0,W,H);
+    var bc = brainScreen();
+    var S = srcNodes.map(function(n){ return rectCenter(n.querySelector('i')||n); });
+    var O = outNodes.map(function(n){ return rectCenter(n.querySelector('i')||n); });
+    // rutas
+    ctx2.lineWidth=1;
+    ctx2.strokeStyle='rgba(255,255,255,'+(0.08+0.16*pCap).toFixed(3)+')';
+    S.forEach(function(s){ ctx2.beginPath(); ctx2.moveTo(s.x,s.y); var m=bez(s,bc,0.5); ctx2.quadraticCurveTo(m.x,m.y,bc.x,bc.y); ctx2.stroke(); });
+    ctx2.strokeStyle='rgba(31,170,90,'+(0.06+0.20*pAct).toFixed(3)+')';
+    O.forEach(function(o){ ctx2.beginPath(); ctx2.moveTo(bc.x,bc.y); var m=bez(bc,o,0.5); ctx2.quadraticCurveTo(m.x,m.y,o.x,o.y); ctx2.stroke(); });
+    // partículas de captura
+    if(pCap>0.02 && pCap<1 && !reduced && t-lastSpawn>0.08){ lastSpawn=t; var si=(Math.random()*S.length)|0; if(pCap>si/S.length) caps.push({s:si,k:0,v:0.012+Math.random()*0.01}); }
+    ctx2.fillStyle='#fff';
+    for(var i=caps.length-1;i>=0;i--){ var c=caps[i]; c.k+=c.v; if(c.k>=1){ caps.splice(i,1); tokN++; toks.unshift(tokLabel()); if(toks.length>6) toks.pop();
+        if(metaEl) metaEl.innerHTML=toks.map(function(x,j){return '<div style="opacity:'+(1-j*.14).toFixed(2)+'">'+x+'</div>';}).join(''); continue; }
+      var q=bez(S[c.s],bc,c.k); ctx2.globalAlpha=0.35+0.65*c.k; ctx2.beginPath(); ctx2.arc(q.x,q.y,2.3,0,Math.PI*2); ctx2.fill(); ctx2.globalAlpha=1; }
+    // pulsos de activación
+    if(pAct>0.02 && !reduced && t-lastSpawn>0.05 && Math.random()<0.5){ lastSpawn=t; puls.push({o:(Math.random()*O.length)|0,k:0,v:0.014+Math.random()*0.01}); }
+    for(var j=puls.length-1;j>=0;j--){ var pu=puls[j]; pu.k+=pu.v; if(pu.k>=1){ puls.splice(j,1); continue; }
+      var q2=bez(bc,O[pu.o],pu.k); ctx2.fillStyle='rgba(31,170,90,'+(0.4+0.6*pu.k).toFixed(2)+')'; ctx2.beginPath(); ctx2.arc(q2.x,q2.y,2.5,0,Math.PI*2); ctx2.fill(); }
+  }
+  function updateScore(pSco){
+    if(!scoreWrap) return; scoreWrap.style.opacity = pSco>0?1:0;
+    var s=A(); var target=(s&&s.consent&&s.score)?s.score.total:64; var v=Math.round(target*ease(pSco));
+    var C=201; if(scoreRing) scoreRing.style.strokeDashoffset=(C-C*(v/100)).toFixed(1);
+    if(scoreNum) scoreNum.textContent=v; if(scoreLab){ var b=v>=80?'SQL':v>=65?'HOT':v>=45?'WARM':v>=25?'MQL':'COLD'; scoreLab.textContent='score · '+b; }
+  }
 
-  var vis=false;
-  function start(){ if(run||document.hidden||!vis) return; run=true; size(); raf=requestAnimationFrame(frame); }
+  /* ---------- ciclo de vida ---------- */
+  function start(){ if(run||document.hidden||!vis||!started) return; run=true; size(); raf=requestAnimationFrame(frame); }
   function stop(){ run=false; if(raf) cancelAnimationFrame(raf); raf=0; }
-  addEventListener('resize', function(){ if(run) size(); }, {passive:true});
+  addEventListener('resize', function(){ if(started) size(); }, {passive:true});
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
   new IntersectionObserver(function(es){ es.forEach(function(e){ vis=e.isIntersecting; if(vis) start(); else stop(); }); },{threshold:0.02}).observe(sys);
   function near(){ var r=sys.getBoundingClientRect(); return r.bottom>0 && r.top<innerHeight; }
-  addEventListener('scroll', function(){ if(document.hidden||!near()) return; if(W===0) size(); requestAnimationFrame(frame); }, {passive:true});
-  size();
+  addEventListener('scroll', function(){ if(document.hidden||!near()||!started) return; requestAnimationFrame(frame); }, {passive:true});
+
+  // esperar a Three.js (lo carga otro módulo async)
+  (function wait(tries){
+    if(window.THREE && window.THREE.WebGLRenderer){ if(initGL()){ started=true; size(); start(); return; } }
+    if(tries>200){ /* sin WebGL: la capa 2D dibuja al menos los enlaces */ started=true; size(); start(); return; }
+    setTimeout(function(){ wait(tries+1); }, 50);
+  })(0);
 })();
 
 </script>
