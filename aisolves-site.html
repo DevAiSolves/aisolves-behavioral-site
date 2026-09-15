@@ -2403,9 +2403,17 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .be-body{padding:11px 11px!important}
 /* anillo de score más pequeño */
-.be-ring{width:68px!important;height:68px!important}
-.be-ring b{font-size:19px!important}
-.be-ring b small{font-size:8.5px!important}
+.be-ring{width:58px!important;height:58px!important}
+/* la cifra dentro del circulo y el /100 justo debajo, en pequeño */
+.be-ring b{display:flex!important;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1!important;gap:1px;font-size:17px!important}
+.be-ring b small{font-size:7.5px!important;line-height:1;margin:0;opacity:.55}
+/* banda y etapa comparten renglon */
+.be-band{display:flex!important;align-items:flex-start;gap:14px;flex:1;min-width:0}
+.be-bcol{min-width:0;flex:1 1 0}
+.be-bcol .be-v{font-size:12px!important}
+.be-top{gap:11px!important;align-items:center!important}
+@media(max-width:420px){.be-band{gap:10px}.be-bcol .be-v{font-size:11px!important}}
 /* banda y etapa: que quepan sin puntos suspensivos */
 .be-band{min-width:0}
 .be-k{font-size:7.5px!important;letter-spacing:.12em!important}
@@ -5667,7 +5675,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
   }
 
   /* ---------- panel de lectura: sale del cerebro ---------- */
-  var C = 226.2;                                  // 2πr con r=36
+  var C = 150.8;                                  // 2πr con r=36
   function readout(fmt){
     var a = A(); if(!a) return '<div class="be-wait">esperando al core…</div>';
     var s = a.state, sc = s.score || {total:0,band:'—'};
@@ -5680,16 +5688,16 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     return ''+
     '<div class="be-top">'+
       '<div class="be-ring">'+
-        '<svg width="86" height="86" viewBox="0 0 86 86">'+
-          '<circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/>'+
-          '<circle cx="43" cy="43" r="36" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"'+
-          ' stroke-dasharray="'+C+'" stroke-dashoffset="'+(C - C*(sc.total/100))+'" transform="rotate(-90 43 43)"/>'+
+        '<svg width="58" height="58" viewBox="0 0 58 58">'+
+          '<circle cx="29" cy="29" r="24" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="4"/>'+
+          '<circle cx="29" cy="29" r="24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"'+
+          ' stroke-dasharray="'+C+'" stroke-dashoffset="'+(C - C*(sc.total/100))+'" transform="rotate(-90 29 29)"/>'+
         '</svg>'+
         '<b>'+dash(sc.total)+'<small>/100</small></b>'+
       '</div>'+
       '<div class="be-band">'+
-        '<div class="be-k">banda</div><div class="be-v">'+dash(sc.band)+'</div>'+
-        '<div class="be-k" style="margin-top:8px">etapa</div><div class="be-v">'+dash(s.current)+'</div>'+
+        '<div class="be-bcol"><div class="be-k">banda</div><div class="be-v">'+dash(sc.band)+'</div></div>'+
+        '<div class="be-bcol"><div class="be-k">etapa</div><div class="be-v">'+dash(s.current)+'</div></div>'+
       '</div>'+
     '</div>'+
     '<div class="be-grid">'+
