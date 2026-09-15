@@ -2537,6 +2537,18 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   .svx-viz--ticks i,.svx-bands i:after,.svx-win,#servicios .svx-c--data{transition:none}
 }
 </style>
+<style>
+/* ===== velo-humo =====
+   Un 5% de negro sobre todo el fondo. Va en z-index 0, encima de la rejilla
+   pero por DEBAJO de las secciones (z-index 1), así oscurece el suelo de la
+   página sin tocar las tarjetas ni los botones: al quedar ellos en blanco puro
+   sobre un fondo algo más bajo, resaltan. ===== */
+body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:rgba(0,0,0,.05)}
+/* las tarjetas y los botones se mantienen en blanco puro para que despeguen */
+.grid3,.phases,.plans,.team,.faq,.contact,.carousel,.ticker,.cbox,
+.plan,.cell,.phase,.member,.qa{background:#fff}
+</style>
 </head>
 <body>
 
