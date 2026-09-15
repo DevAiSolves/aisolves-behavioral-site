@@ -6718,8 +6718,23 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   var TAU    = Math.PI * 2;
   var GOLDEN = Math.PI * (3 - Math.sqrt(5));   /* ángulo áureo: reparto de Fibonacci */
   var LEVELS = 14;                              /* escalones de opacidad por familia  */
+  /* ---- velocidad de scroll compartida: engorda los puntos y acelera el giro ---- */
+  var SCROLLV = 0;
+  (function(){
+    if (typeof window === 'undefined') return;
+    var ly = window.pageYOffset || 0, lt = 0;
+    window.addEventListener('scroll', function(){
+      var y = window.pageYOffset || 0, now = (window.performance && performance.now) ? performance.now() : +new Date();
+      var dt = lt ? Math.max(16, now - lt) : 16;
+      var v  = Math.abs(y - ly) / dt;          /* px por ms */
+      var nv = v * 0.55; if (nv > 2.4) nv = 2.4;
+      if (nv > SCROLLV) SCROLLV = nv;          /* sube de golpe, baja suave en frame() */
+      ly = y; lt = now;
+    }, { passive: true });
+  })();
+
   var MAXA   = 0.78;                            /* opacidad máxima de un punto        */
-  var PERSP  = 3.4;                             /* distancia de cámara (perspectiva)  */
+  var PERSP  = 2.7;                             /* distancia de cámara (perspectiva)  */
 
   /* Paleta: SOLO colores ya publicados en el sitio, sobre fondo claro.
      base = --ink #18181b · --navy #0d1017 | accent = --teal-ink #0f8577
@@ -7025,7 +7040,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     function countFor() {
       if (fixed) return fixed;
       var vw = window.innerWidth || document.documentElement.clientWidth || 1024;
-      return vw < 720 ? 900 : 2200;   /* ~2200 escritorio · ~900 en pantalla estrecha */
+      return vw < 720 ? 1700 : 4400;  /* densidad alta: la nube gana cuerpo y volumen */
     }
 
     function build() {
@@ -7055,8 +7070,13 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       var R  = Math.min(W, H) * (userScale || g.scale);
       /* con 900 puntos (pantalla estrecha) el punto engorda un poco: la nube
          mantiene cuerpo sin subir el coste de dibujo */
-      var dens  = Math.min(1.35, Math.sqrt(2200 / (built || 2200)));
+      var dens  = Math.min(1.35, Math.sqrt(4400 / (built || 4400)));
       var sizeK = Math.max(0.85, Math.min(1.45, R / 150)) * dens;
+
+      /* cuanto se mueve la nube ahora mismo: giro propio + empuje del scroll.
+         mvK escala el engrosamiento por movimiento de cada punto. */
+      var omega = speed * (1 + SCROLLV * 2.1);
+      var mvK   = omega * 2.6; if (mvK > 1.15) mvK = 1.15;
 
       var ca = Math.cos(ang), sa = Math.sin(ang);
       var tl = g.tilt + g.nod * Math.sin(ang * 0.37);     /* cabeceo lentísimo */
@@ -7087,7 +7107,12 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
         var nn = b.n;
         b.x[nn] = cx + X * R * ps;
         b.y[nn] = cy + Y * R * ps;
-        b.s[nn] = (0.58 + 0.95 * d) * ps * sizeK;
+        /* grosor = profundidad + movimiento. En un giro sobre Y la velocidad
+           en pantalla de cada punto es proporcional a |Zr|: los del centro del
+           contorno viajan rapido y engordan, los del borde casi no se mueven
+           y quedan finos. mvK sube con el scroll. */
+        var mv = (Zr < 0 ? -Zr : Zr) * mvK;
+        b.s[nn] = (0.40 + 1.32 * d) * (1 + 0.95 * mv) * ps * sizeK;
         b.n = nn + 1;
       }
 
@@ -7109,7 +7134,8 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       if (!running) return;
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
       last = now;
-      ang += dt * speed;
+      ang += dt * speed * (1 + SCROLLV * 2.1);   /* el scroll acelera el giro */
+      SCROLLV -= SCROLLV * Math.min(1, dt * 2.2); /* y decae suave al parar */
       if (g.dyn) g.dyn(ang * 3.0);       /* los anillos giran más rápido que el conjunto */
       draw();
       annotate();
