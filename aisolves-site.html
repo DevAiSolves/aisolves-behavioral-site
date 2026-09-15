@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --paper:#fafafb; --card:#fff; --navy:#0d1017;
+    --paper:#f4f2ee; --card:#f8f6f2; --navy:#0d1017;
     --ink:#18181b; --ink-2:#52525b; --ink-3:#9a9aa3; --note:#b9bfcc;
     --line:#e4e9f2; --line-2:#eef1f7;
     --teal:#2fc5b1; --teal-ink:#0f8577; --teal-wash:rgba(47,197,177,.10);
@@ -2547,7 +2547,21 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background:rgba(0,0,0,.03)}
 /* las tarjetas y los botones se mantienen en blanco puro para que despeguen */
 .grid3,.phases,.plans,.team,.faq,.contact,.carousel,.ticker,.cbox,
-.plan,.cell,.phase,.member,.qa{background:#fff}
+.plan,.cell,.phase,.member,.qa{background:var(--card)}
+</style>
+<style>
+/* ===== superficies-hueso =====
+   Las superficies van en hueso; el blanco puro queda reservado para lo que se
+   anima y para las piezas que viven sobre el escenario negro, donde el hueso
+   se ensuciaría. ===== */
+.counters{background:rgba(248,246,242,.78)!important}
+.field input:focus{background:var(--card)!important}
+.toast{background:var(--card)!important}
+.float-pill{background:var(--card)!important}
+.t3d-mode{background:rgba(248,246,242,.88)!important}
+.step:before{background:var(--card)!important}
+/* se quedan en blanco puro: barras de progreso, puntos activos y los botones
+   del escenario negro (.btn.confirm .bar, .brain-dots i.on, .stage .car-foot) */
 </style>
 </head>
 <body>
