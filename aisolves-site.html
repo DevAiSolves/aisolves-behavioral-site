@@ -999,7 +999,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   perspective:1200px;perspective-origin:50% 44%;
   min-height:78vh;min-height:78svh;               /* svh con respaldo para iOS */
 }
-@media(min-width:1000px){.stage{min-height:100vh;min-height:100svh}}
+@media(min-width:1000px){.stage{min-height:177vh;min-height:177svh}}
 .stage .carousel{border:0;background:none;height:100%;position:absolute;inset:0}
 .stage .car-body{display:block;border:0;min-height:0;background:none;height:100%}
 .stage .car-cell.brain{position:absolute;inset:0;min-height:0;background:none;border:0;overflow:hidden}
@@ -1073,7 +1073,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .stage .note{display:none}
 }
 @media(max-width:480px){
-  .stage{min-height:92svh}
+  .stage{min-height:123svh}
   .stage .brain-hud .brain-name{font-size:16px}
   .stage .brain-stream{max-width:88%;font-size:9px;bottom:clamp(164px,24vh,206px)}
   .stage .brain-stream .bs-line:nth-last-child(n+3){display:none}
@@ -1222,8 +1222,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
    ================================================================== */
 
 /* ---- 1. espacio ---- */
-.stage{min-height:104vh;min-height:104svh}
-@media(min-width:1000px){.stage{min-height:133vh;min-height:133svh}}
+.stage{min-height:139vh;min-height:139svh}
+@media(min-width:1000px){.stage{min-height:177vh;min-height:177svh}}
 /* el contenido se queda pegado al viewport: el cerebro no se va mientras
    se recorre el tercio extra */
 /* overflow:hidden en el ancestro anula position:sticky, así que el recorte
@@ -2389,6 +2389,42 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 #about .ab-say,#about .ab-title{opacity:1!important}
 #about .ab-say{transition:transform .9s cubic-bezier(.22,1,.36,1),opacity .9s cubic-bezier(.22,1,.36,1)}
 @media(prefers-reduced-motion:reduce){#about .ab-say{transition:none}}
+</style>
+<style>
+/* ===== modal-compacto =====
+   El panel de lectura en vivo se achica: en el ancho anterior las etiquetas
+   se cortaban ("PROFUNDIDAD" truncada, banda y etapa en "H…" y "W…").
+   Menos cuerpo de letra, menos relleno y columnas que caben de verdad. ===== */
+.be-panel{width:min(292px,31%)!important;right:clamp(14px,2.6vw,44px)!important}
+.be-head{padding:9px 11px!important;gap:8px!important}
+.be-live{font-size:8px!important;letter-spacing:.14em!important}
+.be-live i{width:5px!important;height:5px!important}
+.be-fmt{font-size:8px!important;letter-spacing:.10em!important;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.be-body{padding:11px 11px!important}
+/* anillo de score más pequeño */
+.be-ring{width:68px!important;height:68px!important}
+.be-ring b{font-size:19px!important}
+.be-ring b small{font-size:8.5px!important}
+/* banda y etapa: que quepan sin puntos suspensivos */
+.be-band{min-width:0}
+.be-k{font-size:7.5px!important;letter-spacing:.12em!important}
+.be-v{font-size:11px!important;margin-top:2px!important}
+/* rejilla de métricas: dos columnas caben mejor que tres en este ancho */
+.be-grid{grid-template-columns:repeat(2,1fr)!important}
+.be-grid>div{padding:6px 7px!important}
+.be-grid i{font-size:7.5px!important;letter-spacing:.08em!important;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.be-grid b{font-size:11px!important;margin-top:2px!important}
+/* bloques de texto inferiores */
+.be-panel p,.be-panel .be-meta,.be-panel .be-src{font-size:10px!important;line-height:1.45!important}
+.be-panel .btn{font-size:11px!important;padding:10px 13px!important}
+/* móvil: ocupa el ancho pero sigue compacto */
+@media(max-width:860px){
+  .be-panel{left:10px!important;right:10px!important;width:auto!important;max-height:56%!important}
+  .be-ring{width:60px!important;height:60px!important}
+  .be-ring b{font-size:17px!important}
+}
 </style>
 </head>
 <body>
@@ -5339,9 +5375,9 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     function frame(){
       if(!run) return;
       var r=canvas.getBoundingClientRect(), w=r.width, h=r.height;
-      t += 0.004;
+      t += 0.0105;
       ctx.clearRect(0,0,w,h);
-      var cx=w/2, cy=h/2, R=Math.min(w,h)*0.40, ca=Math.cos(t), sa=Math.sin(t), act=activeZone();
+      var cx=w/2, cy=h/2, R=Math.min(w,h)*0.33, ca=Math.cos(t), sa=Math.sin(t), act=activeZone();
       for(var i=0;i<raw.length;i+=3){
         var x=raw[i], y=raw[i+1], z=raw[i+2];
         var X=x*ca - z*sa, Z=x*sa + z*ca;
@@ -5409,7 +5445,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
   renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0.02, 2.70);
+  camera.position.set(0, 0.02, 3.15);
 
   var geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(raw, 3));
@@ -5548,7 +5584,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     sparkGeo.attributes.position.needsUpdate = true;
     sparkGeo.attributes.color.needsUpdate = true;
 
-    if(autoRot && !reduced) rotY += 0.0028 + velY*0.15;
+    if(autoRot && !reduced) rotY += 0.0082 + velY*0.15;
     velY *= 0.92;
     points.rotation.y = sparks.rotation.y = rotY;
     points.rotation.x = sparks.rotation.x = rotX;
