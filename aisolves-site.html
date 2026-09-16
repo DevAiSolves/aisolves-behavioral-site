@@ -2910,6 +2910,22 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
    viaja CON el pin, así las tarjetas están siempre sobre negro. ===== */
 #work .stage .carousel{background:radial-gradient(1100px 640px at 20% 14%, rgba(255,255,255,.05), transparent 60%), #06070a!important}
 </style>
+<style>
+/* ===== canales-con-color =====
+   Los tres canales se encienden en su color cuando hay señal real. Los iconos
+   siguen siendo glifos propios y genéricos —una burbuja, dos nodos y una lupa—,
+   no los logotipos de marca; lo que cambia es el color, como código de canal.
+   Apagados siguen en gris, para que el encendido se note. ===== */
+#hud .hud-ch[data-on="1"]{background:rgba(255,255,255,.06)!important}
+#hud #hud-ch-wa[data-on="1"]{color:#25d366!important;border-color:rgba(37,211,102,.55)!important;
+  box-shadow:0 0 14px rgba(37,211,102,.28)!important}
+#hud #hud-ch-meta[data-on="1"]{color:#4a9bff!important;border-color:rgba(74,155,255,.55)!important;
+  box-shadow:0 0 14px rgba(74,155,255,.28)!important}
+#hud #hud-ch-google[data-on="1"]{color:#f5b301!important;border-color:rgba(245,179,1,.55)!important;
+  box-shadow:0 0 14px rgba(245,179,1,.28)!important}
+#hud .hud-ch[data-on="1"] svg{opacity:1!important}
+#hud .hud-ch[data-on="1"] b{color:inherit!important}
+</style>
 </head>
 <body>
 
@@ -5994,7 +6010,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
   renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0.10, 3.55);
+  camera.position.set(0, -0.24, 3.55);   /* baja la camara = el cerebro sube ~3 cm, centrado en x */
 
   var geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(raw, 3));
