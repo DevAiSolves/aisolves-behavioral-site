@@ -4,3 +4,12 @@ vanlent-template/
 # Sistema / herramientas
 .DS_Store
 .claude/
+
+# Secretos: tokens de Meta, WhatsApp y CRM. El .env.example sí se versiona.
+.env
+.env.*
+!.env.example
+.vercel/
+
+# Dependencias
+node_modules/

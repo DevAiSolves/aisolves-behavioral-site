@@ -5,6 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>AISOLVES — Behavioral Growth OS</title>
 <meta name="description" content="No vendemos anuncios. Instalamos el sistema que lee el comportamiento de cada visitante, lo puntúa en tiempo real y decide quién merece una llamada." />
+<script>
+/* ==========================================================================
+   AISOLVES · MEDICIÓN — Único sitio donde se pegan los identificadores.
+   Mientras un campo esté vacío, su etiqueta NO se carga y no se dispara
+   ninguna petición: la página queda inerte y sin errores en consola.
+
+   Los tres endpoints apuntan a funciones de Vercel (carpeta /api de este
+   repo). El token de WhatsApp y el de la CAPI viven ALLÍ, nunca aquí: este
+   archivo lo sirve el navegador y cualquiera puede leerlo con Ctrl+U.
+   ========================================================================== */
+window.AIS_TAGS = {
+  metaPixelId   : '',   // '1234567890123456'
+  ga4Id         : '',   // 'G-XXXXXXXXXX'
+  googleAdsId   : '',   // 'AW-XXXXXXXXX'
+  googleAdsLead : '',   // 'AW-XXXXXXXXX/AbC-D_efGh'  etiqueta de conversión del lead
+  capiEndpoint  : '',   // '/api/capi'       relay a la Conversions API de Meta
+  waEndpoint    : '',   // '/api/whatsapp'   envío del reporte (Cloud API o ManyChat)
+  leadEndpoint  : '',   // '/api/lead'       alta del lead en el CRM
+  vistaClave    : 'Paquetes'   // etapa que cuenta como ViewContent
+};
+
+/* ----- Consent Mode v2 -----
+   Va aquí y no en el módulo del final a propósito: el estado por defecto debe
+   quedar declarado ANTES de que cargue gtag.js, o el "denegado por defecto"
+   que promete la web no sería cierto. wait_for_update da medio segundo al
+   panel de consentimiento antes de que nada se envíe. */
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+gtag('consent','default',{
+  ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied',
+  analytics_storage:'denied', personalization_storage:'denied',
+  functionality_storage:'granted', security_storage:'granted',
+  wait_for_update: 500
+});
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" />
@@ -3818,19 +3853,84 @@ function openSpot(){rHi.innerHTML=`Reporte de <b style="color:var(--teal-ink)">$
   const wb=document.getElementById('rWaBtn');resetBtn(wb);wb.disabled=false;wb.querySelector('.lbl').textContent='Enviar reporte por WhatsApp';wb.querySelector('.tk').textContent='';
   open_('mSpot');setTimeout(startDelivery,700);}
 function setStep(id,c){document.getElementById(id).className='step '+c;}
+/* Entrega del reporte.
+   Con endpoint configurado los cuatro estados vienen del servidor: se marca
+   "entregado" porque WhatsApp lo confirmó, no porque haya pasado el tiempo.
+   Sin endpoint sigue siendo la demostración del formato, y entonces el último
+   paso lo dice: simulación. Declarar una entrega que no ha ocurrido sería
+   mentirle al visitante sobre su propio mensaje. */
 async function startDelivery(){const btn=document.getElementById('rWaBtn');btn.disabled=true;btn.classList.add('loading');
-  const l=btn.querySelector('.lbl'),tk=btn.querySelector('.tk');setStep('step1','done');
-  l.textContent='Enviando…';tk.textContent=' ✓';setStep('step2','on');
-  try{fetch(CONFIG.reportEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:S.lead,report:reportText(),score:score().total})}).catch(()=>{});}catch(e){}
+  const T=(window.AIS_T||function(a){return a;}), l=btn.querySelector('.lbl'),tk=btn.querySelector('.tk');
+  const destino=(window.AIS_TAGS&&window.AIS_TAGS.waEndpoint)||'';
+  setStep('step1','done');
+  l.textContent=T('Enviando…','Sending…');tk.textContent=' ✓';setStep('step2','on');
+
+  if(destino){
+    let r=null;
+    try{
+      const res=await fetch(destino,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({lead:S.lead,report:reportText(),score:score().total,lang:(window.AIS_I18N&&window.AIS_I18N.lang)||'es'})});
+      r=await res.json().catch(()=>null);
+      if(!res.ok||!r||r.ok!==true) throw new Error((r&&r.error)||('HTTP '+res.status));
+    }catch(err){
+      btn.classList.remove('loading');btn.disabled=false;resetBtn(btn);
+      setStep('step2','');dTrack.classList.remove('done');dFill.style.width='0%';
+      l.textContent=T('Reintentar envío','Retry send');
+      toast(T('No se pudo enviar · abre el chat y te lo pasamos ahí','Could not send · open the chat and we\'ll pass it there'),false);
+      return;
+    }
+    await fillBtn(btn,60,500);dFill.style.width='50%';
+    l.textContent=T('Enviado','Sent');tk.innerHTML=' <span class="ticks">✓✓</span>';setStep('step2','done');setStep('step3','on');
+    /* estados reales: el webhook de WhatsApp los va escribiendo y esto pregunta */
+    const fin=await seguirEntrega(r.id,destino);
+    setStep('step3',fin.entregado?'done':'on');
+    if(fin.leido){setStep('step4','done');dTrack.classList.add('done');}
+    dFill.style.width=fin.leido?'100%':(fin.entregado?'85%':'60%');
+    btn.classList.remove('loading');if(fin.entregado)btn.classList.add('confirm');
+    l.textContent=fin.leido?T('Leído por el cliente','Read by the client')
+              :fin.entregado?T('Entregado','Delivered'):T('Enviado · esperando entrega','Sent · awaiting delivery');
+    await fillBtn(btn,100,400);
+    toast(T('Reporte enviado por WhatsApp · ','Report sent on WhatsApp · ')+maskWa(S.lead.wa),true);
+    return;
+  }
+
+  /* sin servidor: demostración del formato */
   await fillBtn(btn,55,900);dFill.style.width='40%';await wait(500);
-  l.textContent='Entregado';tk.innerHTML=' <span class="ticks">✓✓</span>';setStep('step2','done');setStep('step3','on');
+  l.textContent=T('Entregado','Delivered');tk.innerHTML=' <span class="ticks">✓✓</span>';setStep('step2','done');setStep('step3','on');
   await fillBtn(btn,85,700);dFill.style.width='75%';await wait(1100);
   setStep('step3','done');setStep('step4','done');dTrack.classList.add('done');dFill.style.width='100%';
-  btn.classList.remove('loading');btn.classList.add('confirm');l.textContent='Confirmado por el cliente';tk.innerHTML=' <span class="ticks">✓✓</span>';
-  await fillBtn(btn,100,400);toast('Reporte confirmado por WhatsApp · '+maskWa(S.lead.wa),true);}
+  btn.classList.remove('loading');btn.classList.add('confirm');
+  l.textContent=T('Confirmado · demostración','Confirmed · demo');tk.innerHTML=' <span class="ticks">✓✓</span>';
+  await fillBtn(btn,100,400);
+  toast(T('Demostración del formato · no se ha enviado nada','Format demo · nothing was actually sent'),true);}
+
+/* Pregunta por el estado hasta que WhatsApp diga "leído" o se agote el margen.
+   Espaciado creciente: la confirmación suele llegar en segundos, pero si el
+   teléfono está apagado no tiene sentido insistir cada segundo. */
+async function seguirEntrega(id,destino){
+  const estado={entregado:false,leido:false};
+  if(!id) return estado;
+  const pausas=[900,1200,1600,2200,3000,4000];
+  for(const ms of pausas){
+    await wait(ms);
+    try{
+      const res=await fetch(destino+'?id='+encodeURIComponent(id));
+      if(!res.ok) continue;
+      const j=await res.json();
+      if(j&&j.status){
+        if(j.status==='delivered'||j.status==='read') estado.entregado=true;
+        if(j.status==='read'){ estado.leido=true; break; }
+        if(j.status==='failed') break;
+      }
+    }catch(e){}
+  }
+  return estado;
+}
 function reportText(){const sc=score();return `AISOLVES · Tu Lead Signal\nScore ${sc.total}/100 (${band(sc.total)})\n\n`+S.order.filter(n=>n!=='Hero').map(n=>`• ${n}: ${(S.sections[n].dwell||0).toFixed(0)}s · ${S.sections[n].depth||0}%`).join('\n');}
 function waLink(){return `https://wa.me/${(S.lead.wa||'').replace(/^\+/,'')}?text=${encodeURIComponent(reportText())}`;}
-function openWaLink(){if(S.lead)window.open(waLink(),'_blank');}
+function openWaLink(){if(!S.lead)return;
+  if(window.AIS_PIXEL&&AIS_PIXEL.contacto)AIS_PIXEL.contacto();
+  window.open(waLink(),'_blank');}
 function maskWa(w){w=(w||'').replace(/^\+/,'');return '+'+w.slice(0,4)+'•••'+w.slice(-2);}
 function wait(ms){return new Promise(r=>setTimeout(r,ms));}
 function tog(b){b.parentElement.classList.toggle('open');}
@@ -6700,6 +6800,235 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
   });
 })();
 </script>
+<!-- ===== script mod-pixel ===== -->
+<script>
+/* ==========================================================================
+   mod-pixel — Meta Pixel + GA4 + Google Ads sobre los eventos que ya emite
+   el núcleo de comportamiento (AIS), no sobre clics sueltos.
+
+   Tres reglas que gobiernan todo el módulo:
+
+   1. Sin ID no hay etiqueta. Cada bloque comprueba su identificador antes de
+      insertar nada. Con la configuración vacía este archivo no abre una sola
+      conexión: es el estado en el que se publica.
+
+   2. Nada personalizado antes del consentimiento. El estado por defecto ya
+      quedó en denegado en la cabecera; aquí solo se levanta cuando AIS emite
+      'consent'. Al pixel de Meta se le revoca el consentimiento en el mismo
+      turno en que se inicializa, antes de cualquier evento.
+
+   3. Un event_id por evento, compartido entre navegador y servidor. Es lo que
+      permite a Meta reconocer que el evento del pixel y el de la CAPI son el
+      mismo y quedarse con la mejor señal en vez de contarlo dos veces. Si no
+      hay endpoint de CAPI configurado, el id se genera igual: no estorba.
+
+   El PII (teléfono, email) se normaliza y se cifra con SHA-256 aquí, en el
+   navegador, antes de salir. En claro no sale nunca de esta página.
+   ========================================================================== */
+(function(){
+  'use strict';
+  var CFG = window.AIS_TAGS || {};
+  var hayMeta   = !!CFG.metaPixelId;
+  var hayGoogle = !!(CFG.ga4Id || CFG.googleAdsId);
+  if(!hayMeta && !hayGoogle && !CFG.capiEndpoint && !CFG.leadEndpoint) return;   // inerte
+
+  /* ---------- utilidades ---------- */
+  function uuid(){
+    try{ if(crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    return 'e-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  }
+  /* SHA-256 en hex. Sin crypto.subtle (http sin TLS, navegador viejo) devuelve
+     null y el dato simplemente no se envía: preferimos perder emparejamiento
+     antes que mandar un teléfono en claro. */
+  function sha256(txt){
+    try{
+      if(!txt || !crypto || !crypto.subtle) return Promise.resolve(null);
+      var b = new TextEncoder().encode(txt);
+      return crypto.subtle.digest('SHA-256', b).then(function(buf){
+        return Array.prototype.map.call(new Uint8Array(buf), function(x){
+          return ('0'+x.toString(16)).slice(-2); }).join('');
+      }).catch(function(){ return null; });
+    }catch(e){ return Promise.resolve(null); }
+  }
+  function normTel(t){ return String(t||'').replace(/[^0-9]/g,''); }
+  function normMail(m){ return String(m||'').trim().toLowerCase(); }
+
+  /* ---------- carga de etiquetas ---------- */
+  function script(src){ var s=document.createElement('script'); s.async=true; s.src=src; document.head.appendChild(s); }
+
+  if(hayGoogle){
+    var idG = CFG.ga4Id || CFG.googleAdsId;
+    script('https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(idG));
+    gtag('js', new Date());
+    if(CFG.ga4Id)       gtag('config', CFG.ga4Id);
+    if(CFG.googleAdsId) gtag('config', CFG.googleAdsId);
+  }
+
+  if(hayMeta){
+    /* snippet oficial, sin el img de noscript: sin JS no hay nada que medir */
+    !function(f,b,e,v,n,t,s){ if(f.fbq)return; n=f.fbq=function(){
+      n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments); };
+      if(!f._fbq)f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0'; n.queue=[];
+      t=b.createElement(e); t.async=!0; t.src=v; s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s);
+    }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('consent','revoke');                 // antes de init: nada sale hasta que acepten
+    fbq('init', String(CFG.metaPixelId));
+  }
+
+  /* ---------- envío ----------
+     Un evento se manda al pixel del navegador y, si hay endpoint, al servidor
+     con el MISMO event_id. keepalive para que el envío sobreviva a que la
+     persona cierre la pestaña justo después de convertir. */
+  function cookie(n){
+    var m = document.cookie.match('(?:^|; )'+n+'=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  function aServidor(nombre, id, datos, usuario){
+    if(!CFG.capiEndpoint) return;
+    /* _fbp y _fbc son los identificadores de navegador que pone el propio pixel.
+       Sin ellos la CAPI empareja mucho peor, y son justo lo que el navegador
+       tiene y el servidor no puede deducir. La IP y el user-agent los añade el
+       servidor, que es quien los ve de verdad. */
+    var u = {};
+    for(var k in (usuario||{})) u[k] = usuario[k];
+    var fbp = cookie('_fbp'), fbc = cookie('_fbc');
+    if(fbp) u.fbp = fbp;
+    if(fbc) u.fbc = fbc;
+    else {
+      var cid = (location.search.match(/[?&]fbclid=([^&]+)/)||[])[1];
+      if(cid) u.fbc = 'fb.1.'+Date.now()+'.'+decodeURIComponent(cid);
+    }
+    try{
+      fetch(CFG.capiEndpoint, {
+        method:'POST', keepalive:true, headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          event_name: nombre, event_id: id, event_time: Math.floor(Date.now()/1000),
+          event_source_url: location.href, custom_data: datos||{}, user_data: u
+        })
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  function meta(nombre, datos, usuario, personalizado){
+    var id = uuid();
+    if(hayMeta){
+      try{
+        (personalizado ? fbq('trackCustom', nombre, datos||{}, {eventID:id})
+                       : fbq('track',       nombre, datos||{}, {eventID:id}));
+      }catch(e){}
+    }
+    aServidor(nombre, id, datos, usuario);
+    return id;
+  }
+  function google(nombre, datos){
+    if(!CFG.ga4Id) return;
+    try{ gtag('event', nombre, datos||{}); }catch(e){}
+  }
+
+  /* ---------- consentimiento ---------- */
+  var concedido = false;
+  function conceder(){
+    if(concedido) return; concedido = true;
+    if(hayGoogle) gtag('consent','update',{
+      ad_storage:'granted', ad_user_data:'granted', ad_personalization:'granted',
+      analytics_storage:'granted', personalization_storage:'granted'
+    });
+    if(hayMeta){ try{ fbq('consent','grant'); }catch(e){} }
+    /* el PageView pasa por meta() como todos: así también lleva event_id y no se
+       contará dos veces el día que se mande también desde el servidor */
+    meta('PageView', {});
+    google('page_view', {});
+  }
+  function revocar(){
+    concedido = false;
+    if(hayGoogle) gtag('consent','update',{
+      ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied',
+      analytics_storage:'denied', personalization_storage:'denied'
+    });
+    if(hayMeta){ try{ fbq('consent','revoke'); }catch(e){} }
+  }
+
+  /* ---------- mapeo desde el núcleo ---------- */
+  var vistaEnviada = false, bandaPrevia = null;
+
+  function enganchar(A){
+    if(!A || typeof A.on !== 'function') return;
+
+    A.on('consent', function(d){ (d && d.essential) ? revocar() : conceder(); });
+    if(A.state && A.state.consent) conceder();          // ya había aceptado antes de cargar esto
+
+    /* etapa clave -> ViewContent. Solo una vez y solo la etapa que importa:
+       un ViewContent por sección convertiría la señal en ruido. */
+    A.on('stage', function(d){
+      var n = d && (d.name || d.id);
+      if(!concedido || vistaEnviada || !n) return;
+      if(String(n).toLowerCase() !== String(CFG.vistaClave||'').toLowerCase()) return;
+      vistaEnviada = true;
+      meta('ViewContent', {content_name:n, content_category:'stage'});
+      google('view_item', {item_name:n});
+    });
+
+    /* salto de banda -> evento propio con el score. Es la señal que de verdad
+       distingue a esta web, y la que alimenta audiencias por comportamiento. */
+    A.on('tick', function(){
+      if(!concedido) return;
+      var sc; try{ sc = A.score(); }catch(e){ return; }
+      if(!sc || typeof sc.total !== 'number') return;
+      var banda = String(sc.band||'').split('·')[0].trim();
+      if(!banda || banda === bandaPrevia) return;
+      bandaPrevia = banda;
+      meta('AIS_LeadSignal', {score:sc.total, band:banda}, null, true);
+      google('lead_signal', {score:sc.total, band:banda});
+    });
+
+    /* lead -> la conversión. Aquí sí va emparejamiento avanzado, cifrado. */
+    A.on('lead', function(lead){
+      if(!concedido || !lead) return;
+      var tel = normTel(lead.wa || lead.phone), mail = normMail(lead.email);
+      Promise.all([sha256(tel), sha256(mail)]).then(function(h){
+        var usuario = {};
+        if(h[0]) usuario.ph = h[0];
+        if(h[1]) usuario.em = h[1];
+        var sc = 0; try{ sc = A.score().total; }catch(e){}
+        meta('Lead', {score:sc, content_name:'lead signal report'}, usuario);
+        google('generate_lead', {score:sc});
+        if(CFG.googleAdsLead) try{ gtag('event','conversion',{send_to:CFG.googleAdsLead}); }catch(e){}
+        crm(lead, sc, usuario);
+      });
+    });
+  }
+
+  /* ---------- alta en el CRM ----------
+     Se manda el lead crudo (el CRM es del cliente y necesita el teléfono real
+     para poder llamar) junto con el hash, que es lo que viaja a las
+     plataformas. El endpoint es propio: no sale a terceros. */
+  function crm(lead, score, hash){
+    if(!CFG.leadEndpoint) return;
+    try{
+      fetch(CFG.leadEndpoint, {
+        method:'POST', keepalive:true, headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ lead:lead, score:score, hashed:hash,
+          url:location.href, referrer:document.referrer||'', ts:Date.now() })
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  /* contacto por WhatsApp: lo llama el sitio al abrir el chat */
+  window.AIS_PIXEL = {
+    contacto: function(){
+      if(!concedido) return;
+      meta('Contact', {method:'whatsapp'});
+      google('contact', {method:'whatsapp'});
+    },
+    concedido: function(){ return concedido; }
+  };
+
+  if(window.AIS) enganchar(window.AIS);
+  else document.addEventListener('ais:ready', function(e){ enganchar(e.detail || window.AIS); }, {once:true});
+})();
+</script>
+
 <!-- ===== script mod-idioma ===== -->
 <script>
 /* ==========================================================================

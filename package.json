@@ -1,0 +1,11 @@
+{
+  "name": "aisolves-site",
+  "private": true,
+  "type": "module",
+  "description": "AISOLVES · sitio y funciones de medición (Meta CAPI, WhatsApp, CRM)",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}
