@@ -3316,6 +3316,54 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   border-top:1px solid var(--line-2);margin:12px 0 4px;padding-top:12px}
 .plans-lead{max-width:66ch;font-size:14px;line-height:1.65;color:var(--ink-2);margin:0 0 26px}
 </style>
+<style>
+/* ==========================================================================
+   vistas del reporte — una sola a la vista, sin scroll interno.
+   La botonera reutiliza el lenguaje mono del sitio; el número delante hace de
+   paso, para que se lea como un recorrido y no como pestañas sueltas.
+   ========================================================================== */
+#mSpot .shell{overflow:hidden}
+.rv-nav{display:flex;gap:0;border:1px solid var(--line);margin:14px 0 14px;overflow:hidden}
+.rv-b{flex:1 1 0;min-width:0;background:none;border:0;border-right:1px solid var(--line);
+  cursor:pointer;padding:9px 8px;display:flex;align-items:center;justify-content:center;gap:7px;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);transition:.18s;line-height:1}
+.rv-b:last-child{border-right:0}
+.rv-b i{font-style:normal;opacity:.6}
+.rv-b:hover{color:var(--ink)}
+.rv-b.is-on{background:var(--ink);color:var(--card)}
+.rv-b.is-on i{opacity:.55}
+.rv-b:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+.rv-view{display:none}
+.rv-view.rv-on{display:block}
+.rv-view>*+*{margin-top:14px}
+/* válvula: solo la vista que no cabe recupera su scroll */
+.rv-view.rv-desborda{overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:560px){
+  .rv-b span{display:none}
+  .rv-b{padding:10px 6px;font-size:11px}
+  .rv-b i{opacity:1}
+}
+</style>
+<style>
+@media(max-width:620px){
+  #mSpot .mpad{padding:20px 16px 18px}
+  #mSpot .mh{font-size:22px}
+  #mSpot .fmt-tag{display:none}
+}
+@media(max-height:760px){
+  #mSpot .mpad{padding-top:18px;padding-bottom:16px}
+  #mSpot .fmt-tag{display:none}
+}
+.rv-nav{flex-wrap:wrap}
+</style>
+<style>
+/* una pieza extraída de un panel conserva su caja: si no, al separarla se
+   quedaría flotando sin el borde que la enmarcaba */
+.rv-frag{border:1px solid var(--line);background:var(--card)}
+.scrim .rv-frag{background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.11)!important}
+.rv-frag>*{border-top:0!important}
+</style>
 </head>
 <body>
 
@@ -9804,6 +9852,232 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   document.addEventListener('visibilitychange', function(){ if (document.hidden) off(); else if (dentro > 0) on(); });
   addEventListener('resize', pinta, { passive:true });
   pinta();
+})();
+</script>
+<!-- ===== script mod-vistas ===== -->
+<script>
+/* ==========================================================================
+   mod-vistas — el reporte deja de tener scroll interno.
+
+   No era cuestión de compactar: el contenido mide 1555 px de alto donde caben
+   748, y en un móvil 2282. Un factor de tres no se cierra encogiendo tipos sin
+   volverlo ilegible, así que se reparte en vistas.
+
+   El reparto NO es fijo. Un grupo pensado para escritorio deja de caber en
+   cuanto los bloques se apilan en pantalla estrecha, así que los bloques se
+   miden de verdad y se van empaquetando en la vista actual mientras quepan; en
+   cuanto uno no cabe, empieza otra. En ancho salen cuatro vistas y en un móvil
+   seis o siete, sin tocar un solo tamaño de letra.
+
+   El BOTÓN de WhatsApp se queda fuera del reparto y siempre visible: es la
+   única acción del modal y no debe depender de en qué vista estés.
+
+   Si un bloque suelto no cabe ni él solo, esa vista recupera su scroll. Es una
+   excepción visible, mejor que recortar contenido en silencio.
+   ========================================================================== */
+(function(){
+  'use strict';
+
+  /* orden de aparición y nombre de cada bloque */
+  var BLOQUES = [
+    {sel:'.rep3-top, .rep-top', t:['Lectura','Reading']},
+    {sel:'.need',               t:['Qué necesita','What they need']},
+    {sel:'.rep3-scroll',        t:['Recorrido','Journey']},
+    {sel:'.rep3-read',          t:['Retención','Retention']},
+    {sel:'.rep3-micro-blk',     t:['Métricas','Metrics']},
+    {sel:'#attr-panel, .attr-panel', t:['Origen','Source']},
+    {sel:'.delivery',           t:['Entrega','Delivery']}
+  ];
+  function T(es,en){ return (window.AIS_T||function(a){return a;})(es,en); }
+
+  function deshacer(pad, cuerpo){
+    var previo = pad.querySelector('.rv-wrap');
+    if(previo){
+      while(previo.firstChild){
+        var v = previo.firstChild;
+        while(v.firstChild) cuerpo.appendChild(v.firstChild);
+        previo.removeChild(v);
+      }
+      previo.parentNode.removeChild(previo);
+    }
+    var nav = pad.querySelector('.rv-nav');
+    if(nav) nav.parentNode.removeChild(nav);
+  }
+
+  function paginar(){
+    var pad = document.querySelector('#mSpot .mpad');
+    var cuerpo = document.getElementById('spotBody');
+    var shell = document.querySelector('#mSpot .shell');
+    if(!pad || !cuerpo || !shell) return;
+
+    deshacer(pad, cuerpo);
+
+    /* se recogen los bloques que existan, en orden */
+    var piezas = [];
+    BLOQUES.forEach(function(b){
+      var n = pad.querySelector(b.sel);
+      if(n && piezas.indexOf(n) === -1) piezas.push({el:n, t:b.t});
+    });
+    if(piezas.length < 2) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'rv-wrap';
+    cuerpo.parentNode.insertBefore(wrap, cuerpo.nextSibling);
+
+    var nav = document.createElement('div');
+    nav.className = 'rv-nav';
+    nav.setAttribute('role','tablist');
+    nav.setAttribute('aria-label', T('Vistas del reporte','Report views'));
+    wrap.parentNode.insertBefore(nav, wrap);
+
+    /* se miden con todo dentro y visible; el hueco disponible es lo que deja
+       el resto del modal (cabecera, botonera de vistas, botones de acción) */
+    var medidor = document.createElement('div');
+    medidor.className = 'rv-view rv-on';
+    wrap.appendChild(medidor);
+    piezas.forEach(function(p){ medidor.appendChild(p.el); });
+    nav.innerHTML = '<button type="button" class="rv-b is-on"><i>01</i><span>—</span></button>';
+
+    function medir(el){
+      var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      return r.height + parseFloat(cs.marginTop||0) + parseFloat(cs.marginBottom||0);
+    }
+    var altos = piezas.map(function(p){ return medir(p.el); });
+    var hueco = shell.clientHeight - (pad.scrollHeight - medidor.getBoundingClientRect().height)
+              - 24;                                    /* aire entre bloques */
+    if(!(hueco > 120)) hueco = Math.max(160, shell.clientHeight * 0.45);
+
+    /* Un bloque que no cabe ni solo no se puede repartir moviéndolo entero: hay
+       que abrirlo. El panel de origen es el caso real —en móvil mide 598 px—, y
+       sus partes ya vienen separadas por sus propios bordes, así que se
+       reparten sin inventar nada. En cascada hasta tres niveles: una pieza
+       extraída puede seguir sin caber en una pantalla muy baja. El tope evita
+       que un bloque con hijos anónimos entre en bucle; si tras él algo sigue
+       sin caber, esa vista recupera su scroll y se ve. */
+    for(var pasada=0; pasada<3; pasada++){
+      var partido = false;
+      for(var q=piezas.length-1; q>=0; q--){
+        if(altos[q] <= hueco) continue;
+        /* se atraviesan las envolturas de un solo hijo: si no, un fragmento que
+           contiene un único panel se daría por indivisible sin serlo */
+        var nodo = piezas[q].el, hijos;
+        for(;;){
+          hijos = [].slice.call(nodo.children).filter(function(c){
+            return c.getBoundingClientRect().height > 8;
+          });
+          if(hijos.length === 1 && hijos[0].children.length){ nodo = hijos[0]; continue; }
+          break;
+        }
+        if(hijos.length < 2) continue;
+        var padre = piezas[q].el, tit = piezas[q].t;
+        var trozos = hijos.map(function(c){
+          var caja = document.createElement('div');
+          caja.className = 'rv-frag';
+          padre.parentNode.insertBefore(caja, padre);
+          caja.appendChild(c);
+          return {el:caja, t:tit};
+        });
+        padre.parentNode.removeChild(padre);
+        var nuevosAltos = trozos.map(function(t2){ return medir(t2.el); });
+        piezas.splice.apply(piezas, [q,1].concat(trozos));
+        altos.splice.apply(altos, [q,1].concat(nuevosAltos));
+        partido = true;
+      }
+      if(!partido) break;
+    }
+
+    /* empaquetado: se va llenando la vista mientras el siguiente bloque quepa */
+    function empaquetar(tope){
+      var g = [], actual = null, alto = 0;
+      piezas.forEach(function(p,i){
+        var h = altos[i] + (actual ? 14 : 0);
+        if(actual && alto + h <= tope){ actual.piezas.push(p); alto += h; return; }
+        actual = {piezas:[p], t:p.t};
+        g.push(actual);
+        alto = altos[i];
+      });
+      return g;
+    }
+    var grupos = empaquetar(hueco);
+
+    /* Tope de siete vistas. En una pantalla muy baja el reparto exacto salía a
+       veintidós, y una botonera de veintidós pasos es peor que el scroll que
+       veníamos a quitar. Pasado el tope se reparte a partes iguales y las que
+       no quepan recuperan su scroll: se pierde la regla en el caso extremo,
+       pero el modal sigue siendo navegable, que es de lo que iba. */
+    var MAX = 7;
+    if(grupos.length > MAX){
+      var total = altos.reduce(function(a2,b2){ return a2+b2+14; }, 0);
+      grupos = empaquetar(Math.ceil(total / MAX));
+      if(grupos.length > MAX) grupos = empaquetar(Math.ceil(total / Math.max(1, MAX-1)));
+    }
+
+    wrap.removeChild(medidor);
+    nav.innerHTML = '';
+    grupos.forEach(function(g,i){
+      var caja = document.createElement('div');
+      caja.className = 'rv-view';
+      g.piezas.forEach(function(p){ caja.appendChild(p.el); });
+      wrap.appendChild(caja);
+      var b = document.createElement('button');
+      b.type='button'; b.className='rv-b'; b.setAttribute('role','tab');
+      b.setAttribute('data-i', i);
+      b.innerHTML = '<i>'+('0'+(i+1)).slice(-2)+'</i><span>'+T(g.t[0], g.t[1])+'</span>';
+      nav.appendChild(b);
+    });
+
+    if(grupos.length < 2){                             // cabía todo: sin botonera
+      nav.parentNode.removeChild(nav);
+      wrap.children[0].classList.add('rv-on');
+      return;
+    }
+
+    var idx = 0;
+    function ajustar(){
+      var v = wrap.children[idx];
+      if(!v) return;
+      v.classList.remove('rv-desborda'); v.style.maxHeight='';
+      var sobra = pad.scrollHeight - shell.clientHeight;
+      if(sobra > 2){
+        v.style.maxHeight = Math.max(140, v.getBoundingClientRect().height - sobra - 4) + 'px';
+        v.classList.add('rv-desborda');
+      }
+    }
+    function mostrar(n){
+      idx = Math.max(0, Math.min(grupos.length-1, n));
+      var i;
+      for(i=0;i<wrap.children.length;i++) wrap.children[i].classList.toggle('rv-on', i===idx);
+      for(i=0;i<nav.children.length;i++){
+        nav.children[i].classList.toggle('is-on', i===idx);
+        nav.children[i].setAttribute('aria-selected', i===idx ? 'true':'false');
+      }
+      ajustar();
+    }
+    nav.addEventListener('click', function(e){
+      var b = e.target && e.target.closest ? e.target.closest('.rv-b') : null;
+      if(b) mostrar(parseInt(b.getAttribute('data-i'),10) || 0);
+    });
+    nav.addEventListener('keydown', function(e){
+      if(e.key==='ArrowRight'){ mostrar(idx+1); e.preventDefault(); }
+      if(e.key==='ArrowLeft'){  mostrar(idx-1); e.preventDefault(); }
+    });
+    var t; addEventListener('resize', function(){ clearTimeout(t); t=setTimeout(paginar, 180); }, {passive:true});
+    mostrar(0);
+  }
+
+  function enganchar(){
+    var orig = window.mountReport;
+    if(typeof orig !== 'function' || orig.__rv) return false;
+    var w = function(el, compact){
+      var r = orig.apply(this, arguments);
+      if(!compact && el && el.id === 'spotBody') setTimeout(paginar, 0);
+      return r;
+    };
+    w.__rv = true; w.__orig = orig; window.mountReport = w;
+    return true;
+  }
+  if(!enganchar()) addEventListener('load', enganchar, {once:true});
+  window.AIS_VISTAS = { paginar: paginar };
 })();
 </script>
 </body>
