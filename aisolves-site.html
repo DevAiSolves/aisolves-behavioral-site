@@ -1001,7 +1001,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   perspective:1200px;perspective-origin:50% 44%;
   min-height:78vh;min-height:78svh;               /* svh con respaldo para iOS */
 }
-@media(min-width:1000px){.stage{min-height:210vh;min-height:210svh}}
+@media(min-width:1000px){.stage{min-height:252vh;min-height:252svh}}
 .stage .carousel{border:0;background:none;height:100%;position:absolute;inset:0}
 .stage .car-body{display:block;border:0;min-height:0;background:none;height:100%}
 .stage .car-cell.brain{position:absolute;inset:0;min-height:0;background:none;border:0;overflow:hidden}
@@ -1075,7 +1075,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .stage .note{display:none}
 }
 @media(max-width:480px){
-  .stage{min-height:148svh}
+  .stage{min-height:178svh}
   .stage .brain-hud .brain-name{font-size:16px}
   .stage .brain-stream{max-width:88%;font-size:9px;bottom:clamp(164px,24vh,206px)}
   .stage .brain-stream .bs-line:nth-last-child(n+3){display:none}
@@ -1224,8 +1224,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
    ================================================================== */
 
 /* ---- 1. espacio ---- */
-.stage{min-height:166vh;min-height:166svh}
-@media(min-width:1000px){.stage{min-height:210vh;min-height:210svh}}
+.stage{min-height:200vh;min-height:200svh}
+@media(min-width:1000px){.stage{min-height:252vh;min-height:252svh}}
 /* el contenido se queda pegado al viewport: el cerebro no se va mientras
    se recorre el tercio extra */
 /* overflow:hidden en el ancestro anula position:sticky, así que el recorte
@@ -2853,6 +2853,54 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
    que es donde ahora viven las tarjetas de la órbita. ===== */
 #work .brain-stream{bottom:clamp(300px,38vh,430px)!important;z-index:3}
 @media(max-width:860px){#work .brain-stream{bottom:clamp(250px,34vh,330px)!important}}
+</style>
+<style>
+/* ===== lupa-blanco-y-negro =====
+   La lupa pasa a tarjeta flotante de cristal ahumado, en blanco y negro.
+   El único color sigue siendo la valoración del lead: la lámpara del semáforo
+   y su banda. El botón IR va en blanco. ===== */
+.lupa{--lupa-go:#fff}                      /* neutraliza etiquetas, % y botón */
+/* piezas que seguían tirando de teal */
+.lupa-trust{border-color:rgba(255,255,255,.18)!important;background:rgba(255,255,255,.04)!important}
+.lupa-trust b{color:#fff!important}
+.lupa-cta{background:#fff!important;color:#101216!important;border-color:#fff!important}
+.lupa-cta:hover{background:rgba(255,255,255,.9)!important}
+.lupa-link{color:rgba(255,255,255,.72)!important}
+/* puntos de canal: estado, no valoración -> grises */
+.lupa .attr-dot{background:rgba(255,255,255,.26)!important;box-shadow:none!important}
+.lupa .attr-dot.attr-go{background:rgba(255,255,255,.88)!important;box-shadow:none!important}
+.lupa .attr-dot.attr-hold{background:rgba(255,255,255,.55)!important;box-shadow:none!important}
+
+.lupa-panel,.lupa-card{
+  background:linear-gradient(158deg,rgba(26,29,36,.80) 0%,rgba(16,18,24,.85) 52%,rgba(10,12,16,.90) 100%)!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(.85)!important;backdrop-filter:blur(22px) saturate(.85)!important;
+  box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)!important}
+
+.lupa-eyebrow{color:rgba(255,255,255,.62)!important}
+.lupa-trust span{color:rgba(255,255,255,.55)!important}
+.lupa-st .lupa-pc,.lupa-st.current .lupa-pc{color:rgba(255,255,255,.62)!important}
+.lupa-st.current .lupa-pc{color:#fff!important}
+.lupa-bar i{background:rgba(255,255,255,.85)!important}
+
+/* puntos de etapa: estado, no valoración -> escala de grises */
+.lupa-st .lupa-dot,.lupa-st i[class*="dot"]{background:rgba(255,255,255,.28)!important;box-shadow:none!important}
+.lupa-st.visited .lupa-dot,.lupa-st.visited i[class*="dot"]{background:rgba(255,255,255,.82)!important;box-shadow:none!important}
+.lupa-st.current .lupa-dot,.lupa-st.current i[class*="dot"]{background:#fff!important;
+  box-shadow:0 0 0 3px rgba(255,255,255,.16)!important}
+
+/* botón IR: blanco */
+.lupa-go{color:#fff!important;border-color:rgba(255,255,255,.45)!important;
+  background:transparent!important;opacity:.9}
+.lupa-go:hover{background:rgba(255,255,255,.14)!important;border-color:#fff!important;opacity:1}
+
+/* ÚNICO color: la valoración del lead */
+.lupa-lamp.go:before{background:radial-gradient(circle at 35% 30%,#c6fff5,#2fc5b1 45%,#0f8577 85%)!important}
+.lupa-lamp.hold:before{background:radial-gradient(circle at 35% 30%,#ffe7a8,#e0a400 48%,#8a5a00 85%)!important}
+.lupa-lamp.stop:before{background:radial-gradient(circle at 35% 30%,#ffb3b5,#e5484d 48%,#7a0010 85%)!important}
+.lupa-sem.go .lupa-sem-go{color:#2fc5b1!important}
+.lupa-sem.hold .lupa-sem-hold{color:#e0a400!important}
+.lupa-sem.stop .lupa-sem-stop{color:#e5484d!important}
 </style>
 </head>
 <body>
@@ -8030,25 +8078,33 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
        no se salga del viewport, que es lo que fallaba en el enfoque css3d. */
     var cw = narrow ? Math.min(W - 54, 330) : Math.max(280, Math.min(380, W * 0.30));
     host.style.setProperty('--cw', Math.round(cw) + 'px');
-    host.style.setProperty('--oy', narrow ? '74%' : '80%');
+    host.style.setProperty('--oy', narrow ? '78%' : '84%');
     /* Radio: en estrecho se encoge para que la vecina quepa en pantalla. */
     R = narrow ? Math.max(84, W * 0.20) : Math.max(210, Math.min(430, W * 0.30));
     /* Empuje hacia abajo: se pide ~3 cm (113px a 96 ppp), pero se recorta a lo
        que realmente cabe. En pantallas bajas un empuje fijo expulsaba las seis
        tarjetas fuera del escenario. */
-    var oyPx = H * (narrow ? 0.74 : 0.80);
+    var oyPx = H * (narrow ? 0.78 : 0.84);
     var alto = (cards[0] && cards[0].offsetHeight) ? cards[0].offsetHeight : 230;
-    var margen = 14;
-    var libre = H - margen - oyPx - alto / 2;
-    PUSH = Math.max(0, Math.min(113, libre));   /* los 3 cm pedidos; 'libre' evita que se salgan */
+    /* la frontal se dibuja AMPLIADA por la perspectiva: si el recorte usa el
+       alto natural se queda corto y la tarjeta se sale por abajo */
+    var kFront = PERSP / Math.max(1, PERSP - R);
+    var altoFront = alto * kFront;
+    var margen = 18;
+    var libre = H - margen - oyPx - altoFront / 2;
+    PUSH = Math.max(0, Math.min(113, libre));   /* los 3 cm pedidos, si caben */
     PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
   }
 
   /* ---------- progreso del escenario ---------- */
+  /* La órbita agota su recorrido al 74% del escenario. El 26% restante es aire
+     negro: así la última tarjeta no queda pegada al borde donde empieza la
+     sección siguiente, que era lo que la cortaba. */
+  var FIN = 0.74;
   function prog() {
     var r = stage.getBoundingClientRect();
     var total = Math.max(1, r.height - window.innerHeight);
-    var p = -r.top / total;
+    var p = (-r.top / total) / FIN;
     return p < 0 ? 0 : (p > 1 ? 1 : p);
   }
 
