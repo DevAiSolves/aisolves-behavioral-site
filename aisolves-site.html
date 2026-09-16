@@ -75,8 +75,19 @@ gtag('consent','default',{
   /* buttons */
   .btn{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:500;font-size:13.5px;padding:15px 22px;cursor:pointer;border:1px solid transparent;transition:background .2s,color .2s,border-color .2s;line-height:1;font-family:Montserrat}
   .btn>*{position:relative;z-index:2}
-  .btn .prog{position:absolute;inset:0;z-index:1;transform-origin:left;transform:scaleX(0);background:rgba(0,0,0,.14)}
-  .btn .bar{position:absolute;left:0;bottom:0;height:3px;width:0;z-index:2;background:rgba(0,0,0,.26)}
+  .btn .prog{position:absolute;inset:0;right:auto;z-index:1;width:0;background:rgba(0,0,0,.20);
+    transition:width .2s linear;
+    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,70px)),transparent 100%);
+            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,70px)),transparent 100%);
+    -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
+    -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
+    -webkit-mask-composite:source-in;mask-composite:intersect}
+  .btn .bar{position:absolute;left:0;bottom:0;height:4px;width:0;z-index:2;background:rgba(0,0,0,.30);
+    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
+            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
+    -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
+    -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
+    -webkit-mask-composite:source-in;mask-composite:intersect}
   .btn.dark{background:var(--navy);color:#fff}.btn.dark:hover{background:#171d29}
   .btn.ghost{border-color:var(--ink);color:var(--ink)}.btn.ghost:hover{background:var(--ink);color:#fff}
   .btn.loading{pointer-events:none}
@@ -359,8 +370,13 @@ gtag('consent','default',{
   .delivery .dh{display:flex;justify-content:space-between;margin-bottom:12px}
   .delivery .dt{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
   .delivery .num{font-family:"IBM Plex Mono",monospace;font-size:12px}
-  .track-line{height:8px;background:#e6e9f0;overflow:hidden;margin-bottom:12px}
-  .track-line i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s}
+  .track-line{height:8px;background:#e6e9f0;overflow:hidden;margin-bottom:12px;
+    -webkit-mask-image:var(--ais-trama);mask-image:var(--ais-trama);
+    -webkit-mask-size:64px 48px;mask-size:64px 48px;
+    -webkit-mask-repeat:repeat;mask-repeat:repeat}
+  .track-line i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,40px)),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,40px)),transparent 100%)}
   .track-line.done i{background:var(--confirm)}
   .steps{display:flex;justify-content:space-between;gap:8px}
   .step{flex:1;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:9px;text-transform:uppercase;color:var(--ink-3);position:relative;padding-top:20px}
@@ -519,8 +535,13 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .hud-spark{width:100%;height:22px;display:block;overflow:visible}
   .hud-spark polyline{fill:none;stroke:var(--teal);stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
   .hud-spark line{stroke:rgba(255,255,255,.08);stroke-width:1;vector-effect:non-scaling-stroke}
-  .hud-bar{height:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:4px}
-  .hud-bar i{display:block;height:100%;width:100%;background:var(--teal);transform-origin:left;transform:scaleX(0);transition:transform .25s linear}
+  .hud-bar{height:4px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:4px;
+    -webkit-mask-image:var(--ais-trama);mask-image:var(--ais-trama);
+    -webkit-mask-size:64px 48px;mask-size:64px 48px;
+    -webkit-mask-repeat:repeat;mask-repeat:repeat}
+  .hud-bar i{display:block;height:100%;width:0;background:var(--teal);transition:width .25s linear;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,30px)),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,30px)),transparent 100%)}
   .hud-bar.hud-amber i{background:var(--hold)}
 
   /* rail de etapas */
@@ -674,7 +695,12 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .lupa-mini-score small{font-size:9px;color:var(--lupa-dim);margin-left:-5px}
   .lupa-mini-bot{display:flex;align-items:center;gap:10px}
   .lupa-bar{position:relative;flex:1;height:15px;background:rgba(255,255,255,.06);border:1px solid var(--lupa-line);overflow:hidden}
-  .lupa-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(47,197,177,.3),var(--lupa-go));transition:width .25s linear}
+  .lupa-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(47,197,177,.3),var(--lupa-go));transition:width .25s linear;
+    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,34px)),transparent 100%);
+            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,34px)),transparent 100%);
+    -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
+    -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
+    -webkit-mask-composite:source-in;mask-composite:intersect}
   .lupa-bar.cur{flex:0 0 78px}
   .lupa-bar.cur i{background:linear-gradient(90deg,rgba(255,255,255,.1),rgba(255,255,255,.55));transition:width .2s linear}
   .lupa-bar em{position:absolute;inset:0;display:flex;align-items:center;padding:0 6px;font-style:normal;font-family:var(--lupa-mono);
@@ -3008,9 +3034,14 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 #hud .hud-pr span{font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.14em;
   text-transform:uppercase;color:rgba(255,255,255,.44);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#hud .hud-pr i{display:block;height:4px;background:rgba(255,255,255,.10);overflow:hidden}
+#hud .hud-pr i{display:block;height:4px;background:rgba(255,255,255,.10);overflow:hidden;
+    -webkit-mask-image:var(--ais-trama);mask-image:var(--ais-trama);
+    -webkit-mask-size:64px 48px;mask-size:64px 48px;
+    -webkit-mask-repeat:repeat;mask-repeat:repeat}
 #hud .hud-pr b{display:block;height:100%;width:0;background:#fff;
-  transition:width .5s cubic-bezier(.22,1,.36,1)}
+  transition:width .5s cubic-bezier(.22,1,.36,1);
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
+          mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%)}
 #hud .hud-pr em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px;
   color:#fff;text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:860px){#hud .hud-pr{grid-template-columns:72px 1fr 32px}}
@@ -3152,6 +3183,73 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 #paquetes .plan-nota{font-family:"IBM Plex Mono",monospace;font-size:10px;line-height:1.5;
   color:var(--ink-3);border-top:1px solid var(--line-2);padding-top:10px;margin-top:2px}
 #paquetes .plan-audit ul{margin-bottom:14px}
+</style>
+<style>
+/* ==========================================================================
+   carga-trama — todos los indicadores de progreso comparten una misma trama
+   de cuadrados, como una trama de imprenta.
+
+   Es UNA baldosa de 64×48 con 16×12 cuadrados de 3px repartidos en seis
+   niveles de opacidad, que se repite en los dos ejes. Al ser la celda siempre
+   de 4px, el cuadradito mide lo mismo en la barra de 4px del HUD y en el botón
+   de 44px: es la misma trama vista por una ventana más o menos alta, no cinco
+   efectos parecidos.
+
+   El relleno lleva además una máscara en degradado por su borde derecho, así
+   que el frente de carga no termina en un corte recto sino que se deshace en
+   cuadrados sueltos.
+
+   Va con máscara y no con un fondo repetido porque hace falta que recorte el
+   relleno de color, no que se pinte encima.
+   ========================================================================== */
+:root{ --ais-trama:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='48'><g opacity='.35'><rect x='28' y='0' width='3' height='3'/><rect x='36' y='4' width='3' height='3'/><rect x='40' y='4' width='3' height='3'/><rect x='44' y='4' width='3' height='3'/><rect x='8' y='8' width='3' height='3'/><rect x='12' y='8' width='3' height='3'/><rect x='20' y='8' width='3' height='3'/><rect x='24' y='8' width='3' height='3'/><rect x='60' y='8' width='3' height='3'/><rect x='44' y='12' width='3' height='3'/><rect x='56' y='12' width='3' height='3'/><rect x='8' y='16' width='3' height='3'/><rect x='28' y='16' width='3' height='3'/><rect x='4' y='20' width='3' height='3'/><rect x='40' y='20' width='3' height='3'/><rect x='56' y='20' width='3' height='3'/><rect x='4' y='24' width='3' height='3'/><rect x='20' y='24' width='3' height='3'/><rect x='44' y='28' width='3' height='3'/><rect x='28' y='32' width='3' height='3'/><rect x='36' y='32' width='3' height='3'/><rect x='48' y='32' width='3' height='3'/><rect x='56' y='32' width='3' height='3'/><rect x='40' y='36' width='3' height='3'/><rect x='52' y='36' width='3' height='3'/><rect x='56' y='36' width='3' height='3'/><rect x='44' y='40' width='3' height='3'/><rect x='48' y='40' width='3' height='3'/><rect x='60' y='40' width='3' height='3'/><rect x='20' y='44' width='3' height='3'/><rect x='24' y='44' width='3' height='3'/><rect x='60' y='44' width='3' height='3'/></g><g opacity='.5'><rect x='4' y='0' width='3' height='3'/><rect x='8' y='0' width='3' height='3'/><rect x='24' y='0' width='3' height='3'/><rect x='40' y='0' width='3' height='3'/><rect x='4' y='4' width='3' height='3'/><rect x='12' y='4' width='3' height='3'/><rect x='16' y='4' width='3' height='3'/><rect x='60' y='4' width='3' height='3'/><rect x='36' y='8' width='3' height='3'/><rect x='20' y='12' width='3' height='3'/><rect x='48' y='12' width='3' height='3'/><rect x='52' y='12' width='3' height='3'/><rect x='48' y='16' width='3' height='3'/><rect x='56' y='16' width='3' height='3'/><rect x='28' y='24' width='3' height='3'/><rect x='44' y='24' width='3' height='3'/><rect x='52' y='24' width='3' height='3'/><rect x='8' y='28' width='3' height='3'/><rect x='12' y='28' width='3' height='3'/><rect x='36' y='28' width='3' height='3'/><rect x='48' y='28' width='3' height='3'/><rect x='4' y='32' width='3' height='3'/><rect x='32' y='32' width='3' height='3'/><rect x='44' y='32' width='3' height='3'/><rect x='36' y='36' width='3' height='3'/><rect x='8' y='40' width='3' height='3'/><rect x='12' y='40' width='3' height='3'/><rect x='16' y='40' width='3' height='3'/><rect x='36' y='40' width='3' height='3'/><rect x='40' y='40' width='3' height='3'/><rect x='0' y='44' width='3' height='3'/><rect x='12' y='44' width='3' height='3'/><rect x='32' y='44' width='3' height='3'/></g><g opacity='.62'><rect x='0' y='0' width='3' height='3'/><rect x='16' y='0' width='3' height='3'/><rect x='44' y='0' width='3' height='3'/><rect x='52' y='0' width='3' height='3'/><rect x='28' y='8' width='3' height='3'/><rect x='8' y='12' width='3' height='3'/><rect x='36' y='12' width='3' height='3'/><rect x='12' y='16' width='3' height='3'/><rect x='16' y='16' width='3' height='3'/><rect x='8' y='20' width='3' height='3'/><rect x='44' y='20' width='3' height='3'/><rect x='48' y='20' width='3' height='3'/><rect x='0' y='24' width='3' height='3'/><rect x='12' y='24' width='3' height='3'/><rect x='16' y='24' width='3' height='3'/><rect x='4' y='28' width='3' height='3'/><rect x='40' y='28' width='3' height='3'/><rect x='0' y='32' width='3' height='3'/><rect x='16' y='32' width='3' height='3'/><rect x='0' y='36' width='3' height='3'/><rect x='4' y='36' width='3' height='3'/><rect x='20' y='36' width='3' height='3'/><rect x='28' y='36' width='3' height='3'/><rect x='60' y='36' width='3' height='3'/><rect x='24' y='40' width='3' height='3'/><rect x='4' y='44' width='3' height='3'/><rect x='16' y='44' width='3' height='3'/><rect x='52' y='44' width='3' height='3'/></g><g opacity='.74'><rect x='32' y='0' width='3' height='3'/><rect x='36' y='0' width='3' height='3'/><rect x='0' y='4' width='3' height='3'/><rect x='20' y='4' width='3' height='3'/><rect x='48' y='4' width='3' height='3'/><rect x='56' y='4' width='3' height='3'/><rect x='16' y='8' width='3' height='3'/><rect x='44' y='8' width='3' height='3'/><rect x='4' y='12' width='3' height='3'/><rect x='12' y='12' width='3' height='3'/><rect x='16' y='12' width='3' height='3'/><rect x='60' y='12' width='3' height='3'/><rect x='4' y='16' width='3' height='3'/><rect x='24' y='16' width='3' height='3'/><rect x='40' y='16' width='3' height='3'/><rect x='52' y='16' width='3' height='3'/><rect x='24' y='20' width='3' height='3'/><rect x='28' y='20' width='3' height='3'/><rect x='8' y='24' width='3' height='3'/><rect x='40' y='24' width='3' height='3'/><rect x='48' y='24' width='3' height='3'/><rect x='0' y='28' width='3' height='3'/><rect x='24' y='28' width='3' height='3'/><rect x='12' y='32' width='3' height='3'/><rect x='24' y='32' width='3' height='3'/><rect x='40' y='32' width='3' height='3'/><rect x='52' y='32' width='3' height='3'/><rect x='24' y='36' width='3' height='3'/><rect x='36' y='44' width='3' height='3'/><rect x='48' y='44' width='3' height='3'/></g><g opacity='.86'><rect x='56' y='0' width='3' height='3'/><rect x='60' y='0' width='3' height='3'/><rect x='24' y='4' width='3' height='3'/><rect x='28' y='4' width='3' height='3'/><rect x='32' y='4' width='3' height='3'/><rect x='52' y='4' width='3' height='3'/><rect x='0' y='8' width='3' height='3'/><rect x='40' y='8' width='3' height='3'/><rect x='48' y='8' width='3' height='3'/><rect x='52' y='8' width='3' height='3'/><rect x='56' y='8' width='3' height='3'/><rect x='0' y='12' width='3' height='3'/><rect x='0' y='16' width='3' height='3'/><rect x='32' y='16' width='3' height='3'/><rect x='36' y='16' width='3' height='3'/><rect x='44' y='16' width='3' height='3'/><rect x='60' y='16' width='3' height='3'/><rect x='16' y='20' width='3' height='3'/><rect x='32' y='20' width='3' height='3'/><rect x='36' y='20' width='3' height='3'/><rect x='52' y='20' width='3' height='3'/><rect x='56' y='24' width='3' height='3'/><rect x='20' y='28' width='3' height='3'/><rect x='28' y='28' width='3' height='3'/><rect x='32' y='28' width='3' height='3'/><rect x='56' y='28' width='3' height='3'/><rect x='8' y='36' width='3' height='3'/><rect x='16' y='36' width='3' height='3'/><rect x='32' y='36' width='3' height='3'/><rect x='44' y='36' width='3' height='3'/><rect x='48' y='36' width='3' height='3'/><rect x='4' y='40' width='3' height='3'/><rect x='20' y='40' width='3' height='3'/><rect x='32' y='40' width='3' height='3'/><rect x='8' y='44' width='3' height='3'/><rect x='40' y='44' width='3' height='3'/><rect x='44' y='44' width='3' height='3'/></g><g opacity='1'><rect x='12' y='0' width='3' height='3'/><rect x='20' y='0' width='3' height='3'/><rect x='48' y='0' width='3' height='3'/><rect x='8' y='4' width='3' height='3'/><rect x='4' y='8' width='3' height='3'/><rect x='32' y='8' width='3' height='3'/><rect x='24' y='12' width='3' height='3'/><rect x='28' y='12' width='3' height='3'/><rect x='32' y='12' width='3' height='3'/><rect x='40' y='12' width='3' height='3'/><rect x='20' y='16' width='3' height='3'/><rect x='0' y='20' width='3' height='3'/><rect x='12' y='20' width='3' height='3'/><rect x='20' y='20' width='3' height='3'/><rect x='60' y='20' width='3' height='3'/><rect x='24' y='24' width='3' height='3'/><rect x='32' y='24' width='3' height='3'/><rect x='36' y='24' width='3' height='3'/><rect x='60' y='24' width='3' height='3'/><rect x='16' y='28' width='3' height='3'/><rect x='52' y='28' width='3' height='3'/><rect x='60' y='28' width='3' height='3'/><rect x='8' y='32' width='3' height='3'/><rect x='20' y='32' width='3' height='3'/><rect x='60' y='32' width='3' height='3'/><rect x='12' y='36' width='3' height='3'/><rect x='0' y='40' width='3' height='3'/><rect x='28' y='40' width='3' height='3'/><rect x='52' y='40' width='3' height='3'/><rect x='56' y='40' width='3' height='3'/><rect x='28' y='44' width='3' height='3'/><rect x='56' y='44' width='3' height='3'/></g></svg>") }
+
+.ais-trama,.ais-trama-f{
+  -webkit-mask-image:var(--ais-trama); mask-image:var(--ais-trama);
+  -webkit-mask-size:64px 48px; mask-size:64px 48px;
+  -webkit-mask-repeat:repeat; mask-repeat:repeat;
+}
+/* el frente se deshace: dos máscaras, la trama y el degradado del borde */
+.ais-trama-f{
+  -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,44px)),transparent 100%);
+          mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,44px)),transparent 100%);
+  -webkit-mask-size:64px 48px,100% 100%; mask-size:64px 48px,100% 100%;
+  -webkit-mask-repeat:repeat,no-repeat; mask-repeat:repeat,no-repeat;
+  -webkit-mask-composite:source-in; mask-composite:intersect;
+}
+
+/* (1) botón: la trama cubre el botón entero mientras carga.
+   .prog pasa de scaleX a anchura porque una máscara sobre un elemento
+   escalado estiraría los cuadrados hasta convertirlos en rayas. */
+.btn .prog{transform:none!important;width:0;right:auto}
+.btn .prog{--roce:70px}
+.btn .bar{--roce:26px}
+
+/* (2) entrega por WhatsApp */
+.track-line{--roce:40px}
+
+/* (3) lupa: lleva su etiqueta dentro, así que la pista va en ::before y el
+   texto se queda por encima, sin tramar. */
+.lupa-bar{--roce:34px}
+.lupa-bar:before{content:"";position:absolute;inset:0;z-index:0;
+  background:rgba(255,255,255,.16);
+  -webkit-mask-image:var(--ais-trama); mask-image:var(--ais-trama);
+  -webkit-mask-size:64px 48px; mask-size:64px 48px;
+  -webkit-mask-repeat:repeat; mask-repeat:repeat}
+.lupa-bar i{z-index:1}
+.lupa-bar em{z-index:2;
+  /* la trama deja cuadrados blancos justo detrás de la etiqueta, así que el
+     texto necesita más separación que con el relleno liso de antes */
+  text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9)}
+.lupa-bar i,#hud .lupa-bar i{background:rgba(255,255,255,.62)!important}
+
+/* (4) y (5) barras del HUD */
+.hud-bar{--roce:30px}
+#hud .hud-pr i{--roce:26px}
+
+@media(prefers-reduced-motion:reduce){
+  .ais-trama-f{transition:none}
+}
 </style>
 </head>
 <body>
@@ -3769,7 +3867,7 @@ const S={consent:false,attn:0,lastTick:0,active:true,maxDepth:0,signals:0,exitIn
 document.querySelectorAll('[data-sec]').forEach(el=>{const n=el.getAttribute('data-sec');S.sections[n]={depth:0,dwell:0,entered:false,_in:0};S.order.push(n);});
 
 function setProg(b,p,dur){const pr=b.querySelector('.prog'),bar=b.querySelector('.bar');const t=dur?dur+'ms linear':'0s';
-  if(pr){pr.style.transition='transform '+t;pr.style.transform='scaleX('+(p/100)+')';}
+  if(pr){pr.style.transition='width '+t;pr.style.width=p+'%';}
   if(bar){bar.style.transition='width '+t;bar.style.width=p+'%';}}
 function fillBtn(b,to,dur){return new Promise(res=>{b._p=to;setProg(b,to,dur);setTimeout(res,dur);});}
 function resetBtn(b){b._p=0;setProg(b,0);b.classList.remove('loading','confirm');}
@@ -5283,8 +5381,8 @@ function boot(){
     spark.push(cv); if(spark.length>20) spark.shift(); drawSpark();
     const sv=Math.abs(Math.round(scr.velocity||0)); setNum(el.sv,String(sv));
     el.svBar.classList.toggle('hud-amber',sv>=40);
-    el.svFill.style.transform='scaleX('+Math.min(1,sv/1500).toFixed(3)+')';
-    const scur=Math.round(scr.current||0); setNum(el.sc,String(scur)); el.scFill.style.transform='scaleX('+(scur/100).toFixed(3)+')';
+    el.svFill.style.width=(Math.min(1,sv/1500)*100).toFixed(1)+'%';
+    const scur=Math.round(scr.current||0); setNum(el.sc,String(scur)); el.scFill.style.width=scur+'%';
     setNum(el.attn,(typeof st.attention==='number')?st.attention.toFixed(1):'—');
     setNum(el.moves,String(cur.moves||0));
     setNum(el.depth,u.pct(scr.depth));
@@ -5327,7 +5425,7 @@ function boot(){
   /* ---------- botón: transición CSS + setTimeout (misma mecánica que .btn del sitio) ---------- */
   function setProg(b,p,ms){
     const pr=b.querySelector('.prog'), bar=b.querySelector('.bar'), t=ms?ms+'ms linear':'0s';
-    if(pr){ pr.style.transition='transform '+t; pr.style.transform='scaleX('+(p/100)+')'; }
+    if(pr){ pr.style.transition='width '+t; pr.style.width=p+'%'; }
     if(bar){ bar.style.transition='width '+t; bar.style.width=p+'%'; }
   }
   function resetBtn(){ setProg(el.accept,0,0); el.accept.classList.remove('loading'); }
