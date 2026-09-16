@@ -2926,6 +2926,47 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 #hud .hud-ch[data-on="1"] svg{opacity:1!important}
 #hud .hud-ch[data-on="1"] b{color:inherit!important}
 </style>
+<style>
+/* ===== tarjetas-flotantes =====
+   Las tarjetas de Sistema y Método dejan de ser celdas pegadas de una rejilla y
+   pasan a flotar por separado. Al recorrerlas, la que cruza el centro de la
+   pantalla se invierte: fondo negro y letra blanca. ===== */
+#sistema .grid3,#metodo .phases{
+  border:0!important;background:none!important;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+#sistema .grid3 .cell,#metodo .phases .phase{
+  border:1px solid var(--line)!important;background:var(--card)!important;
+  padding:28px 26px!important;
+  box-shadow:0 10px 26px rgba(24,24,27,.06);
+  transition:transform .55s cubic-bezier(.22,1,.36,1),box-shadow .55s cubic-bezier(.22,1,.36,1),
+             background-color .5s ease,border-color .5s ease,color .5s ease;
+  will-change:transform}
+/* flotan: cuanto más cerca del centro, más levantadas */
+#sistema .grid3 .cell{transform:translateY(calc(var(--lift,0) * -14px))}
+#metodo .phases .phase{transform:translateY(calc(var(--lift,0) * -14px))}
+#sistema .grid3 .cell:hover,#metodo .phases .phase:hover{
+  box-shadow:0 26px 60px rgba(24,24,27,.14)}
+
+/* ---- estado invertido: negro con letra blanca ---- */
+#sistema .grid3 .cell.is-dark,#metodo .phases .phase.is-dark{
+  background:#0e1116!important;border-color:rgba(255,255,255,.14)!important;
+  box-shadow:0 30px 70px rgba(10,12,16,.38)}
+#sistema .cell.is-dark h3,#metodo .phase.is-dark h3{color:#fff!important}
+#sistema .cell.is-dark .lead,#metodo .phase.is-dark p{color:rgba(255,255,255,.76)!important}
+#metodo .phase.is-dark p b{color:#fff!important}
+#sistema .cell.is-dark li{color:rgba(255,255,255,.74)!important}
+#sistema .cell.is-dark li:before{color:rgba(255,255,255,.55)!important}
+#sistema .cell.is-dark .cn,#metodo .phase.is-dark .ph,#metodo .phase.is-dark .goal{
+  color:rgba(255,255,255,.62)!important}
+
+@media(max-width:860px){
+  #sistema .grid3,#metodo .phases{grid-template-columns:1fr;gap:14px}
+  #sistema .grid3 .cell,#metodo .phases .phase{padding:22px 20px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #sistema .grid3 .cell,#metodo .phases .phase{transition:none;transform:none!important}
+}
+</style>
 </head>
 <body>
 
@@ -8310,6 +8351,59 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   }, { rootMargin: '10% 0px' }).observe(stage);
 
   document.addEventListener('visibilitychange', function(){ if (document.hidden) off(); else on(); });
+})();
+</script>
+<!-- ===== script mod-flotantes ===== -->
+<script>
+/* Las tarjetas flotan según se acercan al centro de la pantalla y se invierten
+   a negro cuando lo cruzan. El progreso se lee de la geometría en cada
+   fotograma —no de eventos de scroll, que en algunos entornos no llegan— y el
+   bucle sólo corre con la sección a la vista. */
+(function(){
+  'use strict';
+  var cards = [].slice.call(document.querySelectorAll('#sistema .grid3 .cell, #metodo .phases .phase'));
+  if (!cards.length) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var estado = cards.map(function(){ return { lift:-1, dark:null }; });
+
+  function pinta(){
+    var vh = window.innerHeight || 1, mid = vh / 2;
+    for (var i = 0; i < cards.length; i++){
+      var r = cards[i].getBoundingClientRect();
+      if (r.bottom < -80 || r.top > vh + 80) continue;      /* fuera: no tocar */
+      var c = r.top + r.height / 2;
+      var d = Math.abs(c - mid) / (vh * 0.62);              /* 0 en el centro */
+      if (d > 1) d = 1;
+      var lift = 1 - d;                                     /* 1 centrado, 0 lejos */
+      var q = Math.round(lift * 20) / 20;                   /* evita escribir cada frame */
+      if (q !== estado[i].lift){
+        cards[i].style.setProperty('--lift', q.toFixed(2));
+        estado[i].lift = q;
+      }
+      var dark = lift > 0.52;                               /* banda central */
+      if (dark !== estado[i].dark){
+        cards[i].classList.toggle('is-dark', dark);
+        estado[i].dark = dark;
+      }
+    }
+  }
+
+  var vivo = false, raf = 0, dentro = 0;
+  function loop(){ if (!vivo) return; pinta(); raf = requestAnimationFrame(loop); }
+  function on(){ if (vivo || document.hidden) return; vivo = true; raf = requestAnimationFrame(loop); }
+  function off(){ vivo = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ dentro += e.isIntersecting ? 1 : -1; });
+    if (dentro < 0) dentro = 0;
+    if (dentro > 0) on(); else { off(); pinta(); }
+  }, { rootMargin: '25% 0px' });
+  cards.forEach(function(c){ io.observe(c); });
+
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) off(); else if (dentro > 0) on(); });
+  addEventListener('resize', pinta, { passive:true });
+  pinta();
 })();
 </script>
 </body>
