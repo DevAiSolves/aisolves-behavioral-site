@@ -846,22 +846,34 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 .rep3-bv b{color:var(--ink);font-weight:500}
 .rep3-empty{padding:12px 14px;font-family:var(--rep3-mono);font-size:11px;color:var(--ink-3)}
 
-/* rail horizontal de etapas: nodos de ancho idéntico para que la línea coincida con los centros */
-.rep3-rail{overflow-x:auto;padding:14px 10px 8px;-webkit-overflow-scrolling:touch}
-.rep3-rail-in{position:relative;display:flex;min-width:max(100%,calc(var(--rep3-n,1)*64px))}
-.rep3-rail-line,.rep3-rail-fill{position:absolute;top:6px;height:2px;left:calc(100%/var(--rep3-n,1)/2);pointer-events:none}
-.rep3-rail-line{right:calc(100%/var(--rep3-n,1)/2);background:var(--line)}
-.rep3-rail-fill{width:calc((100% - 100%/var(--rep3-n,1))*var(--rep3-f,0));background:var(--confirm)}
-.rep3-node{flex:1 1 0;min-width:0;position:relative;text-align:center;padding:22px 2px 0}
-.rep3-node i{position:absolute;top:0;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--hold);background:#fff}
+/* rail VERTICAL de etapas: una fila por etapa. El punto vive a la izquierda y la
+   línea une el centro del primero con el del último, por eso las filas miden 28px
+   fijos: así top/bottom = 14px caen exactamente sobre esos centros sin medir en JS.
+   Vertical porque en horizontal las nueve etapas se salían del modal. */
+.rep3-rail{padding:10px 14px 12px}
+.rep3-rail-in{position:relative;padding-left:24px}
+.rep3-rail-line,.rep3-rail-fill{position:absolute;left:6px;width:2px;pointer-events:none}
+.rep3-rail-line{top:14px;bottom:14px;background:var(--line)}
+.rep3-rail-fill{top:14px;height:calc((100% - 28px)*var(--rep3-f,0));background:var(--confirm)}
+.rep3-node{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;
+  align-items:center;min-height:28px;text-align:left}
+.rep3-node i{position:absolute;left:-24px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--hold);background:#fff}
 .rep3-visited i,.rep3-current i{border-color:var(--confirm);background:var(--confirm)}
 .rep3-current i{box-shadow:0 0 0 3px rgba(31,170,90,.2)}
 .rep3-nn{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rep3-np{display:block;font-family:var(--rep3-mono);font-size:10px;color:var(--ink-3);margin-top:2px;font-variant-numeric:tabular-nums}
+.rep3-np{display:block;font-family:var(--rep3-mono);font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;text-align:right}
 .rep3-pending .rep3-nn{color:var(--ink-3)}.rep3-pending .rep3-np{color:var(--hold)}
 .rep3-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 14px 10px;border-top:1px solid var(--line-2);font-family:var(--rep3-mono);font-size:9.5px;color:var(--ink-3)}
 .rep3-lg{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .rep3-lg-go{background:var(--confirm)}.rep3-lg-hold{background:var(--hold)}
+
+/* recorrido y rail cuentan lo mismo: una sola rejilla. La lista queda estrecha, así
+   el tiempo y el % van pegados al nombre y el rail vertical cabe al lado.
+   auto-fit apila solo cuando el contenedor (no el viewport) se queda sin sitio. */
+.rep3-vg{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px;align-items:start;margin-bottom:14px}
+.rep3-vg>.journey,.rep3-vg>.rep3-blk{margin-bottom:0}
+.rep3-vg .st{grid-template-columns:minmax(0,1fr) 48px 38px;gap:8px;padding:9px 12px}
+.rep3-vg .st .n{min-width:0;overflow:hidden}
 
 /* lectura y retención */
 .rep3-read-g{display:grid;grid-template-columns:1fr 180px}
@@ -2681,6 +2693,72 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .scrim .rep3-sem-hold .rep3-sem-act{color:#e0a400!important}
 .scrim .rep3-sem-stop .rep3-sem-act{color:#e5484d!important}
 .scrim .btn.confirm{background:#1faa5a!important;color:#fff!important;border-color:#1faa5a!important}
+
+/* --- humo también en los dos paneles que se habían quedado opacos ---
+   .rep3-trust conservaba background:var(--paper) (hueso) mientras .scrim b pintaba
+   su cifra en blanco: blanco sobre hueso = invisible. Ese era el bug del
+   "tiempo real de confianza". Aquí pasa al mismo cristal que el resto. */
+.scrim .rep3-trust{background:rgba(255,255,255,.05)!important;
+  border-left-color:rgba(255,255,255,.10)!important;border-top-color:rgba(255,255,255,.10)!important}
+.scrim .rep3-trust b,.scrim .rep3-trust b small{color:#fff!important}
+.scrim .rep3-trust b small{opacity:.55}
+.scrim .rep3-tl,.scrim .rep3-tn{color:rgba(255,255,255,.55)!important}
+/* los chips de lectura eran teal oscuro sobre humo oscuro: no se leían */
+.scrim .rep3-chip{color:rgba(255,255,255,.78)!important;background:rgba(255,255,255,.07)!important}
+.scrim .rep3-chip-live,.scrim .rep3-bh em{color:#2fc5b1!important}
+.scrim .rep3-chip-live{background:rgba(47,197,177,.12)!important}
+.scrim .rep3-rr{border-bottom-color:rgba(255,255,255,.08)!important}
+.scrim .rep3-rn{color:rgba(255,255,255,.80)!important}
+.scrim .rep3-rt2{color:rgba(255,255,255,.62)!important}
+/* rail: la línea de fondo y el punto pendiente, sin relleno sólido */
+.scrim .rep3-rail-line{background:rgba(255,255,255,.12)!important}
+.scrim .rep3-node i{background:transparent!important}
+.scrim .rep3-visited i,.scrim .rep3-current i{background:var(--confirm)!important}
+.scrim .rep3-mt{border-color:rgba(255,255,255,.08)!important}
+
+/* --- restos de la era clara que el humo nunca reemplazó ---
+   "modales-a-claro" forzaba estos dos bloques a papel hueso con tinta negra.
+   El resto del modal ya es humo, así que se quedaban como parches opacos
+   (el panel de origen) o como texto negro sobre negro (la línea de confianza
+   del semáforo). Aquí pasan al mismo cristal. */
+.scrim .rep3-sem-k{color:rgba(255,255,255,.55)!important}
+.scrim .rep3-sem-trust{color:rgba(255,255,255,.50)!important;border-top-color:rgba(255,255,255,.14)!important}
+.scrim .rep3-sem-trust b{color:#fff!important}
+.scrim .rep3-sem-trust span{color:rgba(255,255,255,.45)!important}
+.scrim .rep3-lens{border-color:rgba(255,255,255,.22)!important}
+.scrim .rep3-lamp p{color:rgba(255,255,255,.5)!important}
+.scrim .rep3-lamp.rep3-on p{color:#fff!important}
+
+/* origen de la visita: el mismo humo, la insignia navy se queda (es el único
+   sólido a propósito: hace de lente del canal). */
+.scrim #attr-panel,.scrim .attr-panel,.scrim .attr-card{
+  background:rgba(255,255,255,.04)!important;border-color:rgba(255,255,255,.11)!important;color:rgba(255,255,255,.72)!important}
+.scrim .attr-head{border-bottom-color:rgba(255,255,255,.11)!important;color:rgba(255,255,255,.5)!important}
+.scrim .attr-badge{border-right-color:rgba(255,255,255,.11)!important;border-bottom-color:rgba(255,255,255,.11)!important}
+.scrim .attr-cell{border-right-color:rgba(255,255,255,.08)!important;border-bottom-color:rgba(255,255,255,.08)!important}
+.scrim .attr-k,.scrim .attr-sub{color:rgba(255,255,255,.48)!important}
+.scrim .attr-v{color:#fff!important}
+.scrim .attr-v.attr-dim{color:rgba(255,255,255,.34)!important}
+.scrim .attr-not,.scrim .attr-srv{background:rgba(255,255,255,.03)!important;
+  border-top-color:rgba(255,255,255,.10)!important;color:rgba(255,255,255,.70)!important}
+.scrim .attr-not b{color:#fff!important}
+.scrim .attr-not .attr-ic,.scrim .attr-srv{color:rgba(255,255,255,.48)!important}
+.scrim .attr-test{border-top-color:rgba(255,255,255,.10)!important;color:rgba(255,255,255,.48)!important}
+.scrim .attr-link{color:rgba(255,255,255,.72)!important}
+.scrim .attr-link:hover{color:#fff!important}
+.scrim .attr-wait{color:rgba(255,255,255,.45)!important}
+/* la insignia es navy sólido: su texto va en blanco. El comodín [class*="attr-"]
+   de la era clara la tenía en tinta gris oscura sobre navy. */
+.scrim .attr-badge,.scrim .attr-badge .attr-pf{color:#fff!important}
+.scrim .attr-badge .attr-sig{color:rgba(255,255,255,.58)!important}
+.scrim .attr-tag{color:var(--hold)!important}
+
+/* acentos teal: sobre humo el teal-ink (#0f8577) no llega. El claro (#2fc5b1) sí,
+   y es el mismo que ya usan la banda y la lámpara del semáforo. */
+.scrim .rep3-bv b{color:#fff!important}
+.scrim .rep3-mv.rep3-teal,.scrim .need .rl{color:#2fc5b1!important}
+.scrim .rep3-sem-stop .rep3-sem-act{color:#f0666a!important}
+.scrim .st .p{color:rgba(255,255,255,.56)!important}
 </style>
 <style>
 /* ===== salto-de-render =====
@@ -3574,10 +3652,12 @@ const FORMATS=[
 ];
 let carIdx=0;
 function carRender(){
+  // la órbita se llevó el panel lateral: #carTitle y #carDots ya no existen y esto
+  // lanzaba un TypeError en cada carga. Escribe solo donde queda destino.
   const f=FORMATS[carIdx];
-  document.getElementById('carTitle').textContent=f.name;
-  document.getElementById('carDesc').innerHTML=f.d.map(p=>`<p>${p}</p>`).join('')+`<div class="use">${f.use}</div>`;
-  document.getElementById('carDots').innerHTML=FORMATS.map((_,i)=>`<i class="${i===carIdx?'on':''}" onclick="carGo(${i})"></i>`).join('');
+  const t=document.getElementById('carTitle'); if(t)t.textContent=f.name;
+  const d=document.getElementById('carDesc'); if(d)d.innerHTML=f.d.map(p=>`<p>${p}</p>`).join('')+`<div class="use">${f.use}</div>`;
+  const o=document.getElementById('carDots'); if(o)o.innerHTML=FORMATS.map((_,i)=>`<i class="${i===carIdx?'on':''}" onclick="carGo(${i})"></i>`).join('');
 }
 function carGo(i){carIdx=(i+FORMATS.length)%FORMATS.length;carRender();}
 function carNext(){carGo(carIdx+1);}
@@ -5793,11 +5873,20 @@ function enhance(html,compact,st){
     var rt=top.querySelector('.rt');if(rt)rt.classList.add('rep3-rt');
   }
   if(!compact){
-    var blocks=scrollHTML(st)+readHTML(st)+microHTML(st);
     var need=frag.querySelector('.need'),jr=frag.querySelector('.journey');
-    if(need)need.insertAdjacentHTML('beforebegin',blocks);
-    else if(jr)jr.insertAdjacentHTML('afterend',blocks);
-    else{var t2=document.createElement('template');t2.innerHTML=blocks;frag.appendChild(t2.content);}
+    /* el recorrido del visitante y el rail dicen lo mismo con dos lenguajes: van juntos
+       en una rejilla (.rep3-vg), lista a la izquierda y rail vertical a la derecha.
+       Sin .journey (HTML legado distinto) se cae al orden de siempre. */
+    if(jr&&jr.parentNode){
+      var vg=document.createElement('div');vg.className='rep3-vg';
+      jr.parentNode.insertBefore(vg,jr);vg.appendChild(jr);
+      vg.insertAdjacentHTML('beforeend',scrollHTML(st));
+      vg.insertAdjacentHTML('afterend',readHTML(st)+microHTML(st));
+    }else{
+      var blocks=scrollHTML(st)+readHTML(st)+microHTML(st);
+      if(need)need.insertAdjacentHTML('beforebegin',blocks);
+      else{var t2=document.createElement('template');t2.innerHTML=blocks;frag.appendChild(t2.content);}
+    }
   }
   return tpl.innerHTML;
 }
