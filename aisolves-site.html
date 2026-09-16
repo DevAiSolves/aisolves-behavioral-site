@@ -3251,12 +3251,77 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   .ais-trama-f{transition:none}
 }
 </style>
+<style>
+/* ==========================================================================
+   constraint — la sección que faltaba: el problema antes de la solución.
+   Tres cifras grandes con su explicación. Se apoya en la retícula del sitio
+   (misma caja, mismo borde) para no introducir un lenguaje nuevo.
+   ========================================================================== */
+#constraint .cns-lead{max-width:62ch;font-size:15px;line-height:1.65;color:var(--ink-2);margin:0 0 30px}
+#constraint .cns-grid{display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--line);background:var(--card)}
+#constraint .cns-c{padding:34px 28px 30px;border-right:1px solid var(--line);min-width:0}
+#constraint .cns-c:last-child{border-right:0}
+#constraint .cns-n{font-weight:100;font-size:clamp(46px,5vw,72px);line-height:.94;
+  letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+#constraint .cns-n i{font-style:normal;font-size:.36em;font-weight:300;color:var(--ink-3);margin-left:2px}
+#constraint .cns-k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--teal-ink);margin:14px 0 12px;line-height:1.5}
+#constraint .cns-c p{font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+@media(max-width:860px){
+  #constraint .cns-grid{grid-template-columns:1fr}
+  #constraint .cns-c{border-right:0;border-bottom:1px solid var(--line);padding:26px 22px}
+  #constraint .cns-c:last-child{border-bottom:0}
+}
+/* el párrafo largo del hero: sale en pantallas con sitio, no compite con el titular */
+.hero-larga{margin-top:14px;font-size:13px;line-height:1.65;color:var(--ink-3);max-width:44ch}
+@media(max-width:1100px){.hero-larga{display:none}}
+</style>
+<style>
+/* ==========================================================================
+   dedup + frentes — contenido que la web anterior explicaba y aquí no cabía.
+   Se resuelven como vistas propias dentro de sus secciones en lugar de
+   apretar el texto en la retícula existente.
+   ========================================================================== */
+#sistema .dedup{margin-top:18px;border:1px solid var(--teal);background:var(--teal-wash);padding:20px 24px}
+#sistema .dedup-k{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--teal-ink);margin-bottom:9px}
+#sistema .dedup p{font-size:14px;line-height:1.65;color:var(--ink-2);max-width:78ch}
+#sistema .dedup b{color:var(--ink);font-weight:500}
+
+.frentes{margin-top:44px}
+.fr-head{max-width:64ch;margin-bottom:22px}
+.fr-head h3{font-weight:200;font-size:clamp(22px,2.4vw,30px);letter-spacing:.01em;margin-bottom:10px}
+.fr-head p{font-size:14px;line-height:1.65;color:var(--ink-2)}
+.fr-grid{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--line);background:var(--card)}
+.fr-c{padding:26px 26px 24px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+.fr-c:nth-child(2n){border-right:0}
+.fr-c:nth-last-child(-n+2){border-bottom:0}
+.fr-n{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;color:var(--ink-3)}
+.fr-c h3{font-weight:200;font-size:24px;letter-spacing:.06em;text-transform:uppercase;margin:8px 0 2px}
+.fr-s{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--teal-ink);margin-bottom:16px}
+.fr-l{display:grid;gap:14px}
+.fr-i h4{font-weight:500;font-size:13px;margin-bottom:3px;color:var(--ink)}
+.fr-i p{font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+@media(max-width:860px){
+  .fr-grid{grid-template-columns:1fr}
+  .fr-c{border-right:0;padding:22px 20px}
+  .fr-c:nth-last-child(-n+2){border-bottom:1px solid var(--line)}
+  .fr-c:last-child{border-bottom:0}
+}
+
+/* el plan gana una línea de a quién va dirigido, como en la web anterior */
+.plan-para{font-size:12.5px;line-height:1.5;color:var(--ink-3);
+  border-top:1px solid var(--line-2);margin:12px 0 4px;padding-top:12px}
+.plans-lead{max-width:66ch;font-size:14px;line-height:1.65;color:var(--ink-2);margin:0 0 26px}
+</style>
 </head>
 <body>
 
 <nav>
   <a class="lg" href="#top"><span class="d"></span>AISOLVES</a>
-  <div class="links"><a href="#work">Trabajo</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#servicios">Servicios</a><a href="#paquetes">Paquetes</a><a href="#about">Nosotros</a><a href="#equipo">Equipo</a></div>
+  <div class="links"><a href="#work">Trabajo</a><a href="#constraint">Constraint</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#servicios">Servicios</a><a href="#paquetes">Paquetes</a><a href="#about">Nosotros</a><a href="#equipo">Equipo</a></div>
   <div class="nav-r">
     <div class="lang" id="lang" role="group" aria-label="Idioma / Language" data-no-i18n>
       <button type="button" class="lang-b" data-lang="es" aria-pressed="true">ES</button>
@@ -3277,6 +3342,7 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   <div class="hero-copy">
     <h1>Comportamiento convertido en <b>ingresos.</b></h1>
     <p>No vendemos anuncios. Instalamos el sistema que lee a cada visitante y decide quién merece una llamada.</p>
+    <p class="hero-larga">Cada scroll, cada duda de ocho segundos frente a un precio y cada corrección en un formulario se convierte en dato. Puntuamos el comportamiento en tiempo real, lo enviamos a Meta y Google por servidor —sin perder señal por bloqueadores— y activamos el canal correcto en el momento correcto.</p>
     <div class="row">
       <button class="btn dark" onclick="openForm()"><span>Recibir mi reporte</span><span class="ar">→</span><span class="prog"></span><span class="bar"></span></button>
       <a class="btn ghost" href="#work"><span>Ver formatos ↓</span></a>
@@ -3300,8 +3366,8 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 </section>
 
 <div class="ticker"><div class="track">
-  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span>
-  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span>
+  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span><span>FUNNELS AUTOMATIZADOS</span><span>VIRALIDAD ORGÁNICA</span>
+  <span>META PIXEL <b>+</b> CAPI</span><span>LEAD SCORING CONDUCTUAL</span><span>SEO <b>·</b> SEM <b>·</b> AIO <b>·</b> GEO</span><span>WHATSAPP BUSINESS API</span><span>RETARGETING POR COMPORTAMIENTO</span><span>CONSENT MODE V2</span><span>FUNNELS AUTOMATIZADOS</span><span>VIRALIDAD ORGÁNICA</span>
 </div></div>
 
 <!-- SELECTED WORK -->
@@ -3354,6 +3420,34 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   </div></div>
 </section>
 
+<!-- CONSTRAINT -->
+<section class="sec wrap" id="constraint" data-sec="Constraint">
+  <div class="sec-top"><div class="st-l">
+    <h2>El cuello de botella</h2>
+    <p class="sub2">No tienes un problema de tráfico. Tienes un problema de ceguera.</p>
+  </div></div>
+
+  <p class="cns-lead">Casi todas las agencias optimizan la parte que se ve: el anuncio. El cuello de botella real está después del clic, en la capa que nadie mide — el comportamiento entre la visita y la decisión. Ahí es donde trabajamos.</p>
+
+  <div class="cns-grid">
+    <div class="cns-c">
+      <div class="cns-n">38<i>%</i></div>
+      <div class="cns-k">de tus conversiones nunca llegan a Meta</div>
+      <p>ITP, ATT y bloqueadores borran el evento del navegador. El algoritmo optimiza con la mitad de la información y tu CPA sube sin que nadie sepa por qué.</p>
+    </div>
+    <div class="cns-c">
+      <div class="cns-n">0</div>
+      <div class="cns-k">señales de intención de tu web</div>
+      <p>Sabes cuánta gente entró. No sabes quién se quedó cuarenta segundos mirando el precio, volvió dos veces y no escribió.</p>
+    </div>
+    <div class="cns-c">
+      <div class="cns-n">72<i>h</i></div>
+      <div class="cns-k">de retraso en contactar al lead correcto</div>
+      <p>Sin puntuación conductual, todos los leads entran iguales a la misma bandeja. El que iba a comprar se enfría esperando.</p>
+    </div>
+  </div>
+</section>
+
 <!-- SISTEMA -->
 <section class="sec wrap" id="sistema" data-sec="Sistema">
   <div class="sec-top"><div class="st-l"><h2>El Sistema</h2><p class="sub2">Tres capas, un solo dato: el comportamiento.</p></div></div>
@@ -3362,15 +3456,20 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
     <div class="cell"><div class="cn">02 / Puntuación</div><h3>Lead scoring conductual</h3><div class="lead">Un motor en cuatro dimensiones convierte el ruido en un número de 0 a 100 y una banda accionable.</div><ul><li>Intención 0-40 · Engagement 0-25</li><li>Fit 0-20 · Identidad 0-15</li><li>COLD → WARM → HOT → MQL → SQL</li><li>Histórico con causa de cada salto</li></ul></div>
     <div class="cell"><div class="cn">03 / Activación</div><h3>Píxeles y CAPI</h3><div class="lead">El mismo event_id viaja por navegador y servidor. Meta deduplica y se queda con la mejor señal.</div><ul><li>Meta Pixel + Conversions API</li><li>Consent Mode v2 + GA4 server-side</li><li>TikTok Events API · LinkedIn</li><li>PII hasheada SHA-256 en origen</li></ul></div>
   </div>
+
+  <div class="dedup">
+    <div class="dedup-k">Por qué importa la deduplicación</div>
+    <p>Enviar el evento solo por navegador pierde entre un 20 % y un 40 % de las conversiones. Enviarlo por los dos canales sin un <b>event_id</b> compartido las duplica y envenena el modelo de puja. La implementación correcta —la que instalamos— envía siempre el par con el mismo identificador. Es el detalle que separa un ROAS reportado de un ROAS real.</p>
+  </div>
 </section>
 
 <!-- METODO -->
 <section class="sec wrap" id="metodo" data-sec="Método">
   <div class="sec-top"><div class="st-l"><h2>Método</h2><p class="sub2">90 días para que el sistema decida por ti.</p></div></div>
   <div class="phases">
-    <div class="phase"><div class="ph">Semanas 1–3</div><h3>Instrumentación</h3><div class="goal">Que el negocio empiece a ver.</div><p><b>Auditoría de pérdida de señal</b> entre navegador y servidor.</p><p><b>Taxonomía de eventos</b> única para todos los canales.</p><p><b>Data layer y CAPI</b> deduplicados con Consent Mode v2.</p></div>
-    <div class="phase"><div class="ph">Semanas 4–7</div><h3>Ignición</h3><div class="goal">Convertir datos en conversaciones.</div><p><b>Activos de viralidad</b> sobre las objeciones que revelan los datos.</p><p><b>Campañas de intención</b> con audiencias conductuales.</p><p><b>WhatsApp como canal</b> con detección de intención.</p></div>
-    <div class="phase"><div class="ph">Semanas 8–12</div><h3>Escala</h3><div class="goal">Que el sistema decida solo.</div><p><b>Enrutamiento automático</b>: SQL a llamada en &lt;15 min.</p><p><b>Retargeting secuencial</b> por etapa.</p><p><b>Onboarding</b> de las primeras 48-72 h, medido.</p></div>
+    <div class="phase"><div class="ph">Semanas 1–3</div><h3>Instrumentación</h3><div class="goal">Que el negocio empiece a ver.</div><p><b>Auditoría de pérdida de señal</b> entre navegador y servidor.</p><p><b>Taxonomía de eventos</b> única para todos los canales.</p><p><b>Data layer y CAPI</b> deduplicados con Consent Mode v2.</p><p><b>Modelo de scoring</b>: qué comportamiento vale cuánto en tu negocio.</p></div>
+    <div class="phase"><div class="ph">Semanas 4–7</div><h3>Ignición</h3><div class="goal">Convertir datos en conversaciones.</div><p><b>Activos de viralidad</b> sobre las objeciones que revelan los datos.</p><p><b>Campañas de intención</b> con audiencias conductuales.</p><p><b>WhatsApp como canal</b> con detección de intención.</p><p><b>Nutrición comportamental</b> disparada por evento, no por calendario.</p></div>
+    <div class="phase"><div class="ph">Semanas 8–12</div><h3>Escala</h3><div class="goal">Que el sistema decida solo.</div><p><b>Enrutamiento automático</b>: SQL a llamada en &lt;15 min.</p><p><b>Retargeting secuencial</b> por etapa.</p><p><b>Onboarding</b> de las primeras 48-72 h, medido.</p><p><b>Optimización por throughput</b>: un solo cuello de botella cada mes.</p></div>
   </div>
 </section>
 
@@ -3475,17 +3574,27 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
     </div>
   </div>
 
+  <!-- cuatro frentes: las cuatro columnas de servicio de la web anterior -->
+  <div class="frentes">
+    <div class="fr-head">
+      <h3>Cuatro frentes, una sola arquitectura</h3>
+      <p>No contratas piezas sueltas. Contratas un sistema donde el contenido alimenta los datos, los datos alimentan los anuncios y los anuncios devuelven comportamiento que vuelve a alimentar el contenido.</p>
+    </div>
+    <div class="fr-grid"><div class="fr-c"><div class="fr-n">01</div><h3>Visibilidad</h3><div class="fr-s">SEO · SEM · AIO · GEO</div><div class="fr-l"><div class="fr-i"><h4>SEO técnico y de contenido</h4><p>Arquitectura, Core Web Vitals, schema y clusters temáticos que sostienen posiciones.</p></div><div class="fr-i"><h4>SEM de intención</h4><p>Search y Performance Max con Enhanced Conversions y exclusiones inteligentes.</p></div><div class="fr-i"><h4>AIO — AI Optimization</h4><p>Contenido estructurado para ser citado por ChatGPT, Claude, Gemini y Perplexity.</p></div><div class="fr-i"><h4>GEO — Generative Engine Optimization</h4><p>Entidades, autoridad y datos verificables para aparecer en respuestas generativas.</p></div></div></div><div class="fr-c"><div class="fr-n">02</div><h3>Viralidad</h3><div class="fr-s">Activos que se comparten</div><div class="fr-l"><div class="fr-i"><h4>Combinaciones exclusivas</h4><p>Carruseles, historias y reels diseñados como un solo sistema narrativo, no como piezas sueltas.</p></div><div class="fr-i"><h4>Storytelling de venta</h4><p>Estructura LIFE y arcos de conflicto-transformación aplicados a formato corto.</p></div><div class="fr-i"><h4>Community management avanzado</h4><p>Conversación orgánica que alimenta el funnel en lugar de decorarlo.</p></div><div class="fr-i"><h4>UGC y prueba social</h4><p>Activos de objeción diseñados desde las preguntas reales del embudo.</p></div></div></div><div class="fr-c"><div class="fr-n">03</div><h3>Performance</h3><div class="fr-s">Ads y remarketing</div><div class="fr-l"><div class="fr-i"><h4>Meta Ads + CAPI</h4><p>Pixel y Conversions API deduplicados, AEM configurado y catálogo diagnosticado.</p></div><div class="fr-i"><h4>Google Ads full-funnel</h4><p>PMax, Search, Demand Gen y Dynamic Remarketing sobre audiencias conductuales.</p></div><div class="fr-i"><h4>Retargeting por comportamiento</h4><p>Audiencias por profundidad de scroll, revisitas de precio y abandono de formulario.</p></div><div class="fr-i"><h4>Frequency capping y exclusiones</h4><p>Dejar de pagar por impactar a quien ya compró o nunca comprará.</p></div></div></div><div class="fr-c"><div class="fr-n">04</div><h3>Automatización</h3><div class="fr-s">Funnels y embudos</div><div class="fr-l"><div class="fr-i"><h4>Arquitectura end-to-end</h4><p>Las 6 etapas: marketing, sales, closing, onboarding, delivery y post-venta.</p></div><div class="fr-i"><h4>Nutrición de preventa</h4><p>Secuencias comportamentales multicanal disparadas por eventos reales, no por tiempo.</p></div><div class="fr-i"><h4>WhatsApp Business API</h4><p>Webhooks, plantillas, botones interactivos, estados de mensaje y detección de intención.</p></div><div class="fr-i"><h4>Onboarding de alta activación</h4><p>Las primeras 48-72 horas, medidas y automatizadas. Es donde se decide el LTV.</p></div></div></div></div>
+  </div>
+
 </section>
 
 
 <!-- PAQUETES -->
 <section class="sec wrap" id="paquetes" data-sec="Paquetes">
-  <div class="sec-top"><div class="st-l"><h2>Paquetes</h2><p class="sub2">Un diagnóstico puntual, o retainer sin permanencia · precio por sistema, no por horas.</p></div></div>
+  <div class="sec-top"><div class="st-l"><h2>Paquetes</h2><p class="sub2">Precios que dependen del sistema, no de las horas.</p></div></div>
+  <p class="plans-lead">Retainer mensual, sin permanencia. Si el sistema no mueve throughput, no tiene sentido que sigas pagándolo. El diagnóstico es aparte: pago único y sin compromiso.</p>
   <div class="plans">
     <div class="plan plan-audit"><div class="pn">Diagnóstico</div><div class="desc">Una foto técnica de lo que ya tienes, desde fuera y sin accesos.</div><div class="from">Pago único</div><div class="price">49<small> USD</small></div><ul><li>Perfiles de Meta y Google: desde el enlace público — bio, enlaces, llamada a la acción y coherencia de marca</li><li>Indexación de tu web en buscador y ficha de empresa pública</li><li>Web · medición: qué píxeles y etiquetas disparan de verdad, GA4, Consent Mode v2 y eventos contados dos veces</li><li>Web · técnica: Core Web Vitals, rendimiento real y datos estructurados</li><li>Web · UX y UI a fondo: recorrido, jerarquía, formularios y fricción</li><li>Un PDF por activo, más un informe general descargable</li></ul><p class="plan-nota">Sin pedirte accesos: los perfiles se analizan desde su enlace público y la web desde fuera. El análisis profundo es el de la web, que es donde sí se puede entrar. No incluye auditoría de campañas.</p><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
-    <div class="plan"><div class="pn">Signal</div><div class="desc">Empieza a ver lo que ya está pasando.</div><div class="from">Desde</div><div class="price">500<small> USD/mes</small></div><ul><li>Auditoría de pérdida de señal</li><li>Taxonomía de eventos unificada</li><li>Meta Pixel + CAPI deduplicados</li><li>Consent Mode v2 + GA4 server-side</li><li>Lead scoring conductual</li><li>Meta Ads gestionados</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
-    <div class="plan pop"><div class="pop-b">Más contratado</div><div class="pn">Engine</div><div class="desc">El sistema completo, funcionando solo.</div><div class="from">Desde</div><div class="price">1.500<small> USD/mes</small></div><ul><li>Todo lo de Signal</li><li>Google Ads gestionados, sumado a Meta</li><li>Retargeting y secuencias progresivas</li><li>Contenido orgánico: reels y carruseles</li><li>WhatsApp Business API con intención</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
-    <div class="plan"><div class="pn">Compound</div><div class="desc">Crecimiento que se acelera con el tiempo.</div><div class="from">Desde</div><div class="price">3.500<small> USD/mes</small></div><ul><li>Todo lo de Engine</li><li>Onboarding de alta activación 48-72 h</li><li>Experimentación continua A/B</li><li>Atribución multi-touch</li><li>SLA &lt;15 min para SQL</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
+    <div class="plan"><div class="pn">Signal</div><div class="desc">Empieza a ver lo que ya está pasando.</div><div class="from">Desde</div><div class="price">1.200<small> €/mes</small></div><div class="plan-para">Negocios con tráfico que no saben qué ocurre después del clic.</div><ul><li>Auditoría completa de pérdida de señal</li><li>Taxonomía de eventos unificada</li><li>Meta Pixel + Conversions API deduplicados</li><li>Google Consent Mode v2 + GA4 server-side</li><li>Motor de lead scoring conductual</li><li>Dashboard de comportamiento en tiempo real</li><li>Informe mensual de calidad de datos</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
+    <div class="plan pop"><div class="pop-b">Más contratado</div><div class="pn">Engine</div><div class="desc">El sistema completo, funcionando solo.</div><div class="from">Desde</div><div class="price">2.900<small> €/mes</small></div><div class="plan-para">Equipos que ya invierten en ads y necesitan que el dato mande.</div><ul><li>Todo lo incluido en Signal</li><li>Gestión de Meta Ads y Google Ads</li><li>Retargeting por comportamiento y secuencias progresivas</li><li>Contenido orgánico: reels, carruseles e historias</li><li>WhatsApp Business API con detección de intención</li><li>Nutrición de preventa automatizada multicanal</li><li>Enrutamiento automático de leads por temperatura</li><li>SEO técnico + AIO / GEO</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
+    <div class="plan"><div class="pn">Compound</div><div class="desc">Crecimiento que se acelera con el tiempo.</div><div class="from">Desde</div><div class="price">5.500<small> €/mes</small></div><div class="plan-para">Negocios de ticket alto listos para escalar con el constraint identificado.</div><ul><li>Todo lo incluido en Engine</li><li>Onboarding de alta activación (48-72 h)</li><li>Arquitectura completa de las 6 etapas del negocio</li><li>Estrategia de viralidad con activos combinados</li><li>Experimentación continua: A/B con hipótesis y lectura</li><li>Modelado de atribución multi-touch</li><li>Sesión estratégica semanal con CEO y CMO</li><li>SLA de contacto &lt;15 min para leads SQL</li></ul><button class="plan-msg" type="button" onclick="openForm()" aria-label="Escríbenos" title="Escríbenos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.2-4.2A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01"/></svg></button></div>
   </div>
 </section>
 
@@ -3595,7 +3704,11 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
     <div class="qa"><button onclick="tog(this)">¿Qué pasa con los leads que no llegan a SQL?<span class="plus">+</span></button><div class="a"><p>No se pierden: se nutren. Un lead WARM entra en una secuencia de retargeting por etapa y contenido de objeción; cuando su comportamiento sube de banda, el sistema lo reenruta. Solo el SQL recibe llamada en menos de quince minutos. El resto recibe el mensaje adecuado a su momento, no una llamada que no pidió.</p></div></div>
     <div class="qa"><button onclick="tog(this)">¿WhatsApp de verdad o un chatbot?<span class="plus">+</span></button><div class="a"><p>WhatsApp Business API con detección de intención y traspaso a persona. La automatización abre la conversación y clasifica; el cierre lo hace una closer profesional. Un chatbot que responde a todo sin entender la intención destruye la confianza que el comportamiento acaba de construir.</p></div></div>
     <div class="qa"><button onclick="tog(this)">¿Qué necesitáis de mí para empezar?<span class="plus">+</span></button><div class="a"><p>Acceso a tu web, a Meta Business y a Google Ads, y una llamada de una hora para entender tu ticket, tu ciclo y tus objeciones. Con eso arranca la auditoría de pérdida de señal. No pedimos permanencia: el primer mes es instrumentación y ya te quedas con lo instalado.</p></div></div>
-  </div>
+      <div class="qa"><button onclick="tog(this)">¿Sirve si mi ticket es bajo o vendo B2C masivo?<span class="plus">+</span></button><div class="a"><p>El scoring conductual rinde mejor cuanto mayor es el valor de la decisión y más largo el ciclo. Con ticket alto y ciclos de semanas es donde más impacto tiene. En B2C de impulso el sistema sigue mejorando la señal para ads, pero el enrutamiento humano aporta menos.</p></div></div>
+    <div class="qa"><button onclick="tog(this)">¿Qué pasa con AIO y GEO? ¿No es SEO de siempre?<span class="plus">+</span></button><div class="a"><p>No. El SEO clásico optimiza para posiciones en una lista de enlaces. AIO y GEO optimizan para ser la fuente que un modelo cita cuando responde. Cambia la unidad de trabajo: entidades verificables, datos estructurados, autoridad demostrable y contenido que responde de forma extraíble.</p></div></div>
+    <div class="qa"><button onclick="tog(this)">¿Necesito daros acceso a mis cuentas publicitarias?<span class="plus">+</span></button><div class="a"><p>Sí, y se hace por invitación de partner desde tu propio Business Manager y tu Google Business Profile. Tú mantienes la propiedad de los activos, los píxeles y los datos. Si algún día nos vamos, todo se queda contigo.</p></div></div>
+    <div class="qa"><button onclick="tog(this)">¿Hay permanencia?<span class="plus">+</span></button><div class="a"><p>No. Retainer mensual con preaviso razonable. Un contrato largo protege a la agencia de sus propios resultados; preferimos que el sistema sea la razón para quedarse.</p></div></div>
+</div>
 </section>
 
 <!-- CONTACTO -->
@@ -7607,7 +7720,101 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
 "· sin campaña":"· no campaign",
 "Formato":"Format",
 "Overlay central que detiene la página y entrega el reporte completo: score 0-100, recorrido por etapa y qué necesita el visitante.":"Central overlay that stops the page and delivers the full report: 0-100 score, stage-by-stage journey and what the visitor needs.",
-"Score y recorrido activos, de primera parte. Revocable en un clic, aquí o desde la lupa.":"Score and journey active, first party. Revocable in one click, here or from the lens."};
+"Score y recorrido activos, de primera parte. Revocable en un clic, aquí o desde la lupa.":"Score and journey active, first party. Revocable in one click, here or from the lens.",
+"Cada scroll, cada duda de ocho segundos frente a un precio y cada corrección en un formulario se convierte en dato. Puntuamos el comportamiento en tiempo real, lo enviamos a Meta y Google por servidor —sin perder señal por bloqueadores— y activamos el canal correcto en el momento correcto.":"Every scroll, every eight-second hesitation in front of a price and every correction in a form becomes data. We score behaviour in real time, send it to Meta and Google server-side —without losing signal to blockers— and activate the right channel at the right moment.",
+"VIRALIDAD ORGÁNICA":"ORGANIC VIRALITY",
+"FUNNELS AUTOMATIZADOS":"AUTOMATED FUNNELS",
+"El cuello de botella":"The bottleneck",
+"No tienes un problema de tráfico. Tienes un problema de ceguera.":"You don't have a traffic problem. You have a blindness problem.",
+"Casi todas las agencias optimizan la parte que se ve: el anuncio. El cuello de botella real está después del clic, en la capa que nadie mide — el comportamiento entre la visita y la decisión. Ahí es donde trabajamos.":"Almost every agency optimises the part you can see: the ad. The real bottleneck sits after the click, in the layer nobody measures — the behaviour between the visit and the decision. That's where we work.",
+"de tus conversiones nunca llegan a Meta":"of your conversions never reach Meta",
+"ITP, ATT y bloqueadores borran el evento del navegador. El algoritmo optimiza con la mitad de la información y tu CPA sube sin que nadie sepa por qué.":"ITP, ATT and blockers erase the browser event. The algorithm optimises on half the information and your CPA climbs with nobody knowing why.",
+"señales de intención de tu web":"intent signals from your site",
+"Sabes cuánta gente entró. No sabes quién se quedó cuarenta segundos mirando el precio, volvió dos veces y no escribió.":"You know how many people came in. You don't know who spent forty seconds staring at the price, came back twice and never wrote.",
+"de retraso en contactar al lead correcto":"of delay in contacting the right lead",
+"Sin puntuación conductual, todos los leads entran iguales a la misma bandeja. El que iba a comprar se enfría esperando.":"Without behavioural scoring, every lead lands identical in the same inbox. The one who was going to buy goes cold waiting.",
+"Por qué importa la deduplicación":"Why deduplication matters",
+"Enviar el evento solo por navegador pierde entre un 20 % y un 40 % de las conversiones. Enviarlo por los dos canales sin un":"Sending the event by browser alone loses between 20% and 40% of conversions. Sending it through both channels without a shared",
+"compartido las duplica y envenena el modelo de puja. La implementación correcta —la que instalamos— envía siempre el par con el mismo identificador. Es el detalle que separa un ROAS reportado de un ROAS real.":"duplicates them and poisons the bidding model. The correct implementation —the one we install— always sends the pair with the same identifier. It's the detail that separates a reported ROAS from a real one.",
+"Modelo de scoring":"Scoring model",
+": qué comportamiento vale cuánto en tu negocio.":": what behaviour is worth what in your business.",
+"Nutrición comportamental":"Behavioural nurturing",
+"disparada por evento, no por calendario.":"triggered by event, not by calendar.",
+"Optimización por throughput":"Throughput optimisation",
+": un solo cuello de botella cada mes.":": one single bottleneck each month.",
+"Cuatro frentes, una sola arquitectura":"Four fronts, one architecture",
+"No contratas piezas sueltas. Contratas un sistema donde el contenido alimenta los datos, los datos alimentan los anuncios y los anuncios devuelven comportamiento que vuelve a alimentar el contenido.":"You don't hire loose pieces. You hire a system where content feeds the data, the data feeds the ads, and the ads return behaviour that feeds the content again.",
+"Visibilidad":"Visibility",
+"Viralidad":"Virality",
+"Automatización":"Automation",
+"SEO · SEM · AIO · GEO":"SEO · SEM · AIO · GEO",
+"SEO técnico y de contenido":"Technical and content SEO",
+"Arquitectura, Core Web Vitals, schema y clusters temáticos que sostienen posiciones.":"Architecture, Core Web Vitals, schema and topic clusters that hold positions.",
+"SEM de intención":"Intent SEM",
+"Search y Performance Max con Enhanced Conversions y exclusiones inteligentes.":"Search and Performance Max with Enhanced Conversions and smart exclusions.",
+"AIO — AI Optimization":"AIO — AI Optimization",
+"Contenido estructurado para ser citado por ChatGPT, Claude, Gemini y Perplexity.":"Structured content built to be cited by ChatGPT, Claude, Gemini and Perplexity.",
+"GEO — Generative Engine Optimization":"GEO — Generative Engine Optimization",
+"Entidades, autoridad y datos verificables para aparecer en respuestas generativas.":"Entities, authority and verifiable data to show up in generative answers.",
+"Activos que se comparten":"Assets people share",
+"Combinaciones exclusivas":"Exclusive combinations",
+"Carruseles, historias y reels diseñados como un solo sistema narrativo, no como piezas sueltas.":"Carousels, stories and reels designed as one narrative system, not as loose pieces.",
+"Storytelling de venta":"Sales storytelling",
+"Estructura LIFE y arcos de conflicto-transformación aplicados a formato corto.":"LIFE structure and conflict-transformation arcs applied to short form.",
+"Community management avanzado":"Advanced community management",
+"Conversación orgánica que alimenta el funnel en lugar de decorarlo.":"Organic conversation that feeds the funnel instead of decorating it.",
+"UGC y prueba social":"UGC and social proof",
+"Activos de objeción diseñados desde las preguntas reales del embudo.":"Objection assets built from the funnel's real questions.",
+"Ads y remarketing":"Ads and remarketing",
+"Meta Ads + CAPI":"Meta Ads + CAPI",
+"Pixel y Conversions API deduplicados, AEM configurado y catálogo diagnosticado.":"Pixel and Conversions API deduplicated, AEM configured and catalogue diagnosed.",
+"Google Ads full-funnel":"Full-funnel Google Ads",
+"PMax, Search, Demand Gen y Dynamic Remarketing sobre audiencias conductuales.":"PMax, Search, Demand Gen and Dynamic Remarketing on behavioural audiences.",
+"Audiencias por profundidad de scroll, revisitas de precio y abandono de formulario.":"Audiences by scroll depth, price revisits and form abandonment.",
+"Frequency capping y exclusiones":"Frequency capping and exclusions",
+"Dejar de pagar por impactar a quien ya compró o nunca comprará.":"Stop paying to reach whoever already bought or never will.",
+"Funnels y embudos":"Funnels and pipelines",
+"Arquitectura end-to-end":"End-to-end architecture",
+"Las 6 etapas: marketing, sales, closing, onboarding, delivery y post-venta.":"The 6 stages: marketing, sales, closing, onboarding, delivery and after-sales.",
+"Nutrición de preventa":"Pre-sales nurturing",
+"Secuencias comportamentales multicanal disparadas por eventos reales, no por tiempo.":"Multichannel behavioural sequences triggered by real events, not by time.",
+"Webhooks, plantillas, botones interactivos, estados de mensaje y detección de intención.":"Webhooks, templates, interactive buttons, message states and intent detection.",
+"Las primeras 48-72 horas, medidas y automatizadas. Es donde se decide el LTV.":"The first 48-72 hours, measured and automated. That's where LTV is decided.",
+"Precios que dependen del sistema, no de las horas.":"Prices that depend on the system, not on the hours.",
+"Retainer mensual, sin permanencia. Si el sistema no mueve throughput, no tiene sentido que sigas pagándolo. El diagnóstico es aparte: pago único y sin compromiso.":"Monthly retainer, no lock-in. If the system doesn't move throughput, there's no point in you keeping it. The diagnosis is separate: one-off payment, no commitment.",
+"Negocios con tráfico que no saben qué ocurre después del clic.":"Businesses with traffic that don't know what happens after the click.",
+"Auditoría completa de pérdida de señal":"Full signal-loss audit",
+"Motor de lead scoring conductual":"Behavioural lead scoring engine",
+"Dashboard de comportamiento en tiempo real":"Real-time behaviour dashboard",
+"Informe mensual de calidad de datos":"Monthly data-quality report",
+"Equipos que ya invierten en ads y necesitan que el dato mande.":"Teams already spending on ads that need the data to lead.",
+"Todo lo incluido en Signal":"Everything included in Signal",
+"Gestión de Meta Ads y Google Ads":"Meta Ads and Google Ads management",
+"Retargeting por comportamiento y secuencias progresivas":"Behavioural retargeting and progressive sequences",
+"Contenido orgánico: reels, carruseles e historias":"Organic content: reels, carousels and stories",
+"WhatsApp Business API con detección de intención":"WhatsApp Business API with intent detection",
+"Nutrición de preventa automatizada multicanal":"Automated multichannel pre-sales nurturing",
+"Enrutamiento automático de leads por temperatura":"Automatic lead routing by temperature",
+"SEO técnico + AIO / GEO":"Technical SEO + AIO / GEO",
+"Negocios de ticket alto listos para escalar con el constraint identificado.":"High-ticket businesses ready to scale with the constraint identified.",
+"Todo lo incluido en Engine":"Everything included in Engine",
+"Onboarding de alta activación (48-72 h)":"High-activation onboarding (48-72 h)",
+"Arquitectura completa de las 6 etapas del negocio":"Full architecture of the 6 business stages",
+"Estrategia de viralidad con activos combinados":"Virality strategy with combined assets",
+"Experimentación continua: A/B con hipótesis y lectura":"Continuous experimentation: A/B with hypothesis and reading",
+"Modelado de atribución multi-touch":"Multi-touch attribution modelling",
+"Sesión estratégica semanal con CEO y CMO":"Weekly strategy session with CEO and CMO",
+"SLA de contacto &lt;15 min para leads SQL":"Contact SLA &lt;15 min for SQL leads",
+"¿Sirve si mi ticket es bajo o vendo B2C masivo?":"Does it work if my ticket is low or I sell mass B2C?",
+"El scoring conductual rinde mejor cuanto mayor es el valor de la decisión y más largo el ciclo. Con ticket alto y ciclos de semanas es donde más impacto tiene. En B2C de impulso el sistema sigue mejorando la señal para ads, pero el enrutamiento humano aporta menos.":"Behavioural scoring pays off the higher the value of the decision and the longer the cycle. With a high ticket and cycles of weeks is where it has the most impact. In impulse B2C the system still improves the signal for ads, but human routing contributes less.",
+"¿Qué pasa con AIO y GEO? ¿No es SEO de siempre?":"What about AIO and GEO? Isn't that just SEO?",
+"No. El SEO clásico optimiza para posiciones en una lista de enlaces. AIO y GEO optimizan para ser la fuente que un modelo cita cuando responde. Cambia la unidad de trabajo: entidades verificables, datos estructurados, autoridad demostrable y contenido que responde de forma extraíble.":"No. Classic SEO optimises for positions in a list of links. AIO and GEO optimise for being the source a model cites when it answers. The unit of work changes: verifiable entities, structured data, demonstrable authority and content that answers in an extractable way.",
+"¿Necesito daros acceso a mis cuentas publicitarias?":"Do I need to give you access to my ad accounts?",
+"Sí, y se hace por invitación de partner desde tu propio Business Manager y tu Google Business Profile. Tú mantienes la propiedad de los activos, los píxeles y los datos. Si algún día nos vamos, todo se queda contigo.":"Yes, and it's done by partner invitation from your own Business Manager and your Google Business Profile. You keep ownership of the assets, the pixels and the data. If we ever leave, it all stays with you.",
+"¿Hay permanencia?":"Is there a lock-in period?",
+"No. Retainer mensual con preaviso razonable. Un contrato largo protege a la agencia de sus propios resultados; preferimos que el sistema sea la razón para quedarse.":"No. Monthly retainer with reasonable notice. A long contract protects the agency from its own results; we'd rather the system be the reason to stay.",
+"Constraint":"Constraint",
+"Retargeting por comportamiento":"Behavioural retargeting"};
 
   var ATRIB = ['placeholder','title','aria-label','alt'];
   var SALTAR = {SCRIPT:1,STYLE:1,NOSCRIPT:1,CANVAS:1,TEXTAREA:1,SVG:1};
