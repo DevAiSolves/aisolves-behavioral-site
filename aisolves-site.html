@@ -2608,14 +2608,10 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 }
 </style>
 <style>
-/* ===== velo-humo =====
-   Un 1% de negro sobre todo el fondo. Va en z-index 0, encima de la rejilla
-   pero por DEBAJO de las secciones (z-index 1), así oscurece el suelo de la
-   página sin tocar las tarjetas ni los botones: al quedar ellos en blanco puro
-   sobre un fondo algo más bajo, resaltan. ===== */
-body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:rgba(0,0,0,.01)}
-/* las tarjetas y los botones se mantienen en blanco puro para que despeguen */
+/* ===== superficies =====
+   Sin velo sobre el fondo: la página se queda en el papel limpio.
+   Las tarjetas siguen despegando por su cuenta, porque --card (#f8f6f2) ya es
+   más claro que el suelo --paper (#f4f2ee); ese escalón no dependía del velo. */
 .grid3,.phases,.plans,.team,.faq,.contact,.carousel,.ticker,.cbox,
 .plan,.cell,.phase,.member,.qa{background:var(--card)}
 </style>
