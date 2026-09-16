@@ -113,6 +113,27 @@
   .startbox{flex:none;border-left:1px solid var(--line);padding:0 40px;font-weight:300;font-size:19px;transition:.2s;cursor:pointer;display:flex;align-items:center}
   .startbox:hover{background:var(--navy);color:#fff}
   @media(max-width:760px){.startbox{padding:18px;font-size:15px}.sec-top{flex-direction:column}.startbox{border-left:0;border-top:1px solid var(--line)}}
+  /* "Start a Project" llama la atención con un latido lento, no con un parpadeo duro:
+     encender y apagar a ritmo rápido molesta al leer y es riesgo de fotosensibilidad
+     (WCAG pide no pasar de 3 destellos por segundo). Este ciclo de 2.4s se ve igual de
+     bien desde lejos y no rompe la gama neutra. Se detiene al pasar el ratón, porque
+     ahí manda el estado hover, y con reduced-motion queda un realce fijo. */
+  .startbox{position:relative;overflow:hidden;isolation:isolate}
+  .startbox:before,.startbox:after{content:"";position:absolute;z-index:-1;pointer-events:none}
+  .startbox:before{inset:0;background:var(--ink);opacity:0;animation:sb-latido 2.4s cubic-bezier(.22,1,.36,1) infinite}
+  .startbox:after{top:0;bottom:0;left:0;width:42%;
+    background:linear-gradient(100deg,transparent,rgba(24,24,27,.16),transparent);
+    animation:sb-barrido 2.4s cubic-bezier(.22,1,.36,1) infinite}
+  /* pico medido sobre la página real: 0.16 baja la luminancia del botón de 241 a 206,
+     un salto que se ve de lejos. A 0.09 eran 221 y apenas se notaba. */
+  @keyframes sb-latido{0%,100%{opacity:0}50%{opacity:.16}}
+  @keyframes sb-barrido{0%{transform:translateX(-140%)}55%,100%{transform:translateX(300%)}}
+  .startbox:hover:before,.startbox:hover:after,
+  .startbox:focus-visible:before,.startbox:focus-visible:after{animation:none;opacity:0}
+  @media(prefers-reduced-motion:reduce){
+    .startbox:before{animation:none;opacity:.10}
+    .startbox:after{animation:none;opacity:0}
+  }
 
   /* ===== CAROUSEL (vanlent project card) ===== */
   .carousel{border:1px solid var(--line);background:var(--card)}
