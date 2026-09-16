@@ -846,34 +846,46 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
 .rep3-bv b{color:var(--ink);font-weight:500}
 .rep3-empty{padding:12px 14px;font-family:var(--rep3-mono);font-size:11px;color:var(--ink-3)}
 
-/* rail VERTICAL de etapas: una fila por etapa. El punto vive a la izquierda y la
-   línea une el centro del primero con el del último, por eso las filas miden 28px
-   fijos: así top/bottom = 14px caen exactamente sobre esos centros sin medir en JS.
-   Vertical porque en horizontal las nueve etapas se salían del modal. */
-.rep3-rail{padding:10px 14px 12px}
-.rep3-rail-in{position:relative;padding-left:24px}
-.rep3-rail-line,.rep3-rail-fill{position:absolute;left:6px;width:2px;pointer-events:none}
-.rep3-rail-line{top:14px;bottom:14px;background:var(--line)}
-.rep3-rail-fill{top:14px;height:calc((100% - 28px)*var(--rep3-f,0));background:var(--confirm)}
-.rep3-node{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;
-  align-items:center;min-height:28px;text-align:left}
-.rep3-node i{position:absolute;left:-24px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--hold);background:#fff}
+/* rail de etapas en UNA tarjeta: punto, nombre, tiempo y % pegados en cada fila.
+   La rejilla vive en la COLUMNA, no en la fila (.rep3-node es display:contents), para
+   que las cuatro pistas se dimensionen por contenido y queden alineadas entre filas:
+   así el tiempo va justo detrás del nombre en vez de empujado al borde.
+   El hilo es un segmento por fila sobre el nombre, no una línea única, de modo que
+   cada columna dibuja el suyo sin depender de cuántas etapas tenga. */
+.rep3-rail{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:0 24px;padding:10px 14px 12px}
+.rep3-rail-1{grid-template-columns:1fr}
+.rep3-railcol{display:grid;grid-template-columns:14px minmax(0,70px) 50px 32px;justify-content:start;
+  align-items:center;align-content:start;column-gap:11px;min-width:0}
+.rep3-node{display:contents}
+.rep3-railcol>.rep3-node>span{min-height:28px;display:flex;align-items:center;min-width:0}
+.rep3-node i{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--hold);background:#fff}
+/* el segmento cuelga del punto (no del nombre, que recorta con overflow para el
+   ellipsis) y va en z-index:-1 para quedar debajo de su propio relleno */
+.rep3-node i:after{content:"";position:absolute;left:50%;margin-left:-1px;top:-9px;bottom:-9px;
+  width:2px;background:var(--line);z-index:-1}
+.rep3-railcol>.rep3-node:first-child i:after{top:6px}
+.rep3-railcol>.rep3-node:last-child i:after{bottom:6px}
+.rep3-visited i:after,.rep3-current i:after{background:var(--confirm)}
+/* apiladas, las dos mitades son una sola lista: se recose la costura que el recorte
+   por columna deja entre la última de arriba y la primera de abajo. El umbral es el
+   mismo que usa auto-fit: dos columnas piden 2×232 + 24 de hueco + 28 de padding. */
+.rep3-scroll{container-type:inline-size}
+@container (max-width:515px){
+  .rep3-railcol:first-child>.rep3-node:last-child i:after{bottom:-9px}
+  .rep3-railcol:last-child>.rep3-node:first-child i:after{top:-9px}
+  .rep3-rail-1>.rep3-railcol>.rep3-node:first-child i:after{top:6px}
+  .rep3-rail-1>.rep3-railcol>.rep3-node:last-child i:after{bottom:6px}
+}
 .rep3-visited i,.rep3-current i{border-color:var(--confirm);background:var(--confirm)}
 .rep3-current i{box-shadow:0 0 0 3px rgba(31,170,90,.2)}
-.rep3-nn{display:block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rep3-np{display:block;font-family:var(--rep3-mono);font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;text-align:right}
+.rep3-nn{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rep3-nt{font-family:var(--rep3-mono);font-size:10.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;justify-content:flex-end}
+.rep3-np{font-family:var(--rep3-mono);font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;justify-content:flex-end}
 .rep3-pending .rep3-nn{color:var(--ink-3)}.rep3-pending .rep3-np{color:var(--hold)}
 .rep3-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 14px 10px;border-top:1px solid var(--line-2);font-family:var(--rep3-mono);font-size:9.5px;color:var(--ink-3)}
 .rep3-lg{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .rep3-lg-go{background:var(--confirm)}.rep3-lg-hold{background:var(--hold)}
-
-/* recorrido y rail cuentan lo mismo: una sola rejilla. La lista queda estrecha, así
-   el tiempo y el % van pegados al nombre y el rail vertical cabe al lado.
-   auto-fit apila solo cuando el contenedor (no el viewport) se queda sin sitio. */
-.rep3-vg{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px;align-items:start;margin-bottom:14px}
-.rep3-vg>.journey,.rep3-vg>.rep3-blk{margin-bottom:0}
-.rep3-vg .st{grid-template-columns:minmax(0,1fr) 48px 38px;gap:8px;padding:9px 12px}
-.rep3-vg .st .n{min-width:0;overflow:hidden}
 
 /* lectura y retención */
 .rep3-read-g{display:grid;grid-template-columns:1fr 180px}
@@ -2657,6 +2669,10 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .scrim .rep3-bv,.scrim .rep3-mv,.scrim .rep3-mn,.scrim .rep3-mt{color:#fff!important}
 .scrim .rep3-bh,.scrim .rep3-mk,.scrim .rep3-nn,.scrim .rep3-np,.scrim .rep3-legend,
 .scrim .rep3-lip,.scrim .rep3-micro,.scrim .rep3-empty{color:rgba(255,255,255,.5)!important}
+.scrim .rep3-nn{color:rgba(255,255,255,.72)!important}
+.scrim .rep3-nt{color:rgba(255,255,255,.82)!important}
+.scrim .rep3-node i:after{background:rgba(255,255,255,.16)!important}
+.scrim .rep3-visited i:after,.scrim .rep3-current i:after{background:var(--confirm)!important}
 
 /* entrega por WhatsApp */
 .scrim .track-line{background:rgba(255,255,255,.12)!important}
@@ -5805,19 +5821,26 @@ function semHTML(st){
     '<div class="rep3-sem-trust">confianza <b data-rep3="trust">'+fmtSec(st.trustSeconds)+'</b> <span>est.</span></div></div></div>';
 }
 
-/* ---------- (1) lo que dijo tu scroll ---------- */
+/* ---------- (1) lo que dijo tu scroll: recorrido + tiempo + % en UNA tarjeta ----------
+   Antes eran dos bloques con las mismas etapas (la lista .journey y el rail), lo que
+   duplicaba el alto del modal. Ahora es uno: cada fila lleva punto, nombre, tiempo y
+   % pegados. En pantalla ancha las etapas se reparten en dos columnas para no dejar
+   medio modal vacío; cada columna dibuja su hilo con un segmento por fila, así no hay
+   que calcular ningún relleno global. */
 function scrollHTML(st){
-  var sc=st.scroll||{},list=stages(st),n=list.length,last=-1;
-  list.forEach(function(s,i){if(s.status==='visited'||s.status==='current')last=i;});
-  var f=(n>1&&last>0)?last/(n-1):0;
-  var nodes=list.map(function(s){
+  var sc=st.scroll||{},list=stages(st),n=list.length;
+  function fila(s){
     var stt=(s.status==='visited'||s.status==='current')?s.status:'pending';
-    return '<div class="rep3-node rep3-'+stt+'"><i></i><span class="rep3-nn">'+esc(stageName(s))+'</span><span class="rep3-np">'+fmtPct(s.depth)+'</span></div>';
-  }).join('');
-  var rail=n?'<div class="rep3-rail"><div class="rep3-rail-in" style="--rep3-n:'+n+';--rep3-f:'+f.toFixed(3)+'"><i class="rep3-rail-line"></i><i class="rep3-rail-fill"></i>'+nodes+'</div></div>'
-            :'<div class="rep3-empty">'+DASH+' · sin etapas registradas</div>';
+    return '<div class="rep3-node rep3-'+stt+'"><i></i><span class="rep3-nn">'+esc(stageName(s))+
+      '</span><span class="rep3-nt">'+fmtS(s.dwell)+'</span><span class="rep3-np">'+fmtPct(s.depth)+'</span></div>';
+  }
+  function col(a){return '<div class="rep3-railcol">'+a.map(fila).join('')+'</div>';}
+  var rail;
+  if(!n) rail='<div class="rep3-empty">'+DASH+' · sin etapas registradas</div>';
+  else if(n<6) rail='<div class="rep3-rail rep3-rail-1">'+col(list)+'</div>';
+  else{var m=Math.ceil(n/2);rail='<div class="rep3-rail">'+col(list.slice(0,m))+col(list.slice(m))+'</div>';}
   return '<div class="rep3-blk rep3-scroll"><div class="rep3-bh"><span>Lo que dijo tu scroll</span><span class="rep3-bv">profundidad máx <b>'+fmtPct(sc.depth)+'</b></span></div>'+rail+
-    '<div class="rep3-legend"><span><i class="rep3-lg rep3-lg-go"></i>visitada</span><span><i class="rep3-lg rep3-lg-hold"></i>pendiente</span><span>% = parte vista de cada etapa</span></div></div>';
+    '<div class="rep3-legend"><span><i class="rep3-lg rep3-lg-go"></i>visitada</span><span><i class="rep3-lg rep3-lg-hold"></i>pendiente</span><span>tiempo en la etapa · % visto de ella</span></div></div>';
 }
 
 /* ---------- (2) lectura y retención (estimación) ---------- */
@@ -5873,20 +5896,12 @@ function enhance(html,compact,st){
     var rt=top.querySelector('.rt');if(rt)rt.classList.add('rep3-rt');
   }
   if(!compact){
-    var need=frag.querySelector('.need'),jr=frag.querySelector('.journey');
-    /* el recorrido del visitante y el rail dicen lo mismo con dos lenguajes: van juntos
-       en una rejilla (.rep3-vg), lista a la izquierda y rail vertical a la derecha.
-       Sin .journey (HTML legado distinto) se cae al orden de siempre. */
-    if(jr&&jr.parentNode){
-      var vg=document.createElement('div');vg.className='rep3-vg';
-      jr.parentNode.insertBefore(vg,jr);vg.appendChild(jr);
-      vg.insertAdjacentHTML('beforeend',scrollHTML(st));
-      vg.insertAdjacentHTML('afterend',readHTML(st)+microHTML(st));
-    }else{
-      var blocks=scrollHTML(st)+readHTML(st)+microHTML(st);
-      if(need)need.insertAdjacentHTML('beforebegin',blocks);
-      else{var t2=document.createElement('template');t2.innerHTML=blocks;frag.appendChild(t2.content);}
-    }
+    /* .journey listaba las mismas etapas sin el tiempo; eso vive ahora dentro de
+       scrollHTML, así que la lista legada se retira en vez de repetirse. */
+    var jr=frag.querySelector('.journey');if(jr&&jr.parentNode)jr.parentNode.removeChild(jr);
+    var blocks=scrollHTML(st)+readHTML(st)+microHTML(st),need=frag.querySelector('.need');
+    if(need)need.insertAdjacentHTML('beforebegin',blocks);
+    else{var t2=document.createElement('template');t2.innerHTML=blocks;frag.appendChild(t2.content);}
   }
   return tpl.innerHTML;
 }
