@@ -60,10 +60,27 @@
   nav .links a:hover{color:var(--ink)}
   nav .cta{font-size:11.5px;letter-spacing:.1em;padding:10px 16px;border:1px solid var(--line);text-transform:uppercase;transition:.18s}
   nav .cta:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+  /* ES | EN: dos pastillas mono, la activa en tinta. Va antes del CTA para que
+     el botón de auditoría siga siendo lo último de la barra. */
+  nav .nav-r{display:flex;align-items:center;gap:16px}
+  nav .lang{display:flex;border:1px solid var(--line)}
+  nav .lang-b{background:none;border:0;cursor:pointer;font-family:"IBM Plex Mono",monospace;
+    font-size:10.5px;letter-spacing:.14em;padding:7px 10px;color:var(--ink-3);transition:.18s;line-height:1}
+  nav .lang-b+.lang-b{border-left:1px solid var(--line)}
+  nav .lang-b:hover{color:var(--ink)}
+  nav .lang-b[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+  nav .lang-b:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   @media(max-width:900px){nav .links{display:none}}
+  @media(max-width:520px){nav .lang-b{padding:6px 8px;font-size:9.5px}nav{padding:0 18px}}
 
   /* ===== HERO with particle sphere + live clip-path notes ===== */
-  .hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;padding-top:var(--nav-h)}
+  /* Dos columnas de verdad. Antes el titular iba absoluto sobre una esfera
+     centrada al 46vw: el hueco de la izquierda es ~27vw - 40px y "COMPORTAMIENTO"
+     mide 10.22 em, así que a 54px pide 552px. No cabía en ninguna pantalla real
+     (harían falta 2320px de ancho), por eso siempre se metía en la esfera.
+     Ahora texto y esfera se reparten la fila y el par va centrado. */
+  .hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;
+    gap:clamp(28px,4vw,72px);padding:var(--nav-h) 40px 0 40px}
   .hero .lab{position:absolute}
   .hero .l1{top:calc(var(--nav-h) + 48px);left:40px}
   .hero .l2{top:calc(var(--nav-h) + 48px);right:40px}
@@ -71,20 +88,26 @@
   .hero .l4{bottom:60px;right:40px}
   .hero .contact-t{position:absolute;bottom:88px;left:70px;font-weight:400;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
   /* framed sphere box with annotations on 4 sides */
-  .sphere-box{position:relative;width:min(46vw,640px);aspect-ratio:1/.98;border:1px solid var(--line)}
+  .sphere-box{position:relative;flex:0 0 auto;width:min(42vw,600px);aspect-ratio:1/.98;border:1px solid var(--line)}
   .sphere-box canvas{position:absolute;inset:0;width:100%;height:100%}
   .sphere-box .note{position:absolute}
   .sphere-box .n-top{top:14px;left:16px}
   .sphere-box .n-bot{bottom:14px;right:16px}
   .sphere-box .n-left{left:14px;top:50%;transform:translateY(-50%) rotate(180deg)}
   .sphere-box .n-right{right:14px;top:22%}
-  .hero-copy{position:absolute;left:40px;top:50%;transform:translateY(-50%);max-width:34vw;z-index:2}
-  .hero-copy h1{font-weight:100;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(30px,3.6vw,54px);line-height:1.02}
+  /* container-type para que el titular se mida contra SU columna, no contra la
+     ventana: así la palabra más larga siempre cabe, la traduzcamos o no. */
+  .hero-copy{position:relative;z-index:2;flex:1 1 520px;max-width:620px;min-width:0;
+    container-type:inline-size}
+  /* 9.6cqw: la palabra más larga ocupa 10.22 em, así que por debajo de 9.78cqw
+     entra entera en la columna sin partirse nunca. */
+  .hero-copy h1{font-weight:100;text-transform:uppercase;letter-spacing:.03em;
+    font-size:clamp(26px,9.6cqw,54px);line-height:1.02}
   .hero-copy h1 b{font-weight:300;color:var(--teal-ink)}
   .hero-copy p{margin-top:20px;color:var(--ink-2);font-size:14.5px;line-height:1.6;max-width:38ch}
   .hero-copy .row{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
   @media(max-width:1100px){.hero{flex-direction:column;justify-content:center;gap:30px;padding:120px 0 80px}
-    .hero-copy{position:static;transform:none;max-width:none;padding:0 40px}.sphere-box{width:min(80vw,460px)}
+    .hero-copy{flex:0 1 auto;max-width:none;width:100%;padding:0 40px}.sphere-box{width:min(80vw,460px)}
     /* etiquetas de esquina son decorativas: se ocultan al apilar para no chocar con el titular */
     .hero .lab,.hero .contact-t{display:none}}
 
@@ -2586,12 +2609,12 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 </style>
 <style>
 /* ===== velo-humo =====
-   Un 3% de negro sobre todo el fondo. Va en z-index 0, encima de la rejilla
+   Un 1% de negro sobre todo el fondo. Va en z-index 0, encima de la rejilla
    pero por DEBAJO de las secciones (z-index 1), así oscurece el suelo de la
    página sin tocar las tarjetas ni los botones: al quedar ellos en blanco puro
    sobre un fondo algo más bajo, resaltan. ===== */
 body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:rgba(0,0,0,.03)}
+  background:rgba(0,0,0,.01)}
 /* las tarjetas y los botones se mantienen en blanco puro para que despeguen */
 .grid3,.phases,.plans,.team,.faq,.contact,.carousel,.ticker,.cbox,
 .plan,.cell,.phase,.member,.qa{background:var(--card)}
@@ -3105,7 +3128,13 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 <nav>
   <a class="lg" href="#top"><span class="d"></span>AISOLVES</a>
   <div class="links"><a href="#work">Trabajo</a><a href="#sistema">Sistema</a><a href="#metodo">Método</a><a href="#servicios">Servicios</a><a href="#paquetes">Paquetes</a><a href="#about">Nosotros</a><a href="#equipo">Equipo</a></div>
-  <a class="cta" onclick="openForm()">Auditoría gratuita →</a>
+  <div class="nav-r">
+    <div class="lang" id="lang" role="group" aria-label="Idioma / Language" data-no-i18n>
+      <button type="button" class="lang-b" data-lang="es" aria-pressed="true">ES</button>
+      <button type="button" class="lang-b" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <a class="cta" onclick="openForm()">Auditoría gratuita →</a>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -3746,17 +3775,28 @@ function score(){const pk=S.sections['Paquetes']||{},sy=S.sections['Sistema']||{
   const ident=S.lead?15:Math.min(6,S.maxDepth*.05);
   return{total:Math.min(100,Math.round(intent+eng+fit+ident))};}
 function band(t){return t>=80?'SQL':t>=65?'HOT':t>=45?'WARM':t>=25?'MQL·warm':'COLD';}
-function bandShort(t){return t>=65?'HOT · llamar hoy':t>=45?'WARM':'COLD';}
+function bandShort(t){return t>=65?('HOT · '+(window.AIS_T||function(a){return a;})('llamar hoy','call today')):t>=45?'WARM':'COLD';}
 
 /* report body */
 function journeyHTML(){return S.order.filter(n=>n!=='Hero').map(n=>{const s=S.sections[n],d=s.depth||0,l=d>=70?'go':d>=40?'hold':'stop';
   return `<div class="st"><div class="n"><span class="lens ${l}"></span>${n}</div><div class="d">${(s.dwell||0).toFixed(1)}s</div><div class="p">${d}%</div></div>`;}).join('');}
 function summaryText(){const sc=score(),pk=S.sections['Paquetes']||{},top=[...S.order].filter(n=>n!=='Hero').sort((a,b)=>(S.sections[b].dwell||0)-(S.sections[a].dwell||0))[0];
-  return `Visita de <b>${S.lead?S.lead.name:'un visitante'}</b> con <span class="hl">${sc.total}/100</span> (${band(sc.total)}). Máxima atención en <b>${top||'Sistema'}</b>; ${pk.dwell>6?`se detuvo <span class="hl">${pk.dwell.toFixed(0)}s en Paquetes</span>`:'recorrió el sistema'}. ${S.exitIntent?'Mostró intención de salida.':'Recorrido sostenido.'}`;}
-function needText(){const sc=score(),pk=S.sections['Paquetes']||{};
-  if(pk.dwell>6)return 'Alta intención. Necesita certeza (legal + ROAS real) y contacto de cero fricción. Encaja con <b>Engine</b>. Llamar &lt;15 min.';
-  if(sc.total>=45)return 'Interés real, aún evaluando. Nutrir con un caso de CAPI y abrir por WhatsApp con ángulo de prueba de resultados.';
-  return 'Descubrimiento. Retargeting de awareness y contenido de objeción antes de la llamada.';}
+  const T=(window.AIS_T||function(a){return a;}), quien=S.lead?S.lead.name:T('un visitante','a visitor');
+  const foco=top||'Sistema', parada=pk.dwell>6
+    ? `<span class="hl">${pk.dwell.toFixed(0)}s ${T('en Paquetes','on Pricing')}</span>`
+    : T('recorrió el sistema','went through the system');
+  const cierre=S.exitIntent?T('Mostró intención de salida.','Showed exit intent.'):T('Recorrido sostenido.','Sustained journey.');
+  return T(
+    `Visita de <b>${quien}</b> con <span class="hl">${sc.total}/100</span> (${band(sc.total)}). Máxima atención en <b>${foco}</b>; ${pk.dwell>6?'se detuvo ':''}${parada}. ${cierre}`,
+    `Visit from <b>${quien}</b> scoring <span class="hl">${sc.total}/100</span> (${band(sc.total)}). Peak attention on <b>${foco}</b>; ${pk.dwell>6?'stopped for ':''}${parada}. ${cierre}`
+  );}
+function needText(){const sc=score(),pk=S.sections['Paquetes']||{},T=(window.AIS_T||function(a){return a;});
+  if(pk.dwell>6)return T('Alta intención. Necesita certeza (legal + ROAS real) y contacto de cero fricción. Encaja con <b>Engine</b>. Llamar &lt;15 min.',
+                         'High intent. Needs certainty (legal + real ROAS) and zero-friction contact. Fits <b>Engine</b>. Call within &lt;15 min.');
+  if(sc.total>=45)return T('Interés real, aún evaluando. Nutrir con un caso de CAPI y abrir por WhatsApp con ángulo de prueba de resultados.',
+                           'Real interest, still evaluating. Nurture with a CAPI case and open on WhatsApp with a proof-of-results angle.');
+  return T('Descubrimiento. Retargeting de awareness y contenido de objeción antes de la llamada.',
+           'Discovery. Awareness retargeting and objection content before the call.');}
 function reportBody(compact){const sc=score(),C=282.7;
   return `<div class="rep-top"><div class="ringbox"><svg width="100" height="100" viewBox="0 0 106 106"><circle cx="53" cy="53" r="45" fill="none" stroke="#e6e9f0" stroke-width="9"/><circle class="ring" cx="53" cy="53" r="45" fill="none" stroke="#2fc5b1" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg><div class="ctr"><b class="scoreN">0<small>/100</small></b></div></div>
   <div class="rt"><div class="rl">Banda</div><div class="rep-band">${bandShort(sc.total)}</div><div class="rep-summary" style="margin:8px 0 0">${summaryText()}</div></div></div>
@@ -4200,7 +4240,7 @@ function markExit(){ if(exitIntent||!tracking) return; exitIntent=true; logEvent
 function startRead(){
   const s=stageById(st.current); if(!s) return;
   Object.assign(st.reading,{active:true,stage:s.id,since:r1(secs()-readQuiet)});
-  logEvent('read',s.name+' · estimación',true);
+  logEvent('read',s.name+(window.AIS_T||function(a){return a;})(' · estimación',' · estimate'),true);
   emit('read:start',{stage:s.id});
 }
 function endRead(){
@@ -4209,7 +4249,7 @@ function endRead(){
   if(s) s.reads.push({start:st.reading.since,seconds:dur});
   st.trustSeconds=r1(st.trustSeconds+dur);
   Object.assign(st.reading,{active:false,stage:null,since:null}); readQuiet=0;
-  logEvent('read:end',(s?s.name:'—')+' · '+util.fmt(dur)+' · estimación',false);
+  logEvent('read:end',(s?s.name:'—')+' · '+util.fmt(dur)+(window.AIS_T||function(a){return a;})(' · estimación',' · estimate'),false);
   emit('read:end',{stage:s?s.id:null,seconds:dur});
 }
 function readTick(dt,visible){
@@ -5467,7 +5507,7 @@ function updatePanel(S){
   updateRail(S);
   const scr=S.scroll||{},pc=isNum(scr.current)?clamp(scr.current,0,100):null;
   txt(el.pSec,fmtS(S.seconds));txt(el.pAttn,fmtS(S.attention));
-  txt(el.pScroll,pc===null?'—':Math.round(pc)+'%');txt(el.pDepth,'máx '+(isNum(scr.depth)?Math.round(clamp(scr.depth,0,100))+'%':'—'));
+  txt(el.pScroll,pc===null?'—':Math.round(pc)+'%');txt(el.pDepth,(window.AIS_T||function(a){return a;})('máx ','max ')+(isNum(scr.depth)?Math.round(clamp(scr.depth,0,100))+'%':'—'));
   txt(el.pSv,fmtV(scr.velocity));txt(el.pCv,fmtV(S.cursor&&S.cursor.speed));
   txt(el.pSig,isNum(S.signals)?String(S.signals):'—');
   updateReads(S);updateLog(S);updateAttr(S);
@@ -5822,10 +5862,14 @@ function lampOf(st){
   if((!sc||num(sc.total)===null)&&A&&typeof A.score==='function')sc=A.score();
   var t=sc?num(sc.total):null;
   var band=(sc&&typeof sc.band==='string'&&sc.band)?sc.band.split('·')[0].trim().toUpperCase():DASH;
-  if(t===null)return{key:'',band:band,act:'sin dato'};
-  return t>=65?{key:'go',band:band,act:'llamar hoy'}:t>=45?{key:'hold',band:band,act:'nutrir'}:{key:'stop',band:band,act:'aún no'};
+  var T=(window.AIS_T||function(a){return a;});
+  if(t===null)return{key:'',band:band,act:T('sin dato','no data')};
+  return t>=65?{key:'go',band:band,act:T('llamar hoy','call today')}
+       :t>=45?{key:'hold',band:band,act:T('nutrir','nurture')}
+             :{key:'stop',band:band,act:T('aún no','not yet')};
 }
-function sessionText(st){return 'sesión · '+fmtSec(st.seconds)+' · '+fmtN(st.signals)+' señales · confianza '+fmtSec(st.trustSeconds);}
+function sessionText(st){var T=(window.AIS_T||function(a){return a;});
+  return T('sesión · ','session · ')+fmtSec(st.seconds)+' · '+fmtN(st.signals)+T(' señales · confianza ',' signals · trust ')+fmtSec(st.trustSeconds);}
 
 /* ---------- (4) semáforo de banda + total de confianza (también en compact) ---------- */
 function actText(L){return (L.key?L.key+' · ':'')+L.act;}
@@ -6660,6 +6704,589 @@ document.addEventListener("DOMContentLoaded",function(){var f=document.querySele
   });
 })();
 </script>
+<!-- ===== script mod-idioma ===== -->
+<script>
+/* ==========================================================================
+   mod-idioma — español / inglés.
+   Traduce el DOM contra un diccionario en vez de tocar las veinticinco piezas
+   de JS que escriben texto: lo que se inyecta después (reporte, HUD, lupa)
+   lo alcanza un MutationObserver.
+
+   Va ANTES que mod-motion a propósito. mod-motion parte los titulares en
+   palabras sueltas dentro de máscaras; si tradujera después, "El Sistema"
+   serían dos nodos ("El" y "Sistema") y saldría "El System". Traducido el
+   titular entero, sus palabras ya nacen en inglés, y el observer salta lo que
+   cuelgue de .m-words.
+
+   Cambiar de idioma recarga la página. El sitio tiene escena 3D, animaciones
+   atadas al scroll, titulares ya partidos y un núcleo que mide la visita:
+   rehacer todo eso en caliente es más frágil que volver a entrar, y entrar de
+   nuevo es además lo honesto para la medición (otra lectura, otra sesión).
+
+   Las marcas y siglas (Meta, GA4, CAPI, Consent Mode v2, COLD→SQL...) no están
+   en el diccionario a propósito: se escriben igual en los dos idiomas.
+   ========================================================================== */
+(function(){
+  var DIC = {"Trabajo":"Work",
+"Sistema":"System",
+"Método":"Method",
+"Servicios":"Services",
+"Paquetes":"Pricing",
+"Nosotros":"About",
+"Equipo":"Team",
+"Auditoría gratuita →":"Free audit →",
+"Remoto · en español":"Remote · English & Spanish",
+"Abiertos a 3 proyectos":"Open to 3 projects",
+"Comportamiento convertido en":"Behaviour turned into",
+"ingresos.":"revenue.",
+"No vendemos anuncios. Instalamos el sistema que lee a cada visitante y decide quién merece una llamada.":"We don't sell ads. We install the system that reads every visitor and decides who is worth a call.",
+"Recibir mi reporte":"Get my report",
+"Ver formatos ↓":"See formats ↓",
+"Señales":"Signals",
+"Atención":"Attention",
+"Profundidad":"Depth",
+"Estado":"Status",
+"LEAD SCORING CONDUCTUAL":"BEHAVIOURAL LEAD SCORING",
+"RETARGETING POR COMPORTAMIENTO":"BEHAVIOURAL RETARGETING",
+"Formatos de modal de comportamiento, de la señal a la conversación.":"Behavioural modal formats, from signal to conversation.",
+"Eventos por servidor, deduplicados con event_id.":"Server-side events, deduplicated with event_id.",
+"arrastra · 360°":"drag · 360°",
+"TRANSMITIENDO":"STREAMING",
+"Ver en formato real &rarr;":"See it live &rarr;",
+"El Sistema":"The System",
+"Tres capas, un solo dato: el comportamiento.":"Three layers, one input: behaviour.",
+"01 / Captura":"01 / Capture",
+"Absorción de metadata":"Metadata absorption",
+"Cada sección y bloque emite eventos estructurados. Medimos la señal, nunca lo que la persona escribe.":"Every section and block emits structured events. We measure the signal, never what the person types.",
+"Observers por sección y bloque":"Observers per section and block",
+"Metadata de formularios sin leer valores":"Form metadata without reading values",
+"Velocidad de scroll y relectura":"Scroll speed and re-reading",
+"Fricción: rage click, exit intent":"Friction: rage click, exit intent",
+"02 / Puntuación":"02 / Scoring",
+"Lead scoring conductual":"Behavioural lead scoring",
+"Un motor en cuatro dimensiones convierte el ruido en un número de 0 a 100 y una banda accionable.":"A four-dimension engine turns the noise into a 0-100 number and an actionable band.",
+"Intención 0-40 · Engagement 0-25":"Intent 0-40 · Engagement 0-25",
+"Fit 0-20 · Identidad 0-15":"Fit 0-20 · Identity 0-15",
+"Histórico con causa de cada salto":"History with the cause of every jump",
+"03 / Activación":"03 / Activation",
+"Píxeles y CAPI":"Pixels and CAPI",
+"El mismo event_id viaja por navegador y servidor. Meta deduplica y se queda con la mejor señal.":"The same event_id travels by browser and by server. Meta deduplicates and keeps the better signal.",
+"PII hasheada SHA-256 en origen":"PII hashed SHA-256 at source",
+"90 días para que el sistema decida por ti.":"90 days until the system decides for you.",
+"Semanas 1–3":"Weeks 1–3",
+"Instrumentación":"Instrumentation",
+"Que el negocio empiece a ver.":"Get the business seeing.",
+"Auditoría de pérdida de señal":"Signal-loss audit",
+"entre navegador y servidor.":"between browser and server.",
+"Taxonomía de eventos":"Event taxonomy",
+"única para todos los canales.":"one shared across every channel.",
+"Data layer y CAPI":"Data layer and CAPI",
+"deduplicados con Consent Mode v2.":"deduplicated with Consent Mode v2.",
+"Semanas 4–7":"Weeks 4–7",
+"Ignición":"Ignition",
+"Convertir datos en conversaciones.":"Turn data into conversations.",
+"Activos de viralidad":"Virality assets",
+"sobre las objeciones que revelan los datos.":"built on the objections the data reveals.",
+"Campañas de intención":"Intent campaigns",
+"con audiencias conductuales.":"with behavioural audiences.",
+"WhatsApp como canal":"WhatsApp as a channel",
+"con detección de intención.":"with intent detection.",
+"Semanas 8–12":"Weeks 8–12",
+"Escala":"Scale",
+"Que el sistema decida solo.":"Let the system decide on its own.",
+"Enrutamiento automático":"Automatic routing",
+": SQL a llamada en &lt;15 min.":": SQL to call in &lt;15 min.",
+"Retargeting secuencial":"Sequential retargeting",
+"por etapa.":"by stage.",
+"de las primeras 48-72 h, medido.":"of the first 48-72 h, measured.",
+"Seis piezas, un solo dato: el comportamiento.":"Six pieces, one input: behaviour.",
+"Seis servicios":"Six services",
+"sobre una sola":"on a single",
+"taxonomía de eventos":"event taxonomy",
+"Pixel de Meta y Conversions API con event_id deduplicado: el mismo evento viaja por navegador y por servidor sin contarse dos veces.":"Meta Pixel and Conversions API with a deduplicated event_id: the same event travels by browser and by server without being counted twice.",
+"Etapas medidas por visita":"Stages measured per visit",
+"Score de comportamiento":"Behaviour score",
+"Onboarding de alta activación":"High-activation onboarding",
+"Cada sección emite su propio evento al entrar en pantalla, con el tiempo que se le dedica y la velocidad del scroll. De los formularios se guarda la metadata, nunca lo que la persona escribe. Permite decidir qué bloque hay que reescribir porque nadie llega a terminarlo.":"Every section emits its own event when it enters the screen, with the time spent on it and the scroll speed. From forms we keep the metadata, never what the person types. It lets you decide which block to rewrite because nobody gets to the end of it.",
+"Captura":"Capture",
+"Capa 01":"Layer 01",
+"Ese comportamiento se resume en cuatro dimensiones —intención, engagement, fit e identidad— y se convierte en un número de 0 a 100 con su banda. Cada salto queda registrado con la causa que lo provocó. Permite decidir a quién se llama hoy y a quién se deja madurar.":"That behaviour is summed up in four dimensions —intent, engagement, fit and identity— and becomes a 0-100 number with its band. Every jump is logged with the cause behind it. It lets you decide who gets called today and who is left to mature.",
+"Puntuación":"Scoring",
+"Capa 02":"Layer 02",
+"El evento sale por navegador y por servidor con el mismo event_id, de modo que Meta lo deduplica y se queda con la mejor señal, siempre con Consent Mode v2 en denegado por defecto. Permite decidir con qué información optimiza la puja, en vez de suponerla.":"The event leaves by browser and by server with the same event_id, so Meta deduplicates it and keeps the better signal, always with Consent Mode v2 denied by default. It lets you decide what information the bid optimises on, instead of guessing it.",
+"Activación":"Activation",
+"Capa 03":"Layer 03",
+"Un diagnóstico puntual, o retainer sin permanencia · precio por sistema, no por horas.":"A one-off diagnosis, or a retainer with no lock-in · priced per system, not per hour.",
+"Diagnóstico":"Diagnosis",
+"Una foto técnica de lo que ya tienes, desde fuera y sin accesos.":"A technical snapshot of what you already have, from the outside and with no access.",
+"Pago único":"One-off payment",
+"Perfiles de Meta y Google: desde el enlace público — bio, enlaces, llamada a la acción y coherencia de marca":"Meta and Google profiles: from the public link — bio, links, call to action and brand coherence",
+"Indexación de tu web en buscador y ficha de empresa pública":"Search indexing of your site and public business listing",
+"Web · medición: qué píxeles y etiquetas disparan de verdad, GA4, Consent Mode v2 y eventos contados dos veces":"Web · measurement: which pixels and tags actually fire, GA4, Consent Mode v2 and double-counted events",
+"Web · técnica: Core Web Vitals, rendimiento real y datos estructurados":"Web · technical: Core Web Vitals, real-world performance and structured data",
+"Web · UX y UI a fondo: recorrido, jerarquía, formularios y fricción":"Web · UX and UI in depth: journey, hierarchy, forms and friction",
+"Un PDF por activo, más un informe general descargable":"One PDF per asset, plus a downloadable overall report",
+"Sin pedirte accesos: los perfiles se analizan desde su enlace público y la web desde fuera. El análisis profundo es el de la web, que es donde sí se puede entrar. No incluye auditoría de campañas.":"Without asking you for access: profiles are analysed from their public link and the site from the outside. The deep analysis is the website one, which is where we can actually get in. Campaign auditing is not included.",
+"Empieza a ver lo que ya está pasando.":"Start seeing what is already happening.",
+"Desde":"From",
+"USD/mes":"USD/mo",
+"Taxonomía de eventos unificada":"Unified event taxonomy",
+"Meta Pixel + CAPI deduplicados":"Meta Pixel + CAPI deduplicated",
+"Meta Ads gestionados":"Meta Ads managed",
+"Más contratado":"Most chosen",
+"El sistema completo, funcionando solo.":"The full system, running on its own.",
+"Todo lo de Signal":"Everything in Signal",
+"Google Ads gestionados, sumado a Meta":"Google Ads managed, on top of Meta",
+"Retargeting y secuencias progresivas":"Retargeting and progressive sequences",
+"Contenido orgánico: reels y carruseles":"Organic content: reels and carousels",
+"WhatsApp Business API con intención":"WhatsApp Business API with intent",
+"Crecimiento que se acelera con el tiempo.":"Growth that compounds over time.",
+"Todo lo de Engine":"Everything in Engine",
+"Onboarding de alta activación 48-72 h":"High-activation onboarding 48-72 h",
+"Experimentación continua A/B":"Continuous A/B experimentation",
+"Atribución multi-touch":"Multi-touch attribution",
+"SLA &lt;15 min para SQL":"SLA &lt;15 min for SQL",
+"Sobre":"About",
+"Estrategia, datos y activación — conectados desde la primera visita hasta el cierre.":"Strategy, data and activation — connected from the first visit to the close.",
+"Instalamos el sistema que lee el comportamiento de cada visita,":"We install the system that reads the behaviour of every visit,",
+"lo puntúa y decide a quién merece la pena llamar.":"scores it and decides who is worth calling.",
+"No vendemos anuncios:":"We don't sell ads:",
+"construimos":"we build",
+"la señal":"the signal",
+"con la que se compran.":"they are bought with.",
+"/ Captura":"/ Capture",
+"/ Puntuación":"/ Scoring",
+"Cuatro dimensiones convierten ese ruido en un score de 0 a 100 y una banda accionable.":"Four dimensions turn that noise into a 0-100 score and an actionable band.",
+"/ Activación":"/ Activation",
+"El mismo event_id viaja por navegador y por servidor, con Consent Mode v2 desde el primer evento.":"The same event_id travels by browser and by server, with Consent Mode v2 from the first event.",
+"Dos personas, cero capas. Hablas con quien construye.":"Two people, zero layers. You talk to whoever builds it.",
+"CEO · Growth Architect":"CEO · Growth Architect",
+"Arquitectura de conversión, tracking multicanal, full stack UX/UI y campañas como trafficker profesional.":"Conversion architecture, multichannel tracking, full stack UX/UI and campaigns as a professional media buyer.",
+"Cierre":"Closing",
+"Closer profesional · Team Leader Sales Funnels":"Professional closer · Sales Funnels Team Leader",
+"Estrategias de alto nivel para high ticket: cualificación, manejo de objeciones y cierre, liderando equipos de venta guiados por los datos del funnel.":"High-level strategy for high ticket: qualification, objection handling and closing, leading sales teams guided by funnel data.",
+"Preguntas":"Questions",
+"Las dudas que sí importan.":"The doubts that actually matter.",
+"¿Esto es legal? Suena a espiar al usuario.":"Is this legal? It sounds like spying on the user.",
+"Es lo contrario. Medimos comportamiento —scroll, tiempo, dudas—, nunca el contenido que la persona escribe. Nada de tracking personalizado ocurre antes del consentimiento explícito: Consent Mode v2 en denegado por defecto y revocable en un clic. Además le enseñamos su propio informe: es más transparente que cualquier banner de cookies.":"It's the opposite. We measure behaviour —scroll, time, hesitation—, never the content the person types. No personalised tracking happens before explicit consent: Consent Mode v2 denied by default and revocable in one click. On top of that we show them their own report: it is more transparent than any cookie banner.",
+"¿En qué se diferencia de Google Analytics o Hotjar?":"How is this different from Google Analytics or Hotjar?",
+"GA4 te dice qué pasó en agregado. Hotjar te deja grabaciones que nadie revisa. Nosotros convertimos el comportamiento en un score por visitante, lo devolvemos a Meta y Google por servidor, y lo enrutamos a una acción: a quién se llama hoy y a quién no.":"GA4 tells you what happened in aggregate. Hotjar leaves you recordings nobody watches. We turn behaviour into a score per visitor, send it back to Meta and Google server-side, and route it into an action: who gets called today and who doesn't.",
+"¿Qué gano con Conversions API?":"What do I gain from Conversions API?",
+"Recuperas entre un 20% y un 40% de conversiones que hoy se pierden por ITP, ATT y bloqueadores. No es reporting: es información que el algoritmo de puja de Meta no recibe, y por eso tu CPA sube sin explicación.":"You recover between 20% and 40% of the conversions lost today to ITP, ATT and blockers. This isn't reporting: it's information Meta's bidding algorithm never receives, which is why your CPA climbs with no explanation.",
+"¿Cuánto tarda en verse el primer resultado?":"How long until the first result shows?",
+"La instrumentación se ve desde la semana uno: empiezas a recibir señal deduplicada y un score por visitante. El impacto en coste por lead suele aparecer entre la semana cuatro y la ocho, cuando las campañas ya optimizan contra eventos que antes no llegaban. Antes de eso es medición, no promesa.":"The instrumentation shows from week one: you start receiving deduplicated signal and a score per visitor. The impact on cost per lead usually appears between week four and week eight, once campaigns are optimising against events that never used to arrive. Before that it's measurement, not a promise.",
+"¿Tengo que cambiar mi web o mi CRM?":"Do I have to change my website or my CRM?",
+"No. El motor se instala como una capa sobre lo que ya tienes: un script en la web y una conexión por servidor a Meta y Google. El scoring y el enrutamiento se integran con tu CRM actual o, si no tienes, con una hoja de leads y WhatsApp. Cambiar de plataforma nunca es requisito.":"No. The engine installs as a layer on top of what you already have: a script on the site and a server-side connection to Meta and Google. Scoring and routing integrate with your current CRM or, if you don't have one, with a leads sheet and WhatsApp. Changing platform is never a requirement.",
+"¿Qué pasa con los leads que no llegan a SQL?":"What happens to leads that never reach SQL?",
+"No se pierden: se nutren. Un lead WARM entra en una secuencia de retargeting por etapa y contenido de objeción; cuando su comportamiento sube de banda, el sistema lo reenruta. Solo el SQL recibe llamada en menos de quince minutos. El resto recibe el mensaje adecuado a su momento, no una llamada que no pidió.":"They aren't lost: they're nurtured. A WARM lead enters a sequence of stage-based retargeting and objection content; when its behaviour moves up a band, the system re-routes it. Only an SQL gets a call within fifteen minutes. The rest get the message that fits their moment, not a call they never asked for.",
+"¿WhatsApp de verdad o un chatbot?":"Real WhatsApp or a chatbot?",
+"WhatsApp Business API con detección de intención y traspaso a persona. La automatización abre la conversación y clasifica; el cierre lo hace una closer profesional. Un chatbot que responde a todo sin entender la intención destruye la confianza que el comportamiento acaba de construir.":"WhatsApp Business API with intent detection and handover to a person. Automation opens the conversation and sorts it; the close is done by a professional closer. A chatbot that answers everything without understanding intent destroys the trust the behaviour has just built.",
+"¿Qué necesitáis de mí para empezar?":"What do you need from me to start?",
+"Acceso a tu web, a Meta Business y a Google Ads, y una llamada de una hora para entender tu ticket, tu ciclo y tus objeciones. Con eso arranca la auditoría de pérdida de señal. No pedimos permanencia: el primer mes es instrumentación y ya te quedas con lo instalado.":"Access to your website, to Meta Business and to Google Ads, plus a one-hour call to understand your ticket, your cycle and your objections. That's what starts the signal-loss audit. We ask for no lock-in: the first month is instrumentation and what gets installed is yours to keep.",
+"Contacto":"Contact",
+"Correo":"Email",
+"Información":"Information",
+"Remoto · trabajamos con equipos de habla hispana":"Remote · we work with English and Spanish speaking teams",
+"Onboarding en 48-72 h":"Onboarding in 48-72 h",
+"Razón social y domicilio fiscal — por definir —":"Registered name and tax address — to be defined —",
+"Escríbenos":"Write to us",
+"Nombre":"Name",
+"Mensaje":"Message",
+"Se abre WhatsApp · no se envía a ningún servidor":"Opens WhatsApp · nothing is sent to any server",
+"Enviar":"Send",
+"Privacidad":"Privacy",
+"Cómo revocar":"How to revoke",
+"Hablemos de tu caso":"Let's talk about your case",
+"Formato · Center Spotlight (teaser)":"Format · Center Spotlight (teaser)",
+"Lead Signal · en vivo":"Lead Signal · live",
+"Esto es lo que el sistema ha leído de tu visita.":"This is what the system has read from your visit.",
+"Recibir el reporte por WhatsApp":"Get the report on WhatsApp",
+"Reporte completo":"Full report",
+"Te lo enviamos por WhatsApp.":"We'll send it to you on WhatsApp.",
+"Deja tu nombre y tu WhatsApp. Generamos el reporte de esta visita y te lo mandamos al momento.":"Leave your name and your WhatsApp. We generate the report for this visit and send it straight over.",
+"WhatsApp (con prefijo)":"WhatsApp (with country code)",
+"Email (opcional)":"Email (optional)",
+"Autorizo a AISOLVES a enviarme el reporte por WhatsApp y a tratar mi comportamiento de esta visita. Revocable en un clic.":"I authorise AISOLVES to send me the report on WhatsApp and to process my behaviour from this visit. Revocable in one click.",
+"Enviar mi reporte por WhatsApp":"Send my report on WhatsApp",
+"Formato · Center Spotlight":"Format · Center Spotlight",
+"Lead Signal · reporte completo":"Lead Signal · full report",
+"Reporte de tu visita":"Report on your visit",
+"Entrega por WhatsApp":"Delivery on WhatsApp",
+"Generado":"Generated",
+"Enviando":"Sending",
+"Entregado":"Delivered",
+"Confirmado":"Confirmed",
+"Enviar reporte por WhatsApp":"Send report on WhatsApp",
+"Abrir chat":"Open chat",
+"Formato · Drawer lateral":"Format · Side drawer",
+"Tu señal, sin salir de la página.":"Your signal, without leaving the page.",
+"Recibir por WhatsApp →":"Get it on WhatsApp →",
+"Formato · Bottom sheet":"Format · Bottom sheet",
+"Desliza para ver tu comportamiento.":"Swipe to see your behaviour.",
+"Formato · Full-screen takeover":"Format · Full-screen takeover",
+"Tu visita, a pantalla completa.":"Your visit, full screen.",
+"Formato · Toast expandible":"Format · Expandable toast",
+"Tu comportamiento":"Your behaviour",
+"Formato · Inline expand":"Format · Inline expand",
+"Integrado en la página, sin overlay.":"Built into the page, no overlay.",
+"arrastra · orbita":"drag · orbit",
+"AISOLVES · consentimiento de visita · COMPORTAMIENTO, NUNCA CONTENIDO":"AISOLVES · visit consent · BEHAVIOUR, NEVER CONTENT",
+"Esta web lee":"This site reads",
+"cómo navegas":"how you browse",
+", no lo que escribes.":", not what you type.",
+"solo memoria · nada se guarda hasta que aceptes":"memory only · nothing is stored until you accept",
+"origen · —":"source · —",
+"dispositivo · —":"device · —",
+"IP · se resuelve en servidor":"IP · resolved on the server",
+"activar tilt por giroscopio":"enable gyroscope tilt",
+"desde que entraste":"since you arrived",
+"score provisional":"provisional score",
+"tras aceptar":"after you accept",
+"sin datos":"no data",
+"verde · llamar hoy":"green · call today",
+"ámbar · nutrir":"amber · nurture",
+"rojo · aún no":"red · not yet",
+"canal de entrada":"entry channel",
+"sin señal todavía":"no signal yet",
+"se resuelve en servidor":"resolved on the server",
+"campaña":"campaign",
+"etapas":"stages",
+"Sin etapas aún":"No stages yet",
+"micro-métricas":"micro-metrics",
+"en vivo · estimación":"live · estimate",
+"cobertura":"coverage",
+"profundidad":"depth",
+"atención":"attention",
+"señal":"signal",
+"consentimiento":"consent",
+"velocidad del cursor":"cursor speed",
+"· últimos 20 ticks":"· last 20 ticks",
+"velocidad de scroll":"scroll speed",
+"· &lt;40 px/s = lectura":"· &lt;40 px/s = reading",
+"scroll actual":"current scroll",
+"· pestaña visible":"· tab visible",
+"movimientos del cursor":"cursor movements",
+"solo con tu scroll ya sabemos":"from your scroll alone we already know",
+"profundidad máx.":"max depth",
+"etapas vistas":"stages seen",
+"/ pendientes":"/ pending",
+"momentos de lectura":"reading moments",
+"· estimación":"· estimate",
+"tiempo de confianza":"trust time",
+"honestidad":"honesty",
+"comportamiento, nunca contenido":"behaviour, never content",
+"qué medimos":"what we measure",
+"Recorrido:":"Journey:",
+"scroll, tiempo por etapa y relecturas, como señal, no como grabación.":"scroll, time per stage and re-reads, as signal, not as a recording.",
+"Cursor:":"Cursor:",
+"velocidad y número de movimientos. La posición no se guarda.":"speed and number of movements. The position is not stored.",
+"Origen:":"Source:",
+"UTM, click IDs (gclid, fbclid, ttclid) y nombres de campaña que vengan en la URL.":"UTM, click IDs (gclid, fbclid, ttclid) and campaign names that arrive in the URL.",
+"Solo si tú lo inicias:":"Only if you start it:",
+"tu WhatsApp al pedir el reporte.":"your WhatsApp when you ask for the report.",
+"nunca":"never",
+"Lo que escribes:":"What you type:",
+"sin keylogging ni lectura de campos.":"no keylogging, no reading of fields.",
+"Tu usuario de Google, Meta o TikTok:":"Your Google, Meta or TikTok username:",
+"no llega a esta página y no se simula.":"never reaches this page and is not faked.",
+"IP o empresa en el navegador:":"IP or company in the browser:",
+"solo en servidor.":"server-side only.",
+"Cookies o envíos antes de aceptar:":"Cookies or sends before you accept:",
+"hasta entonces todo vive en memoria.":"until then everything lives in memory.",
+"Nada se guarda hasta que aceptes.":"Nothing is stored until you accept.",
+"Lo que ves se calcula en memoria y desaparece al cerrar la pestaña. Primera parte · revocable en un clic.":"What you see is computed in memory and disappears when you close the tab. First party · revocable in one click.",
+"Aceptar y entrar":"Accept and enter",
+"Sólo lo esencial":"Essential only",
+"Sin registro. Sin contraseña. GDPR/LOPDGDD · Consent Mode v2.":"No sign-up. No password. GDPR/LOPDGDD · Consent Mode v2.",
+"Lupa de comportamiento · abrir ·":"Behaviour lens · open ·",
+"etapa":"stage",
+"cursor":"cursor",
+"Lupa · lectura en vivo":"Lens · live reading",
+"Etapas":"Stages",
+"En vivo":"Live",
+"cada 250 ms":"every 250 ms",
+"segundos":"seconds",
+"máx —":"max —",
+"vel. scroll":"scroll spd.",
+"· est.":"· est.",
+"vel. cursor":"cursor spd.",
+"señales":"signals",
+"Momentos de lectura":"Reading moments",
+"estimación":"estimate",
+"tiempo real de confianza":"real trust time",
+"Sin lecturas aún":"No reads yet",
+"Actividad":"Activity",
+"últimos 6":"last 6",
+"Sin eventos aún":"No events yet",
+"Recibir mi reporte por WhatsApp":"Get my report on WhatsApp",
+"ver HUD completo":"see full HUD",
+"Lectura emitida por el cerebro":"Reading emitted by the brain",
+"cerrar":"close",
+"Formatos de modal, en órbita alrededor del cerebro":"Modal formats, orbiting the brain",
+"siguiente":"next",
+"Elegir servicio":"Choose service",
+"Servicio 1 de 6: Meta Pixel":"Service 1 of 6: Meta Pixel",
+"Servicio 2 de 6: Lead scoring":"Service 2 of 6: Lead scoring",
+"Servicio 3 de 6: SEO y SEM":"Service 3 of 6: SEO and SEM",
+"Servicio 4 de 6: WhatsApp API":"Service 4 of 6: WhatsApp API",
+"Servicio 5 de 6: Retargeting en vivo":"Service 5 of 6: Live retargeting",
+"Servicio 6 de 6: Contenido por señal":"Service 6 of 6: Content by signal",
+"Datos del sistema":"System data",
+"Ficha anterior":"Previous card",
+"Ficha siguiente":"Next card",
+"Escríbenos por WhatsApp":"Message us on WhatsApp",
+"Tu nombre":"Your name",
+"tu@empresa.com":"you@company.com",
+"Prefijo + número":"Country code + number",
+"Cuéntanos tu caso…":"Tell us about your case…",
+"Módulo de señal · visor 3D":"Signal module · 3D viewer",
+"Alternar barrido 360° / 180°":"Toggle 360° / 180° sweep",
+"Frames del turntable":"Turntable frames",
+"Cerrar HUD":"Close HUD",
+"UTM · click IDs · nombres de campaña que llegan en la URL":"UTM · click IDs · campaign names arriving in the URL",
+"La IP no se lee en el navegador":"The IP is not read in the browser",
+"Score provisional":"Provisional score",
+"Canales detectados":"Channels detected",
+"WhatsApp: sin señal":"WhatsApp: no signal",
+"Meta: sin señal":"Meta: no signal",
+"Google: sin señal":"Google: no signal",
+"Etapas de la página":"Page stages",
+"Micro-métricas en vivo":"Live micro-metrics",
+"Control de tracking, sólo porcentajes":"Tracking control, percentages only",
+"Solo con tu scroll":"From your scroll alone",
+"Qué medimos y qué nunca":"What we measure and what we never do",
+"segundos de sesión":"seconds of session",
+"velocidad del cursor · estimación":"cursor speed · estimate",
+"Cerrar lupa":"Close lens",
+"plataforma · campaña · anuncio":"platform · campaign · ad",
+"Origen de la visita":"Visit source",
+"Overlay central que detiene la página y entrega el reporte completo: score 0-100, recorrido por etapa y qué necesita.":"Central overlay that stops the page and delivers the full report: 0-100 score, stage-by-stage journey and what they need.",
+"Debajo, la entrega por WhatsApp con sus cuatro estados — generado, enviando, entregado y confirmado en verde.":"Below, the WhatsApp delivery with its four states — generated, sending, delivered and confirmed in green.",
+"USO · máxima jerarquía · el que más convierte":"USE · highest hierarchy · the one that converts most",
+"Panel que entra desde la derecha sin tapar la página. El visitante mantiene el contexto mientras lee su señal.":"Panel that slides in from the right without covering the page. The visitor keeps the context while reading their signal.",
+"Es el formato menos invasivo en desktop: no interrumpe la lectura y se cierra con un gesto lateral.":"It's the least invasive format on desktop: it doesn't interrupt reading and closes with a side gesture.",
+"USO · desktop · no intrusivo":"USE · desktop · non-intrusive",
+"Hoja que sube desde abajo con tirador, el patrón nativo de iOS y Android.":"Sheet that rises from the bottom with a handle, the native iOS and Android pattern.",
+"El pulgar la alcanza sin recolocar la mano, se arrastra y se descarta. La mejor conversión en teléfono.":"The thumb reaches it without moving the hand, it drags and dismisses. The best conversion on phone.",
+"USO · móvil · alcance del pulgar":"USE · mobile · thumb reach",
+"Empieza como la píldora de la esquina y se despliega en una tarjeta compacta sólo con el score y el resumen.":"Starts as the corner pill and unfolds into a compact card with just the score and the summary.",
+"Cero fricción: no bloquea nada, aparece cuando el score sube de banda y se puede ignorar sin coste.":"Zero friction: it blocks nothing, appears when the score moves up a band and can be ignored at no cost.",
+"USO · ambiente · baja fricción":"USE · ambient · low friction",
+"Sin overlay: el reporte se despliega dentro de la propia sección y empuja el contenido hacia abajo.":"No overlay: the report unfolds inside the section itself and pushes the content down.",
+"Se siente parte de la página en lugar de una interrupción, y el contenido sigue siendo indexable.":"It feels like part of the page rather than an interruption, and the content stays indexable.",
+"USO · integrado · sin overlay":"USE · inline · no overlay",
+"Cubre el viewport completo y convierte el reporte en una experiencia, no en un aviso.":"It covers the whole viewport and turns the report into an experience, not a notice.",
+"Reservado para un lead HOT o una campaña dedicada, donde el impacto compensa la interrupción.":"Reserved for a HOT lead or a dedicated campaign, where the impact is worth the interruption.",
+"Modo esencial · sin scoring conductual":"Essential mode · no behavioural scoring",
+"un visitante":"a visitor",
+"recorrió el sistema":"went through the system",
+"Mostró intención de salida.":"Showed exit intent.",
+"Recorrido sostenido.":"Sustained journey.",
+"módulo de señal":"signal module",
+"se levanta":"lifts",
+"en vivo":"live",
+"core no disponible":"core unavailable",
+"guardando esta visita · revocable en un clic":"storing this visit · revocable in one click",
+"Revocar · sólo lo esencial":"Revoke · essential only",
+"Consentimiento revocado · sólo lo esencial":"Consent revoked · essential only",
+"Hero · estimación":"Hero · estimate",
+"Directo · sin campaña":"Direct · no campaign",
+"Confirmado por el cliente":"Confirmed by the client",
+"intención de salida":"exit intent",
+"Lo que dijo tu scroll":"What your scroll said",
+"profundidad máx":"max depth",
+"visitada":"visited",
+"pendiente":"pending",
+"tiempo en la etapa · % visto de ella":"time on the stage · % of it seen",
+"Lectura y retención":"Reading and retention",
+"lectura = scroll lento sostenido dentro de una etapa":"reading = sustained slow scroll within a stage",
+"leyendo ahora":"reading now",
+"sin lectura sostenida detectada":"no sustained reading detected",
+"sin etapas registradas":"no stages recorded",
+"Tiempo real de confianza":"Real trust time",
+"suma de momentos de lectura · estimación":"sum of reading moments · estimate",
+"Micro-métricas":"Micro-metrics",
+"medias = muestras en movimiento · est.":"averages = samples in motion · est.",
+"Vel. media cursor":"Avg. cursor speed",
+"Vel. media touch":"Avg. touch speed",
+"Vel. media scroll":"Avg. scroll speed",
+"media en movimiento · est.":"average in motion · est.",
+"pestaña visible":"tab visible",
+"eventos registrados":"events recorded",
+"Semáforo · banda":"Traffic light · band",
+"confianza":"trust",
+"llamar hoy":"call today",
+"nutrir":"nurture",
+"aún no":"not yet",
+"Qué necesita":"What they need",
+"Banda":"Band",
+"Continuar":"Continue",
+"Generando reporte…":"Generating report…",
+"url + referrer":"url + referrer",
+"esperando core":"waiting for core",
+"prueba":"test",
+"Probar con una URL de campaña →":"Try with a campaign URL →",
+"conjunto":"ad set",
+"anuncio":"ad",
+"contenido":"content",
+"término":"term",
+"fuente · medio":"source · medium",
+"referrer":"referrer",
+"landing":"landing",
+"dispositivo":"device",
+"primer contacto":"first contact",
+"hora local":"local time",
+"escritorio":"desktop",
+"móvil":"mobile",
+"sin campaña":"no campaign",
+"Directo":"Direct",
+"Overlay central que detiene la página y entrega el reporte completo: score de 0 a 100, recorrido por etapa y qué necesita el visitante.":"Central overlay that stops the page and delivers the full report: 0 to 100 score, stage-by-stage journey and what the visitor needs.",
+"máxima jerarquía · el que más convierte":"highest hierarchy · the one that converts most",
+"Cajón que entra por el lado sin tapar la página. El visitante sigue viendo dónde estaba mientras lee la lectura de su visita.":"A drawer that slides in from the side without covering the page. The visitor still sees where they were while reading their visit.",
+"escritorio · no intrusivo":"desktop · non-intrusive",
+"Hoja que sube desde abajo con tirador, el patrón nativo de iOS y Android. Queda dentro del alcance del pulgar.":"A sheet that rises from the bottom with a handle, the native iOS and Android pattern. It stays within thumb reach.",
+"móvil · alcance del pulgar":"mobile · thumb reach",
+"Aviso discreto en una esquina que se despliega si interesa. No interrumpe la lectura y deja la decisión en quien navega.":"A quiet notice in a corner that unfolds if it's of interest. It doesn't interrupt reading and leaves the decision to whoever is browsing.",
+"ambiente · baja fricción":"ambient · low friction",
+"El bloque se abre dentro de la propia página, sin capa por encima. El contenido crece donde ya estaba mirando.":"The block opens inside the page itself, with no layer on top. The content grows right where they were already looking.",
+"integrado · sin overlay":"inline · no overlay",
+"La pantalla completa para el lead caliente: todo el reporte, sin distracciones y con una sola acción posible.":"The full screen for a hot lead: the whole report, no distractions and a single possible action.",
+"lead HOT · alto impacto":"HOT lead · high impact",
+"ver en vivo":"see it live",
+"center spotlight":"center spotlight",
+"drawer lateral":"side drawer",
+"toast expandible":"expandable toast",
+"SLA <15 min para SQL":"SLA <15 min for SQL",
+"Solo si lo escribes tú. Ninguna plataforma lo entrega.":"Only if you type it yourself. No platform hands it over.",
+"Reporte de":"Report on",
+"sesión":"session",
+"stop · aún no":"stop · not yet",
+"go · llamar hoy":"go · call today",
+"hold · nutrir":"hold · nurture",
+"sin dato":"no data",
+"Visita de":"Visit from",
+"con":"with",
+"Máxima atención en":"Peak attention on",
+"se detuvo":"stopped for",
+"— · sin lectura sostenida detectada":"— · no sustained reading detected",
+"— · sin etapas registradas":"— · no stages recorded",
+"Descubrimiento. Retargeting de awareness y contenido de objeción antes de la llamada.":"Discovery. Awareness retargeting and objection content before the call.",
+"Alta intención. Necesita certeza (legal + ROAS real) y contacto de cero fricción. Encaja con":"High intent. Needs certainty (legal + real ROAS) and zero-friction contact. Fits",
+"Llamar <15 min.":"Call within 15 min.",
+"Interés real, aún evaluando. Nutrir con un caso de CAPI y abrir por WhatsApp con ángulo de prueba de resultados.":"Real interest, still evaluating. Nurture with a CAPI case and open on WhatsApp with a proof-of-results angle.",
+"Qué NO llega:":"What does NOT arrive:",
+"Google y Meta no entregan el nombre de usuario de la persona. Solo lo que tú escribes.":"Google and Meta do not hand over the person's username. Only what you type.",
+"recarga con ?utm_source=meta … fbclid=IwAR0demo":"reloads with ?utm_source=meta … fbclid=IwAR0demo",
+"whatsapp · número facilitado":"whatsapp · number provided",
+"estás aquí":"you are here",
+"Guardando esta visita.":"Storing this visit.",
+"Score y recorrido activos, de primera parte. Revocable en un clic, aquí o desde el pie.":"Score and journey active, first party. Revocable in one click, here or from the footer.",
+"· sin campaña":"· no campaign",
+"Formato":"Format",
+"Overlay central que detiene la página y entrega el reporte completo: score 0-100, recorrido por etapa y qué necesita el visitante.":"Central overlay that stops the page and delivers the full report: 0-100 score, stage-by-stage journey and what the visitor needs.",
+"Score y recorrido activos, de primera parte. Revocable en un clic, aquí o desde la lupa.":"Score and journey active, first party. Revocable in one click, here or from the lens."};
+
+  var ATRIB = ['placeholder','title','aria-label','alt'];
+  var SALTAR = {SCRIPT:1,STYLE:1,NOSCRIPT:1,CANVAS:1,TEXTAREA:1,SVG:1};
+  var trabajando = false;
+
+  function guardado(){
+    try{ var q=(location.search.match(/[?&]lang=(es|en)\b/)||[])[1]; if(q) return q; }catch(e){}
+    try{ var v=localStorage.getItem('ais-lang'); if(v==='es'||v==='en') return v; }catch(e){}
+    return 'es';
+  }
+  var lang = guardado();
+
+  /* conserva el espacio de los bordes: casi todo el texto va pegado a una etiqueta */
+  function tr(t){
+    if(!t) return null;
+    var k=t.replace(/\s+/g,' ').trim();
+    if(!k) return null;
+    var v=DIC[k];
+    if(v===undefined) return null;
+    return /^\s*/.exec(t)[0] + v + /\s*$/.exec(t)[0];
+  }
+
+  function vetado(n){
+    for(var e=(n.nodeType===1?n:n.parentNode); e && e.nodeType===1; e=e.parentNode){
+      if(e.hasAttribute('data-no-i18n')) return true;
+      if(e.classList && e.classList.contains('m-words')) return true;   // titular ya partido
+    }
+    return false;
+  }
+
+  function nodo(n){
+    if(n.nodeType===3){
+      var s=tr(n.nodeValue);
+      if(s!==null && s!==n.nodeValue) n.nodeValue=s;
+      return;
+    }
+    if(n.nodeType!==1) return;
+    if(SALTAR[n.tagName]) return;
+    if(n.hasAttribute('data-no-i18n')) return;
+    if(n.classList && n.classList.contains('m-words')) return;
+    for(var i=0;i<ATRIB.length;i++){
+      var a=ATRIB[i];
+      if(n.hasAttribute(a)){ var v=tr(n.getAttribute(a)); if(v!==null) n.setAttribute(a,v); }
+    }
+    for(var c=n.firstChild;c;c=c.nextSibling) nodo(c);
+  }
+
+  function aplicar(raiz){
+    if(lang!=='en') return;
+    trabajando=true;
+    try{ nodo(raiz||document.body); } finally { trabajando=false; }
+  }
+
+  if(lang==='en'){
+    document.documentElement.setAttribute('lang','en');
+    aplicar(document.body);
+    /* lo que llega después: reporte, HUD, lupa, tarjetas de la órbita */
+    if(window.MutationObserver){
+      var mo=new MutationObserver(function(muts){
+        if(trabajando) return;
+        var pend=[],i,j;
+        for(i=0;i<muts.length;i++){
+          var m=muts[i];
+          if(m.type==='childList'){ for(j=0;j<m.addedNodes.length;j++) pend.push(m.addedNodes[j]); }
+          else if(m.type==='characterData'){ pend.push(m.target); }
+        }
+        if(!pend.length) return;
+        trabajando=true;
+        try{ for(i=0;i<pend.length;i++){ var n=pend[i]; if(n && !vetado(n)) nodo(n); } }
+        finally{ trabajando=false; }
+      });
+      mo.observe(document.body,{childList:true,subtree:true,characterData:true});
+    }
+  }
+
+  /* botonera */
+  var caja=document.getElementById('lang');
+  if(caja){
+    var bs=caja.querySelectorAll('.lang-b');
+    for(var i=0;i<bs.length;i++){
+      bs[i].setAttribute('aria-pressed', bs[i].getAttribute('data-lang')===lang ? 'true':'false');
+      bs[i].addEventListener('click', function(){
+        var nuevo=this.getAttribute('data-lang');
+        if(nuevo===lang) return;
+        var ok=false;
+        try{ localStorage.setItem('ais-lang',nuevo); ok=true; }catch(e){}
+        /* sin localStorage (ventana privada, cookies bloqueadas) el idioma viaja en la URL */
+        if(ok){ location.reload(); return; }
+        var u=location.href.split('#')[0].replace(/([?&])lang=(es|en)(&|$)/,'$1').replace(/[?&]$/,'');
+        location.href = u + (u.indexOf('?')>=0 ? '&' : '?') + 'lang=' + nuevo;
+      });
+    }
+  }
+
+  /* Para las frases que se arman con valores dentro ("Visita de X con 44/100...")
+     un diccionario de coincidencia exacta no sirve: cada trozo lleva un dato
+     pegado. Esas pocas funciones se escriben en los dos idiomas con AIS_T. */
+  window.AIS_T = function(es,en){ return lang==='en' ? en : es; };
+  window.AIS_I18N = { lang:lang, aplicar:aplicar, dic:DIC };
+})();
+</script>
+
 <!-- ===== script mod-motion ===== -->
 <script>
 /* ==========================================================================
