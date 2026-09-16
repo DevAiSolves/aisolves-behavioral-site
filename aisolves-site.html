@@ -77,14 +77,14 @@ gtag('consent','default',{
   .btn>*{position:relative;z-index:2}
   .btn .prog{position:absolute;inset:0;right:auto;z-index:1;width:0;background:rgba(0,0,0,.20);
     transition:width .2s linear;
-    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,70px)),transparent 100%);
-            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,70px)),transparent 100%);
+    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 70px))),transparent 100%);
+            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 70px))),transparent 100%);
     -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
     -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
     -webkit-mask-composite:source-in;mask-composite:intersect}
   .btn .bar{position:absolute;left:0;bottom:0;height:4px;width:0;z-index:2;background:rgba(0,0,0,.30);
-    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
-            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
+    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 26px))),transparent 100%);
+            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 26px))),transparent 100%);
     -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
     -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
     -webkit-mask-composite:source-in;mask-composite:intersect}
@@ -375,8 +375,8 @@ gtag('consent','default',{
     -webkit-mask-size:64px 48px;mask-size:64px 48px;
     -webkit-mask-repeat:repeat;mask-repeat:repeat}
   .track-line i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s;
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,40px)),transparent 100%);
-            mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,40px)),transparent 100%)}
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 40px))),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 40px))),transparent 100%)}
   .track-line.done i{background:var(--confirm)}
   .steps{display:flex;justify-content:space-between;gap:8px}
   .step{flex:1;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:9px;text-transform:uppercase;color:var(--ink-3);position:relative;padding-top:20px}
@@ -540,8 +540,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
     -webkit-mask-size:64px 48px;mask-size:64px 48px;
     -webkit-mask-repeat:repeat;mask-repeat:repeat}
   .hud-bar i{display:block;height:100%;width:0;background:var(--teal);transition:width .25s linear;
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,30px)),transparent 100%);
-            mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,30px)),transparent 100%)}
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 30px))),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 30px))),transparent 100%)}
   .hud-bar.hud-amber i{background:var(--hold)}
 
   /* rail de etapas */
@@ -695,12 +695,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .lupa-mini-score small{font-size:9px;color:var(--lupa-dim);margin-left:-5px}
   .lupa-mini-bot{display:flex;align-items:center;gap:10px}
   .lupa-bar{position:relative;flex:1;height:15px;background:rgba(255,255,255,.06);border:1px solid var(--lupa-line);overflow:hidden}
-  .lupa-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(47,197,177,.3),var(--lupa-go));transition:width .25s linear;
-    -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,34px)),transparent 100%);
-            mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,34px)),transparent 100%);
-    -webkit-mask-size:64px 48px,100% 100%;mask-size:64px 48px,100% 100%;
-    -webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;
-    -webkit-mask-composite:source-in;mask-composite:intersect}
+  .lupa-bar i{position:absolute;left:0;top:0;bottom:0;width:0;
+    background:linear-gradient(90deg,rgba(47,197,177,.3),var(--lupa-go));transition:width .25s linear}
   .lupa-bar.cur{flex:0 0 78px}
   .lupa-bar.cur i{background:linear-gradient(90deg,rgba(255,255,255,.1),rgba(255,255,255,.55));transition:width .2s linear}
   .lupa-bar em{position:absolute;inset:0;display:flex;align-items:center;padding:0 6px;font-style:normal;font-family:var(--lupa-mono);
@@ -3040,8 +3036,8 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
     -webkit-mask-repeat:repeat;mask-repeat:repeat}
 #hud .hud-pr b{display:block;height:100%;width:0;background:#fff;
   transition:width .5s cubic-bezier(.22,1,.36,1);
-  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%);
-          mask-image:linear-gradient(90deg,#000 calc(100% - var(--roce,26px)),transparent 100%)}
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 26px))),transparent 100%);
+          mask-image:linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 26px))),transparent 100%)}
 #hud .hud-pr em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px;
   color:#fff;text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:860px){#hud .hud-pr{grid-template-columns:72px 1fr 32px}}
@@ -3209,10 +3205,14 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   -webkit-mask-size:64px 48px; mask-size:64px 48px;
   -webkit-mask-repeat:repeat; mask-repeat:repeat;
 }
-/* el frente se deshace: dos máscaras, la trama y el degradado del borde */
+/* El frente se deshace: dos máscaras, la trama y el degradado del borde.
+   El degradado es un PORCENTAJE del relleno, no una medida fija. Con 34px fijos
+   una barra de 136px al 32% tenía 43px de relleno de los que 34 se desvanecían:
+   quedaban 9px sólidos y no se leía el progreso. En % el desvanecido encoge con
+   el relleno, y el tope en px evita que en una barra larga se coma medio frente. */
 .ais-trama-f{
-  -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,44px)),transparent 100%);
-          mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - var(--roce,44px)),transparent 100%);
+  -webkit-mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 44px))),transparent 100%);
+          mask-image:var(--ais-trama),linear-gradient(90deg,#000 calc(100% - min(30%, var(--roce, 44px))),transparent 100%);
   -webkit-mask-size:64px 48px,100% 100%; mask-size:64px 48px,100% 100%;
   -webkit-mask-repeat:repeat,no-repeat; mask-repeat:repeat,no-repeat;
   -webkit-mask-composite:source-in; mask-composite:intersect;
@@ -3231,17 +3231,24 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* (3) lupa: lleva su etiqueta dentro, así que la pista va en ::before y el
    texto se queda por encima, sin tramar. */
 .lupa-bar{--roce:34px}
+/* Esta barra mide 136×14 px y además lleva su etiqueta encima: es pista,
+   relleno y rótulo a la vez. Con la trama, los cuadrados del fondo y los del
+   relleno se confundían y el progreso dejaba de leerse —medido, 1.08× de
+   diferencia de brillo entre lleno y vacío—. La trama se queda donde la barra
+   solo indica progreso y tiene sitio; aquí manda la lectura. */
 .lupa-bar:before{content:"";position:absolute;inset:0;z-index:0;
-  background:rgba(255,255,255,.16);
-  -webkit-mask-image:var(--ais-trama); mask-image:var(--ais-trama);
-  -webkit-mask-size:64px 48px; mask-size:64px 48px;
-  -webkit-mask-repeat:repeat; mask-repeat:repeat}
+  background:rgba(255,255,255,.07)}
 .lupa-bar i{z-index:1}
 .lupa-bar em{z-index:2;
   /* la trama deja cuadrados blancos justo detrás de la etiqueta, así que el
      texto necesita más separación que con el relleno liso de antes */
   text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9)}
-.lupa-bar i,#hud .lupa-bar i{background:rgba(255,255,255,.62)!important}
+/* Gris medio, no casi blanco: la etiqueta cruza el frente del relleno, y con
+   un relleno muy claro "SCROLL" se leía peor que "6%". A este nivel el texto
+   blanco con sombra funciona a los dos lados, y quien marca el "hasta aquí" es
+   el filo, no el brillo del relleno. */
+.lupa-bar i,#hud .lupa-bar i{background:rgba(255,255,255,.34)!important;
+  box-shadow:1px 0 0 rgba(255,255,255,.92)}
 
 /* (4) y (5) barras del HUD */
 .hud-bar{--roce:30px}
