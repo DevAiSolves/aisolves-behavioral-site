@@ -2902,6 +2902,14 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .lupa-sem.hold .lupa-sem-hold{color:#e0a400!important}
 .lupa-sem.stop .lupa-sem-stop{color:#e5484d!important}
 </style>
+<style>
+/* ===== pin-con-fondo =====
+   El escenario pintaba el negro, pero el pin (.carousel, position:sticky) era
+   transparente. Al llegar al final del recorrido el pin se solapa con la
+   sección siguiente y las tarjetas se veían sobre fondo blanco. Ahora el negro
+   viaja CON el pin, así las tarjetas están siempre sobre negro. ===== */
+#work .stage .carousel{background:radial-gradient(1100px 640px at 20% 14%, rgba(255,255,255,.05), transparent 60%), #06070a!important}
+</style>
 </head>
 <body>
 
@@ -5986,7 +5994,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
   renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0.02, 3.55);
+  camera.position.set(0, 0.10, 3.55);
 
   var geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(raw, 3));
@@ -8093,7 +8101,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
        aunque el empuje sea cero. Primero se calcula hasta dónde puede bajar el
        eje, y sólo después cuánto empuje sobra. */
     var oyMax = H - margen - altoFront / 2;
-    var oyPx = Math.min(H * (narrow ? 0.80 : 0.86), oyMax);
+    var oyPx = Math.min(H * (narrow ? 0.84 : 0.90), oyMax);
     if (oyPx < H * 0.42) oyPx = H * 0.42;          /* nunca por encima del centro */
     host.style.setProperty('--oy', (oyPx / H * 100).toFixed(1) + '%');
     var libre = oyMax - oyPx;
