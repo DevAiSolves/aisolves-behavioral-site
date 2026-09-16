@@ -1001,7 +1001,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   perspective:1200px;perspective-origin:50% 44%;
   min-height:78vh;min-height:78svh;               /* svh con respaldo para iOS */
 }
-@media(min-width:1000px){.stage{min-height:252vh;min-height:252svh}}
+@media(min-width:1000px){.stage{min-height:300vh;min-height:300svh}}
 .stage .carousel{border:0;background:none;height:100%;position:absolute;inset:0}
 .stage .car-body{display:block;border:0;min-height:0;background:none;height:100%}
 .stage .car-cell.brain{position:absolute;inset:0;min-height:0;background:none;border:0;overflow:hidden}
@@ -1075,7 +1075,7 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .stage .note{display:none}
 }
 @media(max-width:480px){
-  .stage{min-height:178svh}
+  .stage{min-height:214svh}
   .stage .brain-hud .brain-name{font-size:16px}
   .stage .brain-stream{max-width:88%;font-size:9px;bottom:clamp(164px,24vh,206px)}
   .stage .brain-stream .bs-line:nth-last-child(n+3){display:none}
@@ -1224,8 +1224,8 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
    ================================================================== */
 
 /* ---- 1. espacio ---- */
-.stage{min-height:200vh;min-height:200svh}
-@media(min-width:1000px){.stage{min-height:252vh;min-height:252svh}}
+.stage{min-height:240vh;min-height:240svh}
+@media(min-width:1000px){.stage{min-height:300vh;min-height:300svh}}
 /* el contenido se queda pegado al viewport: el cerebro no se va mientras
    se recorre el tercio extra */
 /* overflow:hidden en el ancestro anula position:sticky, así que el recorte
@@ -2750,7 +2750,7 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   transition:border-color .25s,box-shadow .25s;
   -webkit-tap-highlight-color:transparent;
   /* tipografía escalada desde el ancho de la tarjeta */
-  font-size:clamp(11px,calc(var(--cw) / 24),15px);
+  font-size:clamp(10px,calc(var(--cw) / 28),13px);
 }
 .orb.is-orb .orb-card{
   position:absolute;left:50%;top:var(--oy);
@@ -2766,7 +2766,7 @@ body:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .orb-n{font-family:"IBM Plex Mono",monospace;font-size:.72em;letter-spacing:.2em;
   color:rgba(255,255,255,.52)}
 .orb-t{font-weight:200;text-transform:uppercase;letter-spacing:.045em;
-  font-size:1.58em;line-height:1.08;margin:.42em 0 .3em;color:#fff}
+  font-size:1.46em;line-height:1.1;margin:.4em 0 .28em;color:#fff}
 .orb-d{font-size:.92em;line-height:1.5;color:rgba(255,255,255,.76);
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
 .orb-u{font-family:"IBM Plex Mono",monospace;font-size:.80em;line-height:1.45;
@@ -5918,7 +5918,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
       var r=canvas.getBoundingClientRect(), w=r.width, h=r.height;
       t += 0.0105;
       ctx.clearRect(0,0,w,h);
-      var cx=w/2, cy=h/2, R=Math.min(w,h)*0.33, ca=Math.cos(t), sa=Math.sin(t), act=activeZone();
+      var cx=w/2, cy=h/2, R=Math.min(w,h)*0.29, ca=Math.cos(t), sa=Math.sin(t), act=activeZone();
       for(var i=0;i<raw.length;i+=3){
         var x=raw[i], y=raw[i+1], z=raw[i+2];
         var X=x*ca - z*sa, Z=x*sa + z*ca;
@@ -5986,7 +5986,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
   renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-  camera.position.set(0, 0.02, 3.15);
+  camera.position.set(0, 0.02, 3.55);
 
   var geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(raw, 3));
@@ -6109,9 +6109,9 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     // destellos
     var sp = sparkGeo.attributes.position.array, sc = sparkGeo.attributes.color.array, live=0;
     for(var k=0;k<MAXS;k++){
-      if(life[k] <= 0){ if(Math.random() < (surge>0 ? 0.85 : 0.30)) reseed(k, az); }
+      if(life[k] <= 0){ if(Math.random() < (surge>0 ? 0.95 : 0.55)) reseed(k, az); }
       if(life[k] > 0){
-        life[k] -= reduced ? 0.10 : 0.035;
+        life[k] -= reduced ? 0.12 : 0.075;
         var a2=pair[k*2], b2=pair[k*2+1], o=Math.max(0, life[k]);
         sp[k*6]=raw[a2*3]; sp[k*6+1]=raw[a2*3+1]; sp[k*6+2]=raw[a2*3+2];
         sp[k*6+3]=raw[b2*3]; sp[k*6+4]=raw[b2*3+1]; sp[k*6+5]=raw[b2*3+2];
@@ -8076,23 +8076,28 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     narrow = W < 860;
     /* Ancho de tarjeta: grande de verdad, pero acotado para que la vecina
        no se salga del viewport, que es lo que fallaba en el enfoque css3d. */
-    var cw = narrow ? Math.min(W - 54, 330) : Math.max(280, Math.min(380, W * 0.30));
+    var cw = narrow ? Math.min(W - 60, 300) : Math.max(260, Math.min(330, W * 0.26));
     host.style.setProperty('--cw', Math.round(cw) + 'px');
-    host.style.setProperty('--oy', narrow ? '78%' : '84%');
     /* Radio: en estrecho se encoge para que la vecina quepa en pantalla. */
     R = narrow ? Math.max(84, W * 0.20) : Math.max(210, Math.min(430, W * 0.30));
     /* Empuje hacia abajo: se pide ~3 cm (113px a 96 ppp), pero se recorta a lo
        que realmente cabe. En pantallas bajas un empuje fijo expulsaba las seis
        tarjetas fuera del escenario. */
-    var oyPx = H * (narrow ? 0.78 : 0.84);
     var alto = (cards[0] && cards[0].offsetHeight) ? cards[0].offsetHeight : 230;
-    /* la frontal se dibuja AMPLIADA por la perspectiva: si el recorte usa el
-       alto natural se queda corto y la tarjeta se sale por abajo */
+    /* la frontal se dibuja AMPLIADA por la perspectiva: usar el alto natural
+       deja el recorte corto y la tarjeta se sale por abajo */
     var kFront = PERSP / Math.max(1, PERSP - R);
     var altoFront = alto * kFront;
     var margen = 18;
-    var libre = H - margen - oyPx - altoFront / 2;
-    PUSH = Math.max(0, Math.min(113, libre));   /* los 3 cm pedidos, si caben */
+    /* El eje TAMBIÉN se acota: en pantallas bajas el 86% por sí solo ya no cabe
+       aunque el empuje sea cero. Primero se calcula hasta dónde puede bajar el
+       eje, y sólo después cuánto empuje sobra. */
+    var oyMax = H - margen - altoFront / 2;
+    var oyPx = Math.min(H * (narrow ? 0.80 : 0.86), oyMax);
+    if (oyPx < H * 0.42) oyPx = H * 0.42;          /* nunca por encima del centro */
+    host.style.setProperty('--oy', (oyPx / H * 100).toFixed(1) + '%');
+    var libre = oyMax - oyPx;
+    PUSH = Math.max(0, Math.min(189, libre));   /* 3+2 cm pedidos, si caben */
     PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
   }
 
@@ -8241,6 +8246,46 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
   }
   pinta();
   setInterval(pinta, 900);
+})();
+</script>
+<!-- ===== script mod-surge-scroll ===== -->
+<script>
+/* Las conexiones del cerebro responden al scroll: cuanto más rápido se
+   desplaza la página, más descargas dispara. Se lee la posición por geometría
+   en cada fotograma, no por eventos de scroll, que en algunos entornos no
+   llegan. Sólo corre con el escenario en pantalla. */
+(function(){
+  'use strict';
+  var stage = document.querySelector('#work .stage');
+  if (!stage) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var lastY = null, vivo = false, raf = 0, frio = 0;
+
+  function tick(){
+    if (!vivo) return;
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (lastY === null) lastY = y;
+    var dv = Math.abs(y - lastY);
+    lastY = y;
+    /* umbral bajo: basta un desplazamiento suave para que el cerebro conecte */
+    if (dv > 6) {
+      frio--;
+      if (frio <= 0) {
+        try { if (window.BRAIN && BRAIN.surge) BRAIN.surge(Math.min(900, 240 + dv * 6)); } catch(e){}
+        frio = 6;                     /* no más de una descarga cada 6 fotogramas */
+      }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function on(){ if (vivo || document.hidden) return; vivo = true; lastY = null; raf = requestAnimationFrame(tick); }
+  function off(){ vivo = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+  new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting) on(); else off(); });
+  }, { rootMargin: '10% 0px' }).observe(stage);
+
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) off(); else on(); });
 })();
 </script>
 </body>
