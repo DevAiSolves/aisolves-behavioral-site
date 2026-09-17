@@ -846,14 +846,31 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   /* ---------- móvil: colapsado a todo el ancho (≤ 92px), expandido como sheet ---------- */
   @media(max-width:760px){
     .lupa{left:0;right:0;bottom:0;padding-bottom:env(safe-area-inset-bottom);background:var(--lupa-navy)}
-    .lupa-mini{width:100%;max-height:92px;border-left:0;border-right:0;border-bottom:0;padding:10px 16px}
+    /* Más baja. Medida antes: 78px (10 de relleno arriba, 32 la fila de la
+     etapa, 9 de hueco, 15 la barra de scroll, 10 abajo). Se recorta por donde
+     sobra —relleno, hueco entre filas y el cuerpo de la etapa, que iba a 18px
+     para un rótulo de una palabra— y no se quita ninguno de los cinco datos
+     que enseña. El objetivo es el mismo alto que la nav: la página queda
+     enmarcada por dos barras iguales. */
+  .lupa-mini{width:100%;max-height:none;border-left:0;border-right:0;border-bottom:0;padding:7px 16px;gap:5px}
+  .lupa-mini-top{gap:10px}
+  .lupa-stage-k{font-size:8px;margin-bottom:1px}
+  .lupa-stage-n{font-size:15px}
+  .lupa-mini-score b{font-size:17px}
+  .lupa-bar{height:13px}
+  .lupa-bar em{font-size:8px}
+  .lupa-mini-sec{font-size:10px;min-width:42px}
     .lupa-mini:hover{transform:none}
     .lupa-stage-n{font-size:18px}
     .lupa-panel{width:100%;max-height:88vh;border-left:0;border-right:0;border-bottom:0;transform-origin:50% 100%}
     .lupa-handle{display:block;width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:8px auto 0;flex:none}
     .lupa-grid{grid-template-columns:repeat(2,1fr)}
+    /* El alto de la barra, declarado UNA sola vez: de aquí sale tanto el hueco
+       que se reserva al final del cuerpo como el que respeta el escenario
+       pegado del cerebro (ver el bloque 'dos barras' al final del <head>). */
+    :root{ --lupa-h:64px }
     /* la barra fija taparía el pie de página: hueco solo mientras la lupa está visible */
-    html.lupa-shown body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+    html.lupa-shown body{padding-bottom:calc(var(--lupa-h) + env(safe-area-inset-bottom))}
   }
   /* medición para el morph del HUD: la mini se pinta invisible un instante para leer su rect de destino */
   .lupa.lupa-measure{display:block;visibility:hidden;pointer-events:none}
@@ -3498,6 +3515,55 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
       aparece cuando aparecía antes y las animaciones entran sin que se note.
    ========================================================================== */
 
+/* ---------- la nav se aligera en cuanto se baja ----------
+   Arriba del todo la nav se apoya en el papel y puede ser casi opaca. En
+   cuanto empieza el recorrido pasa a ser un velo: deja ver por debajo lo que
+   va pasando —sobre todo el escenario negro del cerebro, donde una banda
+   clara y maciza partía la pantalla en dos—.
+
+   El 62% no es un número bonito: es el mínimo que deja el texto de la nav
+   legible en los dos fondos extremos del sitio. Sobre el negro del escenario
+   el velo se resuelve en un gris medio y el texto (--ink) queda en 6,4:1;
+   sobre el papel claro, en 16:1. Los dos por encima del 4,5 que pide la norma
+   para texto pequeño. */
+html.nav-baja nav{
+  background:rgba(250,250,251,.62);
+  backdrop-filter:blur(18px) saturate(1.05);
+  -webkit-backdrop-filter:blur(18px) saturate(1.05);
+  border-bottom-color:rgba(228,233,242,.5);
+}
+nav{transition:background .3s var(--m-ease), border-color .3s var(--m-ease)}
+
+/* ---------- sobre el escenario negro, la nav se vuelve oscura ----------
+   Aligerar el velo tiene un suelo: por debajo del 62% el texto oscuro de la
+   nav deja de leerse sobre el negro del escenario del cerebro. Y aun al 62%,
+   un velo claro sobre una sección negra se ve como una banda gris que parte
+   la pantalla en dos, que es justo lo que se veía en móvil.
+
+   Así que sobre esa sección la nav cambia de bando: cristal oscuro y texto
+   claro, y desaparece dentro de la escena en lugar de cortarla. No se
+   reescribe una regla por hijo: se redefinen las cuatro variables de color
+   DENTRO de la nav, y sus hijos —el logotipo, los enlaces, las pastillas de
+   idioma y el botón— heredan la paleta nueva tal cual. Cambiar variables en
+   un elemento pequeño solo ensucia su subárbol, no la página. */
+html.nav-oscura nav{
+  --ink:#fff;
+  --ink-2:rgba(255,255,255,.74);
+  --ink-3:rgba(255,255,255,.46);
+  --line:rgba(255,255,255,.18);
+  --card:#0d1017;
+  color:var(--ink-2);
+  background:rgba(9,11,16,.42);
+  backdrop-filter:blur(16px) saturate(1.1);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1);
+  border-bottom-color:rgba(255,255,255,.12);
+}
+
+/* El botón suelto de "siguiente" del carrusel viejo quedó fuera de su barra y
+   aparecía como un ">" recortado en la esquina del escenario. Con la órbita
+   viva las tarjetas ya se pulsan directamente. */
+.stage.orb-on .nx{display:none}
+
 /* ---------- barra de lectura en la nav ---------- */
 nav .nav-prog{
   position:absolute; left:0; right:0; bottom:-1px; height:2px;
@@ -3584,6 +3650,42 @@ nav .links a.aqui:after{transform:scaleX(1)}
     /* 0,55 y no 0: aunque la cifra se quedara a medias, se lee */
     @keyframes cifraSube{ from{transform:translateY(26px); opacity:.55} to{transform:none; opacity:1} }
   }
+}
+</style>
+<style>
+/* ==========================================================================
+   dos barras — la página vive SIEMPRE entre la nav y la lupa.
+
+   El sitio tiene dos elementos fijos: la <nav> arriba (64px) y, en móvil, la
+   lupa abajo convertida en barra a todo el ancho. El cuerpo normal ya
+   reservaba sitio para la de abajo (html.lupa-shown body{padding-bottom}),
+   pero eso no alcanza a lo que está PEGADO al viewport: el escenario del
+   cerebro (#work .carousel es position:sticky con alto de pantalla completa),
+   que por tanto ocupaba también los píxeles que las dos barras tapan. En un
+   móvil de 844px de alto eso son 64 arriba y 78 abajo: 142px, un 17% de la
+   pantalla, y ahí caían justo los títulos y los pies de las tarjetas.
+
+   La solución es declarar el hueco una vez y que lo respete quien se pega:
+
+     --hueco-arriba : lo que ocupa la nav, siempre.
+     --hueco-abajo  : lo que ocupa la barra inferior, solo cuando existe.
+
+   En escritorio la lupa NO es una barra: es una tarjeta flotante en la esquina
+   inferior derecha, así que abajo no hay que reservar nada.
+   ========================================================================== */
+:root{ --hueco-arriba:var(--nav-h); --hueco-abajo:0px }
+@media(max-width:760px){ html.lupa-shown{ --hueco-abajo:calc(var(--lupa-h) + env(safe-area-inset-bottom)) } }
+
+/* los enlaces del menú dejaban el titular debajo de la nav */
+html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
+
+/* El escenario pegado se encoge hasta el hueco libre. Va después de las tres
+   reglas que fijan .stage .carousel en capas anteriores, así que gana por
+   orden sin necesitar !important. La órbita se recoloca sola: mod-orbita mide
+   la caja del pin en cada resize y reparte las tarjetas dentro de lo que haya. */
+.stage .carousel{
+  top:var(--hueco-arriba);
+  height:calc(100svh - var(--hueco-arriba) - var(--hueco-abajo));
 }
 </style>
 </head>
@@ -4194,10 +4296,20 @@ nav .links a.aqui:after{transform:scaleX(1)}
     }
   }
 
+  /* La nav se aligera al bajar. Va aquí y no en un oyente propio porque este
+     bucle ya mide la posición una vez por fotograma. Con histéresis —se
+     enciende a 40px y se apaga a 12— para que no parpadee al borde. */
+  var navBaja = false;
+  function mideNav(){
+    var baja = navBaja ? E.y > 12 : E.y > 40;
+    if(baja !== navBaja){ navBaja = baja; document.documentElement.classList.toggle('nav-baja', baja); }
+  }
+
   function frame(ahora){
     raf = 0;
     if(document.hidden) return;
     mide(ahora);
+    mideNav();
     corre(lectores);
     corre(pintores);
     /* se sigue un poco después del último scroll: hay módulos con inercia */
@@ -10364,6 +10476,30 @@ window.AIS_CARA = (function(){
     decide();
   }, { rootMargin: '-' + alto + ' 0px -72% 0px' });
   dianas.forEach(function(d){ io.observe(d); });
+
+  /* ---------- 3. la nav cambia de bando sobre las secciones oscuras ----------
+     La zona que importa es la franja que ocupa la propia nav, no la pantalla
+     entera: recortando el margen del observador a esos primeros píxeles, el
+     aviso llega justo cuando el escenario negro entra o sale por debajo de la
+     barra. El recorte va en píxeles, así que hay que rehacerlo al cambiar el
+     tamaño de la ventana. */
+  var oscuras = [].slice.call(document.querySelectorAll('#work'));
+  if(oscuras.length){
+    var ioOsc = null, navPx = parseInt(alto, 10) || 64;
+    var rehacer = function(){
+      if(ioOsc) ioOsc.disconnect();
+      var resto = Math.max(0, (window.innerHeight || 800) - navPx);
+      ioOsc = new IntersectionObserver(function(es){
+        var dentro = false;
+        for(var i=0;i<es.length;i++) if(es[i].isIntersecting) dentro = true;
+        document.documentElement.classList.toggle('nav-oscura', dentro);
+      }, { rootMargin: '0px 0px -' + resto + 'px 0px' });
+      oscuras.forEach(function(o){ ioOsc.observe(o); });
+    };
+    rehacer();
+    var tRe = 0;
+    addEventListener('resize', function(){ clearTimeout(tRe); tRe = setTimeout(rehacer, 180); }, {passive:true});
+  }
 })();
 </script>
 </body>
