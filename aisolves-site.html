@@ -6039,13 +6039,25 @@ function boot(){
     el.tilt.style.transform=''; el.tilt.style.transition=''; el.shadow.style.transform=''; el.gloss.style.transform='';
     sRect=null; gSnap=false; T.rx=T.ry=T.rxT=T.ryT=0; T.gx=T.gy=T.gxT=T.gyT=-9999; lastNote=''; spark.length=0;
     root.classList.add('hud-on');
-    setMode(); renderStatic();
-    if(A){ render(A.state); bindTick(); }
-    clearInterval(clockIv); clockIv=setInterval(clockTick,100); clockTick();
-    setupMotion(); apply();
-    addEventListener('resize',onResize,{passive:true});
-    document.addEventListener('keydown',onKey);
-    try{ el.panel.focus({preventScroll:true}); }catch(e){}
+
+    /* Aparecer y rellenarse son dos cosas.
+       El panel entra con una transición de CSS que dura casi medio segundo;
+       rellenarlo cuesta 158 ms de hilo principal, 137 de ellos maquetando, y
+       se estaban pagando justo antes del primer pintado, que es el peor
+       momento posible. Poner la clase es lo único que el visitante necesita
+       ver ya; el contenido llega en el fotograma siguiente, con el panel
+       todavía entrando, y no se nota. */
+    var rellena = function(){
+      if(!isOpen) return;                       /* se cerró antes de llegar aquí */
+      setMode(); renderStatic();
+      if(A){ render(A.state); bindTick(); }
+      clearInterval(clockIv); clockIv=setInterval(clockTick,100); clockTick();
+      setupMotion(); apply();
+      addEventListener('resize',onResize,{passive:true});
+      document.addEventListener('keydown',onKey);
+      try{ el.panel.focus({preventScroll:true}); }catch(e){}
+    };
+    if(window.requestAnimationFrame) requestAnimationFrame(rellena); else rellena();
   }
   function hide(){
     root.classList.remove('hud-on','hud-leave','hud-fade','hud-needperm');
