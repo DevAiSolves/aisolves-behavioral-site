@@ -5000,7 +5000,7 @@ function bindTilt(el) {
 /* ======================= (a) ESFERA DEL HERO ======================= */
 const HERO_N = 8000, HERO_CAMD = 4.4;
 const heroVert = [
-  'uniform float uTime, uAmp, uPx, uCamD;',
+  'uniform float uTime, uAmp, uPx, uCamD, uDz, uDk;',
   'attribute float aSeed, aTono;',
   'varying float vDepth, vSeed, vTono;',
   'void main(){',
@@ -5010,21 +5010,23 @@ const heroVert = [
   '  float v = dot(w, vec3(-0.52, 0.71, 0.48));',
   '  float n = 0.042*sin(u*4.5 + uTime) + 0.032*sin(v*5.5 - uTime*1.15) + 0.016*sin((u+v)*8.5 + uTime*2.0);',
   '  vec4 mv = modelViewMatrix * vec4(position * (1.0 + n*uAmp), 1.0);',
-  '  vDepth = clamp((mv.z + uCamD + 1.0) * 0.5, 0.0, 1.0);',
+  // la profundidad se mapea al rango real del objeto: la esfera es z∈[-1,1] pero la
+  // cara es un relieve de ±0.33, y con la fórmula fija su frente quedaba a media opacidad
+  '  vDepth = clamp((mv.z + uCamD + uDz) * uDk, 0.0, 1.0);',
   '  vSeed = aSeed; vTono = aTono;',
   '  gl_Position = projectionMatrix * mv;',
   // tamaño por tono, como una trama de imprenta: lo oscuro (pelo, cejas, ojos) es punto grande
   '  gl_PointSize = uPx * (0.9 + 1.4*vDepth) * (0.45 + 1.3*(1.0 - vTono));',
   '}'].join('\n');
 const heroFrag = [
-  'uniform vec3 uInk, uTeal;',
+  'uniform vec3 uInk, uTeal; uniform float uGain;',
   'varying float vDepth, vSeed, vTono;',
   'void main(){',
   '  vec2 c = gl_PointCoord - 0.5; float d = dot(c, c);',
   '  if (d > 0.25) discard;',
   '  float soft = 1.0 - smoothstep(0.10, 0.25, d);',
   '  vec3 col = mix(uInk, uTeal, step(0.86, vSeed));',
-  '  gl_FragColor = vec4(col, (0.08 + 0.72*vDepth*vDepth) * soft * (0.58 + 0.42*(1.0 - vTono)));',
+  '  gl_FragColor = vec4(col, min(1.0, uGain * (0.08 + 0.72*vDepth*vDepth) * soft * (0.58 + 0.42*(1.0 - vTono))));',
   '  #include <colorspace_fragment>',
   '}'].join('\n');
 
@@ -5059,8 +5061,23 @@ function initHero(THREE) {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
   geo.setAttribute('aTono', new THREE.BufferAttribute(tono, 1));
+  /* Rango de profundidad del objeto, medido del dato y no supuesto. La esfera da
+     lo=-1, hi=1 → uDz=1, uDk=0.5: exactamente la fórmula que tenía. La cara da
+     ±0.33 y se amplía 0.27 por lado, que es lo que aporta x al girar ±35°: sin ese
+     margen, al oscilar media cara saturaría a 1 y la otra media a 0, y parpadearía. */
+  let zlo = -1, zhi = 1;
+  if (cara) {
+    zlo = Infinity; zhi = -Infinity;
+    for (let i = 2; i < pos.length; i += 3) { if (pos[i] < zlo) zlo = pos[i]; if (pos[i] > zhi) zhi = pos[i]; }
+    zlo -= 0.27; zhi += 0.27;
+  }
   const u = {
     uTime: { value: 0 }, uAmp: { value: 1 }, uPx: { value: 2 }, uCamD: { value: HERO_CAMD },
+    /* uGain: la cara necesita 1.8 para que su frente (pelo) llegue al 0.8 de alfa que
+       tenía el frente de la esfera; medido sobre los 8000 puntos, no a ojo. La esfera
+       de respaldo lleva 1/0.79 porque el factor de tono (0.58+0.42·0.5=0.79) la
+       atenuaba sin querer: así queda idéntica a la original. */
+    uDz: { value: -zlo }, uDk: { value: 1 / (zhi - zlo) }, uGain: { value: cara ? 1.8 : 1 / 0.79 },
     uInk: { value: new THREE.Color(0x1a1e2a) }, uTeal: { value: new THREE.Color(0x12907f) }
   };
   const mat = new THREE.ShaderMaterial({ uniforms: u, vertexShader: heroVert, fragmentShader: heroFrag, transparent: true, depthWrite: false, depthTest: false });
