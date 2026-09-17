@@ -5312,7 +5312,11 @@ function trama() {
     let reglas; try { reglas = hoja.cssRules; } catch (e) { continue; }   // hoja de otro origen
     if (!reglas) continue;
     for (const r of reglas) {
-      if (r.selectorText && r.selectorText.replace(/\s+/g, ' ').indexOf('html.t3d-fx body:before') === 0) { reglaTrama = r; return reglaTrama; }
+      /* el navegador normaliza el selector a 'body::before' con dos puntos
+         dobles, así que buscarlo tal cual está escrito en la hoja no lo
+         encuentra: se compara por partes */
+      const sel = r.selectorText;
+      if (sel && sel.indexOf('t3d-fx') >= 0 && /body::?before/.test(sel)) { reglaTrama = r; return reglaTrama; }
     }
   }
   return null;
