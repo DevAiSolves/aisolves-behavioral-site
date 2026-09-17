@@ -16,3 +16,6 @@ node_modules/
 
 # Foto original del retrato: los puntos ya van dentro del HTML, el JPG no se publica.
 foto CEO.jpg
+
+# Versión de publicación: la genera tools/construir.py a partir del original.
+aisolves-site.pub.html
