@@ -13,3 +13,6 @@ vanlent-template/
 
 # Dependencias
 node_modules/
+
+# Foto original del retrato: los puntos ya van dentro del HTML, el JPG no se publica.
+foto CEO.jpg
