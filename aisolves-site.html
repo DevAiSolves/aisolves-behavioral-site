@@ -211,7 +211,9 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
   .sec-top{display:flex;justify-content:space-between;align-items:stretch;gap:24px;margin-bottom:0;border:1px solid var(--line);border-bottom:0}
   .sec-top .st-l{padding:30px 34px}
   .sec-top h2{font-weight:200;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(28px,4.6vw,52px);line-height:1}
-  .sec-top .sub2{margin-top:10px;color:var(--ink-2);font-size:14.5px}
+  /* 10px debajo de un titular de 52px se leía pegado: el subtítulo parecía
+     parte de la misma línea. 18 lo separa sin abrir un hueco. */
+  .sec-top .sub2{margin-top:18px;color:var(--ink-2);font-size:14.5px;line-height:1.5}
   .startbox{flex:none;border-left:1px solid var(--line);padding:0 40px;font-weight:300;font-size:19px;transition:.2s;cursor:pointer;display:flex;align-items:center}
   .startbox:hover{background:var(--navy);color:#fff}
   @media(max-width:760px){.startbox{padding:18px;font-size:15px}.sec-top{flex-direction:column}.startbox{border-left:0;border-top:1px solid var(--line)}}
@@ -3328,7 +3330,16 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
    Tres cifras grandes con su explicación. Se apoya en la retícula del sitio
    (misma caja, mismo borde) para no introducir un lenguaje nuevo.
    ========================================================================== */
-#constraint .cns-lead{max-width:62ch;font-size:15px;line-height:1.65;color:var(--ink-2);margin:0 0 30px}
+/* El titular vive dentro de una caja con borde y 34px de aire por dentro, así
+   que su texto empieza en x+34. Este párrafo colgaba del borde de la sección,
+   34px más a la izquierda, y el bloque se leía descuadrado: el titular por un
+   lado y el texto por otro. Con la misma sangría los dos empiezan en la misma
+   vertical, y respira por arriba en vez de ir pegado a la caja de encima. */
+#constraint .cns-lead{max-width:62ch;font-size:15px;line-height:1.65;color:var(--ink-2);
+  margin:0 0 34px;padding:26px 34px 0}
+/* En móvil la caja del titular conserva sus 34px, así que el párrafo también:
+   lo que importa es que los dos empiecen en la misma vertical. */
+@media(max-width:860px){ #constraint .cns-lead{padding:20px 34px 0} }
 #constraint .cns-grid{display:grid;grid-template-columns:repeat(3,1fr);
   border:1px solid var(--line);background:var(--card)}
 #constraint .cns-c{padding:34px 28px 30px;border-right:1px solid var(--line);min-width:0}
