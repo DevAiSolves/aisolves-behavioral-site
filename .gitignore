@@ -19,3 +19,4 @@ foto CEO.jpg
 
 # Versión de publicación: la genera tools/construir.py a partir del original.
 aisolves-site.pub.html
+aisolves-artefacto.html
