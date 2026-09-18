@@ -855,20 +855,20 @@ html.t3d-fx section.sec{transform-origin:50% 100%;backface-visibility:hidden}
   .lupa-mini{width:100%;max-height:none;border-left:0;border-right:0;border-bottom:0;padding:7px 16px;gap:5px}
   .lupa-mini-top{gap:10px}
   .lupa-stage-k{font-size:8px;margin-bottom:1px}
-  .lupa-stage-n{font-size:15px}
   .lupa-mini-score b{font-size:17px}
   .lupa-bar{height:13px}
   .lupa-bar em{font-size:8px}
   .lupa-mini-sec{font-size:10px;min-width:42px}
     .lupa-mini:hover{transform:none}
-    .lupa-stage-n{font-size:18px}
+    /* el rótulo de la etapa: 15 en vez de 18. Esta línea ya existía y pisaba
+       cualquier intento de encogerlo desde arriba, así que se cambia aquí. */
+    .lupa-stage-n{font-size:15px}
     .lupa-panel{width:100%;max-height:88vh;border-left:0;border-right:0;border-bottom:0;transform-origin:50% 100%}
     .lupa-handle{display:block;width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);margin:8px auto 0;flex:none}
     .lupa-grid{grid-template-columns:repeat(2,1fr)}
     /* El alto de la barra, declarado UNA sola vez: de aquí sale tanto el hueco
        que se reserva al final del cuerpo como el que respeta el escenario
        pegado del cerebro (ver el bloque 'dos barras' al final del <head>). */
-    :root{ --lupa-h:64px }
     /* la barra fija taparía el pie de página: hueco solo mientras la lupa está visible */
     html.lupa-shown body{padding-bottom:calc(var(--lupa-h) + env(safe-area-inset-bottom))}
   }
@@ -3526,6 +3526,20 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
    el velo se resuelve en un gris medio y el texto (--ink) queda en 6,4:1;
    sobre el papel claro, en 16:1. Los dos por encima del 4,5 que pide la norma
    para texto pequeño. */
+/* Los dos grises secundarios de la nav, apretados.
+   Aligerar el velo tiene una víctima que no se ve venir: el texto principal
+   aguanta, pero los grises de apoyo no. Con el velo al 62% sobre el escenario
+   negro, el compuesto es un gris medio (158,158,161) y sobre él --ink-3
+   (#9a9aa3) cae a 1,04:1 — el chip "EN" literalmente desaparece— y --ink-2 a
+   2,89:1. Y no es culpa del velo nuevo: sobre el papel, --ink-3 ya estaba en
+   2,5:1 antes de tocar nada.
+
+   Se arregla donde toca: redefiniendo los dos tokens DENTRO de la nav, que no
+   afecta al resto de la página. #2f2f36 da 5,09:1 en el peor compuesto y 16:1
+   sobre el papel. La jerarquía entre el idioma activo y el inactivo no se
+   pierde: el activo se distingue por su fondo negro, no por el gris. */
+nav{ --ink-2:#2f2f36; --ink-3:#2f2f36 }
+
 html.nav-baja nav{
   background:rgba(250,250,251,.62);
   backdrop-filter:blur(18px) saturate(1.05);
@@ -3673,7 +3687,10 @@ nav .links a.aqui:after{transform:scaleX(1)}
    En escritorio la lupa NO es una barra: es una tarjeta flotante en la esquina
    inferior derecha, así que abajo no hay que reservar nada.
    ========================================================================== */
-:root{ --hueco-arriba:var(--nav-h); --hueco-abajo:0px }
+/* El alto de la barra inferior, declarado UNA vez y SIEMPRE: si viviera dentro
+   del media query de móvil, por encima de 760px no existiría y cualquier cálculo
+   que la usara se quedaría inválido sin avisar. */
+:root{ --lupa-h:60px; --hueco-arriba:var(--nav-h); --hueco-abajo:0px }
 @media(max-width:760px){ html.lupa-shown{ --hueco-abajo:calc(var(--lupa-h) + env(safe-area-inset-bottom)) } }
 
 /* los enlaces del menú dejaban el titular debajo de la nav */
@@ -10483,7 +10500,12 @@ window.AIS_CARA = (function(){
      aviso llega justo cuando el escenario negro entra o sale por debajo de la
      barra. El recorte va en píxeles, así que hay que rehacerlo al cambiar el
      tamaño de la ventana. */
-  var oscuras = [].slice.call(document.querySelectorAll('#work'));
+  /* El objetivo es el ESCENARIO, no la sección entera: los primeros 400px de
+     #work son su cabecera sobre papel claro. Encendiendo el modo oscuro con
+     toda la sección, el texto blanco caía sobre un velo oscuro puesto encima
+     de papel: 2,70:1, el peor contraste de la página. Con .stage el cambio
+     ocurre justo donde empieza el negro. */
+  var oscuras = [].slice.call(document.querySelectorAll('#work .stage'));
   if(oscuras.length){
     var ioOsc = null, navPx = parseInt(alto, 10) || 64;
     var rehacer = function(){
