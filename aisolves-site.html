@@ -3693,6 +3693,220 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
   height:calc(100svh - var(--hueco-arriba) - var(--hueco-abajo));
 }
 </style>
+<style>
+/* ==========================================================================
+   canal encendido — el indicador de por dónde entró la visita.
+
+   Encendido de verdad: el canal real va en teal sobre su propio halo, no en
+   un gris que haya que adivinar. Y solo hay uno, así que no compite con nada.
+
+   Dos tallas. La compacta vive en la lupa plegada, donde el alto total está
+   fijado en 60 px y no puede crecer: por eso el icono baja a 13 px y el
+   rótulo va en mono de 8,5. La completa añade la prueba —el click id— y el
+   identificador de la visita, y se usa en la lupa abierta y en el reporte.
+   ========================================================================== */
+.cnl{
+  display:inline-flex; align-items:center; gap:6px; min-width:0;
+  font-family:var(--lupa-mono,"IBM Plex Mono",monospace);
+  color:var(--teal,#2fc5b1);
+}
+.cnl svg{flex:none}
+.cnl b{
+  font-weight:400; font-size:8.5px; letter-spacing:.12em; text-transform:uppercase;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ---------- talla compacta: la lupa plegada ---------- */
+.cnl-mini{
+  padding:3px 7px; flex:none; max-width:104px;
+  border:1px solid rgba(47,197,177,.42);
+  background:rgba(47,197,177,.10);
+  /* el halo es lo que dice "esto está encendido" de un vistazo */
+  box-shadow:0 0 10px rgba(47,197,177,.18);
+}
+
+/* ---------- talla completa: lupa abierta y reporte ---------- */
+.cnl-full{
+  flex-wrap:wrap; gap:8px; padding:7px 10px; width:100%;
+  border:1px solid rgba(47,197,177,.34);
+  background:rgba(47,197,177,.07);
+}
+.cnl-full b{font-size:9.5px}
+.cnl-full .cnl-det{
+  font-style:normal; font-size:9.5px; letter-spacing:.06em;
+  color:rgba(255,255,255,.62); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cnl-full .cnl-prueba,
+.cnl-full .cnl-id{
+  font-style:normal; font-size:9px; letter-spacing:.06em;
+  padding:2px 6px; border:1px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.74); white-space:nowrap;
+}
+/* el identificador de la visita se distingue: es lo único que nace del permiso */
+.cnl-full .cnl-id{ border-color:rgba(47,197,177,.45); color:var(--teal,#2fc5b1) }
+
+/* ---------- sobre fondo claro: el reporte vive dentro de .scrim ---------- */
+.scrim .cnl-full{border-color:rgba(47,197,177,.42);background:rgba(47,197,177,.06)}
+.scrim .cnl-full .cnl-det{color:var(--ink-2,#52525b)}
+.scrim .cnl-full .cnl-prueba{color:var(--ink-2,#52525b);border-color:var(--line,#e4e9f2)}
+.scrim .cnl-full .cnl-id{border-color:rgba(47,197,177,.5)}
+/* El hueco del reporte cuelga de .rep-top, no de .rt: así viaja con el anillo
+   cuando mod-vistas reparte el bloque en páginas. order:9 lo manda al final de
+   la fila, debajo del anillo y de la banda. */
+.rep-top .cnl-host{display:block;width:100%;order:9;margin-top:2px}
+
+/* ---------- sitio para el indicador dentro de la lupa ---------- */
+.lupa-mini-top .lupa-canal{display:inline-flex;flex:none}
+.lupa-attr .lupa-canal-full{display:block;width:100%;margin-bottom:8px}
+
+/* En la lupa plegada el nombre de la etapa y el canal se reparten el ancho:
+   la etapa cede primero, porque su rótulo ya se recorta con puntos suspensivos. */
+@media(max-width:760px){
+  .lupa-mini-top .lupa-stage{min-width:0}
+  .cnl-mini{max-width:92px}
+  .cnl-mini b{font-size:8px}
+}
+/* En pantallas muy estrechas el canal se queda solo con su icono: antes que
+   apretar tres cosas en 320 px, se quita el rótulo y se mantiene el símbolo. */
+@media(max-width:380px){
+  .cnl-mini{max-width:none;padding:3px 5px}
+  .cnl-mini b{display:none}
+}
+@media(prefers-reduced-motion:reduce){ .cnl{transition:none} }
+</style>
+<style>
+/* ==========================================================================
+   consentimiento en el móvil — el panel cabía en un escritorio, no en un
+   teléfono.
+
+   Visto en un iPhone real: el titular ocupaba dos líneas enormes, los cinco
+   rótulos con punto pesaban como si fueran botones, el cronómetro competía
+   con el titular, y para cuando llegabas al score ya habías hecho scroll. El
+   botón de aceptar era una barra blanca de lado a lado.
+
+   Lo que se hace aquí, por orden de espacio recuperado:
+
+   1. Los rótulos con punto bajan a tamaño de código. Son metadatos, no
+      titulares: dicen de dónde vienes y en qué dispositivo estás.
+   2. El cronómetro deja de ser un número gigante y la anotación de la
+      inclinación desaparece: es decorativa y en un teléfono no se lee.
+   3. Del cuerpo queda SOLO el score provisional, que es lo que la persona
+      tiene que entender antes de decidir. Las etapas, las micro-métricas y
+      los dos bloques de honestidad viven en la lupa una vez dentro.
+   4. Los tres canales se encogen a un costado y se quitan las filas de IP,
+      campaña y click id: ahí no aportan y ensucian.
+   5. Las dos acciones se juntan abajo a la derecha, del mismo tamaño. El
+      aceptar en blanco, el esencial con borde: misma jerarquía de lectura,
+      la mitad de altura.
+   ========================================================================== */
+@media(max-width:620px){
+
+  /* ---------- cabecera ---------- */
+  #hud .hud-head{padding:14px 16px 10px;gap:8px}
+  #hud .hud-eyebrow{font-size:8px;letter-spacing:.16em;line-height:1.5}
+  #hud .hud-title{font-size:14.5px;line-height:1.24;margin-top:6px;letter-spacing:.03em}
+
+  /* ---------- los ítems con punto, a tamaño de código ---------- */
+  #hud .hud-chips{gap:5px;margin-top:9px}
+  #hud .hud-chip{font-size:8.5px;padding:3px 7px;gap:5px;line-height:1.35;letter-spacing:.04em}
+  #hud .hud-chip i{width:4px;height:4px}
+
+  /* ---------- el cronómetro deja de ser un titular ---------- */
+  #hud .hud-clockbox{gap:8px;margin-top:0}
+  #hud .hud-clock{font-size:20px;margin:0}
+  #hud .hud-clockbox .hud-k{font-size:8px;letter-spacing:.14em}
+  #hud .hud-note{display:none}
+
+  /* ---------- del cuerpo, solo el score ---------- */
+  /* La caja no se estira: estirada quedaba hueca por dentro. Se centra en el
+     alto libre y el anillo crece, que es lo único que queda vivo aquí. */
+  /* 'safe' es el punto: con center a secas, en una pantalla de 568 px la caja
+     mide más que el hueco y se desborda por ARRIBA, donde no se puede llegar
+     con el scroll. safe vuelve a start justo en ese caso. */
+  #hud .hud-body{grid-template-areas:"score"!important;padding:10px 16px 4px!important;gap:10px!important;
+                 align-content:safe center}
+  #hud .hud-a-score{align-self:center}
+  #hud .hud-ringwrap{margin:12px 0 2px;gap:16px}
+  #hud .hud-ring{width:132px;height:132px}
+  #hud .hud-ringin{width:106px;height:106px}
+  #hud .hud-lamps{gap:9px;min-width:0}
+  /* el rótulo del semáforo iba en nowrap con .14em de espaciado: medido a
+     320 px se salía 31 px de la tarjeta. Se deja envolver y se afloja. */
+  #hud .hud-lamp{gap:7px;min-width:0}
+  #hud .hud-lamp p{white-space:normal;letter-spacing:.08em;font-size:8.5px;min-width:0}
+  #hud .hud-a-rail,
+  #hud .hud-a-metrics,
+  #hud .hud-a-know,
+  #hud .hud-a-hon{display:none!important}
+  #hud .hud-box{padding:12px 14px}
+
+  /* ---------- el canal: los tres a un costado, y limpio ---------- */
+  #hud .hud-src{flex:none;margin-top:10px;padding-top:10px}
+  #hud .hud-src .hud-k{margin-bottom:7px;font-size:8px;letter-spacing:.14em}
+  #hud .hud-chans{gap:5px;margin-top:0}
+  #hud .hud-ch{padding:3px 6px;min-height:0;gap:4px}
+  #hud .hud-ch b{font-size:7.5px;letter-spacing:.1em}
+  #hud .hud-ch svg{width:11px;height:11px}
+  #hud .hud-idrows{display:none}
+
+  /* ---------- las dos acciones, juntas y abajo a la derecha ---------- */
+  #hud .hud-foot{grid-template-columns:1fr;gap:8px;padding:10px 16px calc(12px + env(safe-area-inset-bottom))}
+  #hud .hud-memo{font-size:9px;line-height:1.55}
+  #hud .hud-actions{
+    flex-direction:row; align-items:center; justify-content:flex-end;
+    flex-wrap:wrap; gap:8px; min-width:0;
+  }
+  #hud .hud-ess{
+    order:1; align-self:center; margin:0; padding:9px 13px; font-size:11px;
+    text-decoration:none; border:1px solid rgba(255,255,255,.24);
+  }
+  #hud .hud-cta{
+    order:2; width:auto; min-width:0; min-height:0; padding:9px 16px; font-size:11.5px;
+  }
+  #hud .hud-fine{order:3; width:100%; text-align:right; font-size:8px; line-height:1.5}
+}
+</style>
+<style>
+/* ==========================================================================
+   márgenes de móvil — tres textos tocaban el borde de la pantalla.
+
+   La causa es un choque de atajos: `.sec{padding:110px 0}` va después de
+   `.wrap{max-width:1280px;margin:0 auto;padding:0 40px}` con la misma
+   especificidad, así que gana y deja el medianil lateral en cero. En
+   escritorio no se nota, porque max-width + margin:auto ya separan del borde;
+   por debajo de 1280 px el medianil era la única defensa y no existía.
+
+   Los hijos con caja propia se salvan (.qa button 30px, #pie .pie-li 16px,
+   .fr-i 21px). Los que colgaban desnudos de la sección medían 0 px de inset
+   a 375 px. Se le da el medianil a ellos y no a la sección: dárselo a .sec
+   sobre-indenta todo lo que ya estaba bien (.faq 31→53, .fr-i 21→43).
+   ========================================================================== */
+@media(max-width:760px){
+
+  /* el texto desnudo de sección. 22 px iguala el inset de .fr-i, que va justo
+     debajo, para que la sección se lea como una sola columna */
+  #servicios .frentes .fr-head{padding-inline:22px}
+  #paquetes .plans-lead{padding-inline:22px}
+
+  /* titular y cuerpo iban a 3-4 px y se leían como un solo bloque */
+  .fr-i h4{margin-bottom:7px}      /* era 3px */
+  .phase h3{margin:12px 0 8px}     /* era 4px; atajo de tres valores, se reescribe entero */
+  .brain-name{margin:8px 0 9px}    /* era 6px */
+
+  /* las viñetas de precio envuelven a tres líneas: 12,5 × 1,4 = 17,5 px */
+  .plan li{line-height:1.55}
+}
+
+/* El canal del panel de consentimiento se encoge a propósito por debajo de
+   620 px, pero se pasaba: margin-top:0 pegaba las píldoras a su etiqueta y
+   min-height:0 las dejaba en 19 px con cuerpo de 7,5 px. Las acciones van
+   ancladas abajo, así que recuperar cinco píxeles no mueve el botón. */
+@media(max-width:620px){
+  #hud .hud-chans{margin-top:8px;gap:6px}
+  #hud .hud-ch{padding:5px 8px;min-height:24px;gap:5px}
+  #hud .hud-ch b{font-size:8.5px}
+}
+</style>
 </head>
 <body>
 
@@ -4554,10 +4768,11 @@ function needText(){const sc=score(),pk=S.sections['Paquetes']||{},T=(window.AIS
   return T('Descubrimiento. Retargeting de awareness y contenido de objeción antes de la llamada.',
            'Discovery. Awareness retargeting and objection content before the call.');}
 function reportBody(compact){const sc=score(),C=282.7;
-  return `<div class="rep-top"><div class="ringbox"><svg width="100" height="100" viewBox="0 0 106 106"><circle cx="53" cy="53" r="45" fill="none" stroke="#e6e9f0" stroke-width="9"/><circle class="ring" cx="53" cy="53" r="45" fill="none" stroke="#2fc5b1" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg><div class="ctr"><b class="scoreN">0<small>/100</small></b></div></div>
+  return `<div class="rep-top"><div class="ringbox"><svg width="100" height="100" viewBox="0 0 106 106"><circle cx="53" cy="53" r="45" fill="none" stroke="#e6e9f0" stroke-width="9"/><circle class="ring" cx="53" cy="53" r="45" fill="none" stroke="#2fc5b1" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg><div class="ctr"><b class="scoreN">0<small>/100</small></b></div></div><span class="cnl-host" data-cnl="full"></span>
   <div class="rt"><div class="rl">Banda</div><div class="rep-band">${bandShort(sc.total)}</div><div class="rep-summary" style="margin:8px 0 0">${summaryText()}</div></div></div>
   ${compact?'':`<div class="journey">${journeyHTML()}</div><div class="need"><div class="rl">Qué necesita</div><p>${needText()}</p></div>`}`;}
-function mountReport(el,compact){el.innerHTML=reportBody(compact);animRingEl(el.querySelector('.ring'),el.querySelector('.scoreN'),score().total,282.7);}
+function mountReport(el,compact){el.innerHTML=reportBody(compact);animRingEl(el.querySelector('.ring'),el.querySelector('.scoreN'),score().total,282.7);
+  if(window.AIS_CANAL)AIS_CANAL.refresca();}
 function animRingEl(ring,num,target,C){const dur=1000;
   if(ring){ring.style.transition='stroke-dashoffset '+dur+'ms cubic-bezier(.16,1,.3,1)';setTimeout(()=>{ring.style.strokeDashoffset=(C-C*(target/100)).toFixed(1);},50);}
   if(num){const t0=Date.now();const iv=setInterval(()=>{const k=Math.min((Date.now()-t0)/dur,1);
@@ -4809,7 +5024,12 @@ function arrancaNotas(){
                   </svg>
                   <b>Meta</b>
                 </span>
-                <span class="hud-ch" id="hud-ch-google" aria-label="Google: sin señal" data-on="0">
+                <span class="hud-ch" id="hud-ch-web" aria-label="Web directa: sin señal" data-on="0">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8c2.2 2.4 3.3 5.2 3.3 8.2s-1.1 5.8-3.3 8.2c-2.2-2.4-3.3-5.2-3.3-8.2S9.8 6.2 12 3.8z"/>
+              </svg> <b>Web</b>
+            </span>
+            <span class="hud-ch" id="hud-ch-google" aria-label="Google: sin señal" data-on="0">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
                     <circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20 20"/>
                   </svg>
@@ -4902,7 +5122,7 @@ function arrancaNotas(){
     <span class="lupa-mini-top">
       <span class="lupa-lens" aria-hidden="true"></span>
       <span class="lupa-stage"><span class="lupa-stage-k">etapa</span><span class="lupa-stage-n" id="lupa-m-stage">—</span></span>
-      <span class="lupa-mini-score"><i class="lupa-lamp off" id="lupa-m-lamp" aria-hidden="true"></i><b id="lupa-m-score">—</b><small>/100</small></span>
+      <span class="lupa-canal" id="cnl-mini"></span> <span class="lupa-mini-score"><i class="lupa-lamp off" id="lupa-m-lamp" aria-hidden="true"></i><b id="lupa-m-score">—</b><small>/100</small></span>
     </span>
     <span class="lupa-mini-bot">
       <span class="lupa-bar" title="scroll actual"><i id="lupa-m-scrollfill"></i><em id="lupa-m-scroll">scroll —</em></span>
@@ -4954,6 +5174,7 @@ function arrancaNotas(){
 
       <div class="lupa-sec">
         <div class="lupa-attr">
+          <span class="lupa-canal-full" id="cnl-lupa"></span>
           <span class="lupa-chip-host attr-dark" id="lupa-p-attrhost" data-attr-chip hidden></span>
           <span class="lupa-chip" id="lupa-p-attr" title="plataforma · campaña · anuncio">—</span>
           <span class="lupa-ip">IP · se resuelve en servidor</span>
@@ -5020,7 +5241,7 @@ function parseAttribution(){
 
 /* ---------- estado público ---------- */
 const st={
-  t0:now(), consent:false, consentAt:null, seconds:0, attention:0,
+  t0:now(), consent:false, consentAt:null, visitId:null, seconds:0, attention:0,
   scroll:{current:0,depth:0,velocity:0},
   cursor:{speed:0,x:null,y:null,moves:0},
   stages:[], current:null,
@@ -5237,9 +5458,35 @@ function resetJourney(){                                  // el recorrido cuenta
   st.current=null; st.events.length=0; st.signals=0; st.trustSeconds=0;
   Object.assign(st.reading,{active:false,stage:null,since:null}); readQuiet=0; exitIntent=false; clicks=[];
 }
+/* Identificador de la visita.
+
+   Se genera AL ACEPTAR y no antes, porque antes no hay permiso para nada. No
+   identifica a una persona: aquí no hay cuenta ni login, así que no existe tal
+   dato y no se inventa. Es el número de esta visita, y sirve para lo único que
+   tiene que servir: que el reporte que se entrega después se pueda casar con
+   lo que se midió aquí.
+
+   Formato corto y legible en voz alta —V-7K2M-9QX4— porque acaba dictándose
+   por WhatsApp. Vive en memoria: al cerrar la pestaña desaparece, como todo
+   lo demás. */
+function nuevoIdVisita(){
+  var alfabeto = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   // sin 0/O ni 1/I: se confunden al dictar
+  var grupo = function(n){
+    var out = '', i, x;
+    for(i=0;i<n;i++){
+      try{
+        var a = new Uint8Array(1); crypto.getRandomValues(a); x = a[0];
+      }catch(e){ x = Math.floor(Math.random()*256); }
+      out += alfabeto[x % alfabeto.length];
+    }
+    return out;
+  };
+  return 'V-' + grupo(4) + '-' + grupo(4);
+}
+
 function accept(){
   if(st.consent) return;
-  st.consent=true; st.consentAt=secs(); tracking=true;
+  st.consent=true; st.consentAt=secs(); st.visitId=nuevoIdVisita(); tracking=true;
   ignoreClicksUntil=now()+400;
   resetJourney();
   logEvent('consent','consentimiento aceptado',false);   // primer evento del log; la entrada en etapa va después
@@ -5250,7 +5497,7 @@ function accept(){
 }
 function essential(){                                     // sin scoring; también sirve para revocar tras aceptar
   const was=st.consent;
-  st.consent=false; st.consentAt=null; tracking=false;
+  st.consent=false; st.consentAt=null; st.visitId=null; tracking=false;
   resetJourney(); if(!document.hidden) setCurrent(measure());
   calcScore(); mirror();
   emit('consent',{essential:true,revoked:was});
@@ -9563,6 +9810,150 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
 </script>
 <!-- ===== script mod-canal ===== -->
 <script>
+/* ==========================================================================
+   mod-canal — de dónde llegó la visita, encendido, en todas partes.
+
+   Antes esto vivía solo en el panel de consentimiento y solo se encendía con
+   señal de anuncio: una visita directa dejaba los tres botones apagados y
+   parecía que el sistema no estaba midiendo. Pero llegar escribiendo la
+   dirección TAMBIÉN es un canal, y es el más común.
+
+   La regla, que es la misma que sostiene todo el sitio: no se inventa nada.
+   Siempre hay exactamente un canal encendido porque siempre hay exactamente
+   una forma de haber llegado, y esa la sabe mod-attribution leyendo la URL y
+   el referente. Lo que no se hace nunca es encender "Meta" o "Google" sin su
+   click id: eso sería atribuirse una campaña que no existe, que es justo el
+   problema que esta web denuncia.
+
+   Una sola pieza dibuja el indicador en los cuatro sitios donde va —el panel
+   de consentimiento, la lupa plegada, la lupa abierta y el reporte— en dos
+   tamaños. Cuatro copias del mismo SVG era la alternativa.
+   ========================================================================== */
+(function(){
+  'use strict';
+
+  /* Los iconos son los que ya usaba el panel de consentimiento; se añaden los
+     dos que faltaban: el globo para la entrada directa y el eslabón para el
+     referido. Trazo, no relleno: así heredan el color del texto. */
+  var ICONOS = {
+    google:   '<circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20 20"/>',
+    meta:     '<circle cx="8" cy="12" r="4.4"/><circle cx="16" cy="12" r="4.4"/>',
+    tiktok:   '<path d="M9 15.5a3.5 3.5 0 1 0 3.5 3.5V4c.7 2.2 2.4 3.6 4.5 3.8"/>',
+    referral: '<path d="M10 14a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 1 0-5.7-5.7L11.4 7"/><path d="M14 10a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 1 0 5.7 5.7L12.6 17"/>',
+    direct:   '<circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8c2.2 2.4 3.3 5.2 3.3 8.2s-1.1 5.8-3.3 8.2c-2.2-2.4-3.3-5.2-3.3-8.2S9.8 6.2 12 3.8z"/>',
+    whatsapp: '<path d="M21 11.8a8.3 8.3 0 0 1-8.3 8.2 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.6a8 8 0 0 1-1-3.8A8.3 8.3 0 0 1 12.2 3 8.3 8.3 0 0 1 21 11.8z"/>'
+  };
+  var NOMBRES = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Web directa', whatsapp:'WhatsApp' };
+  var CORTOS  = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Directo', whatsapp:'WhatsApp' };
+
+  function estado(){
+    try{ return (window.AIS && AIS.state) || null; }catch(e){ return null; }
+  }
+
+  /* ---------- qué canal es, y con qué prueba ---------- */
+  function actual(){
+    var st = estado(), at = (st && st.attribution) || {};
+    var pf = String(at.platform || '').toLowerCase();
+    var clave = ICONOS[pf] ? pf : 'direct';          /* lo que no se reconoce es entrada directa */
+
+    /* la prueba: el click id manda sobre el utm, porque no se puede falsificar
+       escribiéndolo en la barra de direcciones por accidente */
+    var prueba = at.gclid ? 'gclid · ' + String(at.gclid).slice(0, 14)
+               : at.fbclid ? 'fbclid · ' + String(at.fbclid).slice(0, 14)
+               : at.ttclid ? 'ttclid · ' + String(at.ttclid).slice(0, 14) : '';
+
+    var host = '';
+    if (clave === 'referral' && at.referrer){
+      host = String(at.referrer);
+      try{ if(/^https?:/.test(host)) host = new URL(host).hostname.replace(/^www\./,''); }catch(e){}
+    }
+
+    var detalle = at.campaign ? String(at.campaign)
+                : host ? host
+                : clave === 'direct' ? 'sin campaña' : 'sin campaña';
+
+    return {
+      clave: clave,
+      nombre: NOMBRES[clave] || clave,
+      detalle: detalle,
+      prueba: prueba,
+      /* el identificador de la visita solo existe tras aceptar */
+      visita: (st && st.visitId) || ''
+    };
+  }
+
+  function icono(clave, px){
+    return '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px + '" fill="none" ' +
+           'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
+           'aria-hidden="true">' + (ICONOS[clave] || ICONOS.direct) + '</svg>';
+  }
+
+  function esc(t){
+    return String(t).replace(/[&<>"]/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c];
+    });
+  }
+
+  /* ---------- el marcado, en dos tallas ----------
+     'mini' es para la lupa plegada, donde cada píxel de alto está peleado:
+     solo el icono encendido y el nombre. 'full' añade la prueba y, si ya se
+     aceptó, el identificador de la visita. */
+  function marcado(tam){
+    var c = actual();
+    if (tam === 'mini'){
+      return '<span class="cnl cnl-mini" data-canal="' + c.clave + '" title="Canal de entrada: ' +
+             esc(c.nombre) + '">' + icono(c.clave, 13) + '<b>' + esc(CORTOS[c.clave] || c.nombre) + '</b></span>';
+    }
+    var extra = '';
+    if (c.prueba) extra += '<em class="cnl-prueba">' + esc(c.prueba) + '</em>';
+    if (c.visita) extra += '<em class="cnl-id" title="Identificador de esta visita, generado al aceptar">' + esc(c.visita) + '</em>';
+    return '<span class="cnl cnl-full" data-canal="' + c.clave + '">' +
+           icono(c.clave, 15) + '<b>' + esc(c.nombre) + '</b>' +
+           '<i class="cnl-det">' + esc(c.detalle) + '</i>' + extra + '</span>';
+  }
+
+  /* ---------- pintado, solo cuando cambia ----------
+     La firma se guarda en el propio anfitrión. Con una caché por talla el
+     segundo hueco de la misma talla se quedaba vacío, y en el reporte puede
+     haber varios montados a la vez. */
+  function firma(c, tam){
+    return tam + '|' + c.clave + '|' + c.nombre + '|' + (c.detalle||'') +
+           '|' + (c.prueba||'') + '|' + (c.visita||'');
+  }
+  function pinta(host, tam){
+    if (!host) return;
+    var t = tam || host.getAttribute('data-cnl') || 'full';
+    var f = firma(actual(), t);
+    if (host.getAttribute('data-cnl-firma') === f && host.firstChild) return;
+    host.setAttribute('data-cnl-firma', f);
+    host.innerHTML = marcado(t);
+  }
+
+  function refresca(){
+    var m = document.getElementById('cnl-mini');   if (m) pinta(m, 'mini');
+    var l = document.getElementById('cnl-lupa');   if (l) pinta(l, 'full');
+    /* los reportes se montan de nuevo cada vez que se abren y hay uno por
+       formato, así que van por atributo y no por id */
+    var r = document.querySelectorAll('[data-cnl]');
+    for (var i = 0; i < r.length; i++) pinta(r[i]);
+  }
+
+  window.AIS_CANAL = { actual: actual, marcado: marcado, pinta: pinta, refresca: refresca, iconos: ICONOS };
+
+  /* Se repinta cuando hay motivo, no en bucle: al arrancar el núcleo, al
+     aceptar (ahí nace el identificador) y cuando se registra el lead. */
+  function engancha(){
+    if (!window.AIS || !AIS.on) return false;
+    AIS.on('consent', refresca);
+    AIS.on('lead', refresca);
+    refresca();
+    return true;
+  }
+  if (!engancha()) document.addEventListener('ais:ready', engancha, { once:true });
+  addEventListener('load', refresca, { once:true });
+})();
+</script>
+<script>
 /* Enciende el canal por el que entró la visita. Solo con señal real:
    · Google / Meta / TikTok: click id o utm_source en la propia URL.
    · WhatsApp: cuando la persona deja su número en el formulario.
@@ -9603,8 +9994,17 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     var meta   = !!u.fbclid || plat === 'meta'  || u.source === 'facebook' || u.source === 'meta' || u.source === 'instagram';
     var wa     = !!(st && st.lead && st.lead.wa);
 
+    /* Siempre hay exactamente un canal de ENTRADA encendido: si no vino de un
+       anuncio, vino escribiendo la dirección o desde otra web, y eso también
+       es un canal. Lo que no se hace nunca es encender Google o Meta sin su
+       click id: sería atribuirse una campaña que no existe.
+       WhatsApp va aparte: no es por dónde entró, es por dónde contesta, y se
+       enciende cuando deja su número. */
+    var web = !google && !meta;
+
     setOn($('hud-ch-google'), google, 'Google');
     setOn($('hud-ch-meta'),   meta,   'Meta');
+    setOn($('hud-ch-web'),    web,    'Web directa');
     setOn($('hud-ch-wa'),     wa,     'WhatsApp');
 
     var camp = u.campaign || at.campaign || '';
