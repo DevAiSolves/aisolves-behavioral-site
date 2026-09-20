@@ -1,0 +1,31 @@
+# Lo que NO sale de esta máquina.
+# Vercel sirve solo public/index.html (ver vercel.json), pero lo que se sube
+# para compilar igualmente viaja: aquí se corta antes de salir.
+
+# Obra de terceros, solo referencia local
+vanlent-template/
+
+# Prototipos y borradores: no son parte del sitio
+aisolves-lead-signal.html
+consent-visit.html
+mini-dash-ux.html
+mod-brain.src.js
+mod-brain-emit.src.js
+
+# La foto original del retrato
+foto CEO.jpg
+
+# Secretos
+.env
+.env.*
+
+# Herramientas de medición: no hacen falta para compilar
+tools/medir/
+
+# Generados: los rehace el propio despliegue
+aisolves-site.pub.html
+aisolves-artefacto.html
+public/
+node_modules/
+.git/
+.DS_Store
