@@ -161,8 +161,22 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
      la flecha a una segunda línea— la barra pide más sitio. Medido, por
      debajo de 1.240 el CTA pierde su medianil de 40. */
   @media(max-width:1240px){nav .links{display:none}}
-  /* banda estrecha: los enlaces se aprietan para que el gap de la barra quepa */
-  @media(max-width:1360px){nav .links{gap:20px;font-size:11px}}
+  /* Pero ocultarlos sin más deja la franja de tableta sin ninguna navegación
+     de secciones: aquí no hay hamburguesa ni cajón que la sustituya. Así que
+     de 920 a 1240 los enlaces siguen, apretados: medido, caben con 24 px de
+     medianil para el CTA y casi 60 px de separación entre grupos a 1024. Por
+     debajo de 920 ya no caben de ninguna forma y se retiran de verdad. */
+  @media(min-width:920px) and (max-width:1240px){
+    nav{padding:0 24px;gap:16px}
+    nav .links{display:flex;gap:11px;font-size:9.5px;letter-spacing:.05em}
+    nav .nav-r{gap:10px}
+    nav .cta{font-size:10px;padding:8px 11px}
+    nav .lang-b{font-size:9.5px;padding:6px 8px}
+  }
+  /* banda estrecha: los enlaces se aprietan para que el gap de la barra quepa.
+     Acotada por abajo a 1.241 a propósito: va DESPUÉS de la regla de tableta y
+     con la misma especificidad, así que sin el min-width le pisaba el tamaño. */
+  @media(min-width:1241px) and (max-width:1360px){nav .links{gap:20px;font-size:11px}}
   @media(max-width:520px){nav .lang-b{padding:6px 8px;font-size:9.5px}nav{padding:0 18px}}
 
   /* ===== HERO with particle sphere + live clip-path notes ===== */
@@ -321,7 +335,7 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
   .member .av{width:62px;height:62px;border-radius:50%;flex:none;background:var(--navy);display:grid;place-items:center;font-weight:200;font-size:24px;color:var(--teal)}
   .member h3{font-weight:300;text-transform:uppercase;letter-spacing:.08em;font-size:19px}
   /* 5 px bajo un titular de 19 px: el nombre y el cargo se leían pegados */
-  .member .role{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-ink);margin:9px 0 12px}
+  .member .role{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-ink);margin:9px 0 12px;line-height:1.45}
   .member p{color:var(--ink-2);font-size:13px;line-height:1.5;margin-bottom:14px}
   .member .tags{display:flex;flex-wrap:wrap;gap:6px}
   .member .tags span{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--line);padding:4px 8px}
@@ -2619,6 +2633,11 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
    y la entrada se hace con un desvanecido que parte de visible. ===== */
 #about .ab-ln,#about .ab-w,#servicios .sv-w,#servicios .sv-word,#pie .pie-w{
   overflow:visible!important;height:auto!important;max-height:none!important;line-height:1.22!important}
+/* .ab-w es el título, una palabra por máscara, y ahí 1,22 es lo correcto. Pero
+   .ab-ln lleva ocho líneas de 22 px: a 1,22 son 26,84 px de interlineado, y el
+   bloque se lee como un ladrillo. El !important es inevitable, porque el de
+   arriba gana por especificidad a cualquier regla de .ab-say. */
+#about .ab-ln{line-height:1.45!important}
 #about .ab-ln>i,#about .ab-w>i,#servicios .sv-w>i,#servicios .sv-word>i,#pie .pie-w>i{
   transform:none!important;display:inline!important}
 /* la palabra dentro de la caja negra necesita aire: se recortaba por abajo */
