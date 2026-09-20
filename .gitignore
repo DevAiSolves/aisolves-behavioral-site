@@ -23,3 +23,4 @@ aisolves-artefacto.html
 
 # Carpeta que arma tools/construir.mjs para publicar. Se genera en cada despliegue.
 public/
+.vercel
