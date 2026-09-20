@@ -3806,10 +3806,38 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
   #hud .hud-eyebrow{font-size:8px;letter-spacing:.16em;line-height:1.5}
   #hud .hud-title{font-size:14.5px;line-height:1.24;margin-top:6px;letter-spacing:.03em}
 
-  /* ---------- los ítems con punto, a tamaño de código ---------- */
-  #hud .hud-chips{gap:5px;margin-top:9px}
-  #hud .hud-chip{font-size:8.5px;padding:3px 7px;gap:5px;line-height:1.35;letter-spacing:.04em}
-  #hud .hud-chip i{width:4px;height:4px}
+  /* ---------- los ítems con punto: una pantallita de código ----------
+     Sueltos eran cinco píldoras que ocupaban tres filas y ciento diez píxeles.
+     Juntos, dentro de un solo marco y sin bordes por dentro, se leen como las
+     líneas de una terminal y ocupan la mitad. */
+  #hud .hud-chips{
+    display:grid; grid-template-columns:1fr 1fr; gap:0 12px;
+    margin-top:9px; padding:6px 10px;
+    border:1px solid rgba(255,255,255,.11);
+    background:rgba(0,0,0,.26);
+  }
+  /* las dos líneas largas ocupan el ancho; origen y dispositivo se reparten */
+  #hud .hud-chip.hud-mem,
+  #hud .hud-chip[title^="La IP"]{grid-column:1 / -1}
+  #hud .hud-chip{
+    display:flex; align-items:center; width:100%; gap:7px;
+    border:0; padding:0;
+    /* la regla de contraste de #hud pinta cada píldora con !important; dentro
+       de la pantallita cada fondo se veía como una banda clara */
+    background:none!important;
+    font-size:8.5px; line-height:1.72; letter-spacing:.04em;
+  }
+  #hud .hud-chip i{width:3px;height:3px}
+  /* el tilt es la única acción de la pantallita: en vez de un marco, que
+     rompería la retícula de líneas, se distingue en teal y subrayado */
+  #hud .hud-chip.hud-perm{
+    grid-column:1 / -1; justify-self:start;
+    width:auto; margin:0; padding:0;
+    color:var(--teal,#2fc5b1);
+    text-decoration:underline; text-underline-offset:2px;
+    text-decoration-color:rgba(47,197,177,.45);
+  }
+  #hud .hud-chip.hud-perm i{background:var(--teal,#2fc5b1)!important}
 
   /* ---------- el cronómetro deja de ser un titular ---------- */
   #hud .hud-clockbox{gap:8px;margin-top:0}
@@ -3843,7 +3871,8 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
   /* ---------- el canal: los tres a un costado, y limpio ---------- */
   #hud .hud-src{flex:none;margin-top:10px;padding-top:10px}
   #hud .hud-src .hud-k{margin-bottom:7px;font-size:8px;letter-spacing:.14em}
-  #hud .hud-chans{gap:5px;margin-top:0}
+  /* los canales, a un costado: pegados al borde derecho de la tarjeta */
+  #hud .hud-chans{gap:5px;justify-content:flex-end}
   #hud .hud-ch{padding:3px 6px;min-height:0;gap:4px}
   #hud .hud-ch b{font-size:7.5px;letter-spacing:.1em}
   #hud .hud-ch svg{width:11px;height:11px}
