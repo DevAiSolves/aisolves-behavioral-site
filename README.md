@@ -50,3 +50,27 @@ llamando a `setStep(...)`. `read` es el que pinta el botón en verde.
 Consent Mode v2 en denegado por defecto. Nada de tracking personalizado antes del
 consentimiento. Sin login ni contraseñas. El WhatsApp sólo se captura si la persona
 lo entrega para pedir el reporte. Revocable.
+
+## Publicar
+
+El archivo fuente es el original y se abre tal cual. Lo que se sirve en internet
+es un gemelo sin comentarios, que pesa la mitad:
+
+```bash
+node tools/construir.mjs     # → aisolves-site.pub.html  (−115 KB, −48 KB comprimido)
+python3 tools/artefacto.py   # → aisolves-artefacto.html (para publicarlo como Artifact)
+python3 tools/verificar.py   # comprueba que nada se rompió por el camino
+```
+
+**Vercel** lo hace solo: `vercel.json` ejecuta `tools/construir.mjs` en cada
+despliegue y sirve el resultado como `index.html` desde `public/`. Los dos
+archivos generados están en `.gitignore`: se rehacen, no se versionan.
+
+Se sirve **solo** ese `index.html`. Los demás HTML del repo son prototipos y se
+quedan fuera a propósito.
+
+## Medir
+
+`tools/medir/` trae cuatro guiones para responder con números a "¿va rápido?" y
+"¿el scroll va suave?". Su README explica el uso y los dos avisos que invalidan
+las cifras si se ignoran.
