@@ -40,6 +40,9 @@ gtag('consent','default',{
   wait_for_update: 500
 });
 </script>
+<!-- El icono va en línea: sin él el navegador pedía /favicon.ico en cada
+     carga nueva y se comía un 404. Es el punto turquesa del logotipo. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d1017'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%232fc5b1'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <!-- Una sola petición, y con el rango de pesos en lugar de los cinco sueltos:
@@ -53,9 +56,19 @@ gtag('consent','default',{
 <style>
   :root{
     --paper:#f4f2ee; --card:#f8f6f2; --navy:#0d1017;
-    --ink:#18181b; --ink-2:#52525b; --ink-3:#9a9aa3; --note:#b9bfcc;
+    /* --ink-3 es el gris de los rótulos pequeños, y a #9a9aa3 daba 2,50:1
+       sobre el papel y 2,59 sobre la tarjeta: por debajo del mínimo en 23
+       sitios, y varios de ellos son información de verdad —el correo del
+       héroe, "Desde", "USD/mes", las semanas de cada fase—. A #6b6b75 da
+       4,71 y 4,88, y sigue estando dos escalones por encima de --ink-2, o
+       sea que la jerarquía de grises no se pierde. --note no se toca: es la
+       anotación fantasma de instrumentación, decorativa a propósito. */
+    --ink:#18181b; --ink-2:#52525b; --ink-3:#6b6b75; --note:#b9bfcc;
     --line:#e4e9f2; --line-2:#eef1f7;
-    --teal:#2fc5b1; --teal-ink:#0f8577; --teal-wash:rgba(47,197,177,.10);
+    /* --teal-ink es el turquesa de TEXTO y solo se usa sobre fondos claros.
+       A #0f8577 se quedaba en 4,19:1 sobre la tarjeta y 3,78 sobre el panel
+       teñido; a #0b7364 da 5,33 y 4,81. El --teal de acentos no se toca. */
+    --teal:#2fc5b1; --teal-ink:#0b7364; --teal-wash:rgba(47,197,177,.10);
     --confirm:#1faa5a; --hold:#e0a400; --stop:#e5484d;
     --grid:#e9edf6; --nav-h:64px;
   }
@@ -138,6 +151,10 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
   nav .lg{display:flex;align-items:center;gap:10px;font-weight:400;letter-spacing:.22em;font-size:13px;text-transform:uppercase}
   nav .lg .d{width:7px;height:7px;border-radius:50%;background:var(--teal)}
   nav .links{display:flex;gap:30px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  /* La caja de línea desnuda dejaba 11 px de alto pulsable en la franja de
+     tableta. El relleno no cambia el tamaño del texto ni el alto de la barra,
+     que va fijo en --nav-h con los hijos centrados. */
+  nav .links a{display:inline-flex;align-items:center;padding:9px 0}
   nav .links a:hover{color:var(--ink)}
   /* nowrap: al apretar la barra el botón partía la flecha a una segunda línea */
   nav .cta{font-size:11.5px;letter-spacing:.1em;padding:10px 16px;border:1px solid var(--line);text-transform:uppercase;transition:.18s;white-space:nowrap}
@@ -178,6 +195,21 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
      con la misma especificidad, así que sin el min-width le pisaba el tamaño. */
   @media(min-width:1241px) and (max-width:1360px){nav .links{gap:20px;font-size:11px}}
   @media(max-width:520px){nav .lang-b{padding:6px 8px;font-size:9.5px}nav{padding:0 18px}}
+  /* El white-space:nowrap del botón arregló la tableta y rompió el teléfono:
+     la línea flex pedía 442 px y los hijos no podían encoger, así que por
+     debajo de 424 px el botón se salía de la pantalla —104 px a 320— y como
+     html lleva overflow-x:clip quedaba amputado, no escondido: no había
+     forma de llegar a él. Aquí el grupo entero encoge y el botón recupera el
+     derecho a partirse en dos líneas, que en 64 px de barra caben de sobra.
+     Medido de 320 a 430: el botón entero dentro, a 14 px del borde. */
+  @media(max-width:440px){
+    nav{gap:10px;padding:0 14px}
+    nav .lg{font-size:11.5px;letter-spacing:.14em;gap:7px}
+    nav .nav-r{gap:8px;min-width:0}
+    nav .lang-b{font-size:9px;padding:6px 7px;letter-spacing:.1em}
+    nav .cta{white-space:normal;min-width:0;font-size:9.5px;padding:7px 9px;
+             letter-spacing:.06em;line-height:1.3;text-align:center}
+  }
 
   /* ===== HERO with particle sphere + live clip-path notes ===== */
   /* Dos columnas de verdad. Antes el titular iba absoluto sobre una esfera
@@ -322,7 +354,8 @@ body:before{content:"";position:fixed;inset:-100px;z-index:0;pointer-events:none
   .plan .pop-b{position:absolute;top:14px;right:14px;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#0a1413;background:var(--teal);padding:4px 8px}
   .plan .desc{color:var(--ink-2);font-size:12.5px;line-height:1.5;margin:10px 0 18px;min-height:38px}
   .plan .price{font-weight:200;font-size:42px}
-  .plan .price small{font-size:14px;color:var(--ink-3);font-weight:400}
+  /* la moneda y la periodicidad son parte del precio, no una anotación */
+  .plan .price small{font-size:14px;color:var(--ink-2);font-weight:400}
   .plan .from{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
   .plan ul{list-style:none;margin:18px 0 24px;display:flex;flex-direction:column;gap:10px;flex:1}
   .plan li{font-size:12.5px;color:var(--ink-2);padding-left:18px;position:relative;line-height:1.4}
@@ -2704,7 +2737,7 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   min-height:calc(var(--svx-cu) * 2.6);overflow:visible;transition:background .35s}
 #servicios .svx-c--data:hover{background:#f4f5f7}
 #servicios .svx-ix{position:absolute;top:12px;right:14px;font-family:"IBM Plex Mono",monospace;
-  font-size:8.5px;letter-spacing:.2em;color:#9a9aa3}
+  font-size:8.5px;letter-spacing:.2em;color:var(--ink-3)}
 #servicios .svx-c--data .svx-n{line-height:1.05}
 #servicios .svx-c--data .svx-k{margin-top:3px}
 #servicios .svx-viz{display:block;margin-top:auto;padding-top:14px}
@@ -2729,8 +2762,10 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 .svx-bands i[data-b="sql"]:after{background:#18181b}
 .svx-bands i.on:after{transform:scaleX(1)}
 .svx-blab{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:6px}
+/* la leyenda del termómetro de bandas: llevaba el gris a pelo, así que se
+   quedó fuera cuando --ink-3 se oscureció, en 2,59:1 con 6,5 px de cuerpo */
 .svx-blab em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7px;
-  letter-spacing:.06em;text-transform:uppercase;color:#9a9aa3;text-align:center;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:center;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* --- 03 · la ventana 48-72 se dibuja con el scroll --- */
@@ -2741,7 +2776,7 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
   transition:transform .55s cubic-bezier(.22,1,.36,1)}
 .svx-ticks{display:flex;justify-content:space-between;margin-top:6px}
 .svx-ticks em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:7px;
-  letter-spacing:.06em;color:#9a9aa3}
+  letter-spacing:.06em;color:var(--ink-3)}
 
 /* --- responsive: fuera el relleno, una columna, nada se pisa --- */
 @media(max-width:1000px){
@@ -3457,7 +3492,10 @@ canvas[data-orb]{position:absolute;inset:0;width:100%;height:100%;display:block}
 }
 
 /* el plan gana una línea de a quién va dirigido, como en la web anterior */
-.plan-para{font-size:12.5px;line-height:1.5;color:var(--ink-3);
+/* --ink-3 sobre la tarjeta da 2,59:1, y 2,42 sobre la teñida del plan
+   destacado. Esto no es un rótulo decorativo: es la frase que dice a quién va
+   dirigido el paquete. */
+.plan-para{font-size:12.5px;line-height:1.5;color:var(--ink-2);
   border-top:1px solid var(--line-2);margin:12px 0 4px;padding-top:12px}
 .plans-lead{max-width:66ch;font-size:14px;line-height:1.65;color:var(--ink-2);margin:0 0 26px}
 </style>
@@ -3587,11 +3625,15 @@ nav{transition:background .3s var(--m-ease), border-color .3s var(--m-ease)}
 html.nav-oscura nav{
   --ink:#fff;
   --ink-2:rgba(255,255,255,.74);
-  --ink-3:rgba(255,255,255,.46);
+  /* .46 dejaba el botón EN en 4,66:1 asentado, sin un pelo de margen */
+  --ink-3:rgba(255,255,255,.62);
   --line:rgba(255,255,255,.18);
   --card:#0d1017;
   color:var(--ink-2);
-  background:rgba(9,11,16,.42);
+  /* El velo era .42: sobre papel claro se compone en gris medio (0,42·9 +
+     0,58·248 = 148) y el texto claro caía a 2,6:1 mientras la barra cruzaba
+     el borde de la sección. A .86 el velo manda sobre lo que haya detrás. */
+  background:rgba(9,11,16,.86);
   backdrop-filter:blur(16px) saturate(1.1);
   -webkit-backdrop-filter:blur(16px) saturate(1.1);
   border-bottom-color:rgba(255,255,255,.12);
@@ -3929,6 +3971,21 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
     order:2; width:auto; min-width:0; min-height:0; padding:9px 16px; font-size:11.5px;
   }
   #hud .hud-fine{order:3; width:100%; text-align:right; font-size:8px; line-height:1.5}
+}
+
+/* El pie del panel es un <footer>, así que heredaba los 60 px de margen
+   superior de la regla genérica footer{} del sitio. En una pantalla de 568 px
+   eso son 60 px de nada robados al cuerpo. */
+#hud .hud-foot{margin-top:0}
+
+/* A 320 px la fila de acciones pedía 287 px sobre 286 y se partía en dos por
+   un píxel; y la primera línea de la pantallita se cortaba a mitad de palabra
+   por el text-overflow. Ocho píxeles de holgura arreglan lo primero —aguanta
+   hasta 307 px de ventana— y dejar envolver, lo segundo. */
+@media(max-width:360px){
+  #hud .hud-ess{padding:9px 10px}
+  #hud .hud-cta{padding:9px 12px}
+  #hud .hud-chip>span{white-space:normal;overflow:visible;text-overflow:clip}
 }
 </style>
 <style>
@@ -5098,6 +5155,12 @@ function arrancaNotas(){
                   </svg>
                   <b>Meta</b>
                 </span>
+                <span class="hud-ch" id="hud-ch-tiktok" aria-label="TikTok: sin señal" data-on="0">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 15.5a3.5 3.5 0 1 0 3.5 3.5V4c.7 2.2 2.4 3.6 4.5 3.8"/>
+                  </svg>
+                  <b>TikTok</b>
+                </span>
                 <span class="hud-ch" id="hud-ch-web" aria-label="Web directa: sin señal" data-on="0">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8c2.2 2.4 3.3 5.2 3.3 8.2s-1.1 5.8-3.3 8.2c-2.2-2.4-3.3-5.2-3.3-8.2S9.8 6.2 12 3.8z"/>
@@ -5653,6 +5716,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 const FINE = matchMedia('(pointer: fine)');
 const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js';
+const THREE_SRI = 'sha512-vnmn/Qqn6aG0POAc9mIGzjq0IybrvxJXYDafNvp9JSnDGxeF3pbkSqLvf+YGd5ku63pT7sa/jxHn7/d0mU8+tA==';
 const scenes = [];
 
 const T3D = { version: '1.0.0', three: null, hero: null, turntable: null, fx: null, stats, pause, resume };
@@ -6197,6 +6261,11 @@ function loadThree(done) {
   if (window.THREE) { done(true); return; }
   let settled = false; const fin = ok => { if (settled) return; settled = true; clearTimeout(tm); done(ok && !!window.THREE); };
   const s = document.createElement('script'); s.src = THREE_URL; s.async = true;
+  /* subrecurso verificado: el hash es el que publica la propia cdnjs para esta
+     versión, comprobado contra el fichero descargado. Sin esto, quien sirva
+     ese CDN puede meter cualquier cosa en la página. crossorigin es
+     obligatorio para que integrity se evalúe. */
+  s.integrity = THREE_SRI; s.crossOrigin = 'anonymous';
   s.onload = () => fin(true); s.onerror = () => fin(false);
   const tm = setTimeout(() => fin(false), 15000);
   document.head.appendChild(s);
@@ -10074,10 +10143,15 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
        click id: sería atribuirse una campaña que no existe.
        WhatsApp va aparte: no es por dónde entró, es por dónde contesta, y se
        enciende cuando deja su número. */
-    var web = !google && !meta;
+    /* TikTok tenía señal reconocida por dentro —platform 'tiktok', ttclid—
+       pero sin píldora propia caía en el cubo de 'Web directa' y el panel se
+       contradecía consigo mismo: "origen · TikTok" dos cajas más arriba. */
+    var tiktok = !!u.ttclid || plat === 'tiktok' || u.source === 'tiktok';
+    var web = !google && !meta && !tiktok;
 
     setOn($('hud-ch-google'), google, 'Google');
     setOn($('hud-ch-meta'),   meta,   'Meta');
+    setOn($('hud-ch-tiktok'), tiktok, 'TikTok');
     setOn($('hud-ch-web'),    web,    'Web directa');
     setOn($('hud-ch-wa'),     wa,     'WhatsApp');
 
@@ -10786,22 +10860,44 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
      toda la sección, el texto blanco caía sobre un velo oscuro puesto encima
      de papel: 2,70:1, el peor contraste de la página. Con .stage el cambio
      ocurre justo donde empieza el negro. */
+  /* El observador avisaba en cuanto el escenario TOCABA la banda de la barra,
+     y durante esos 64 px la barra seguía medio sobre papel: su velo se
+     componía en gris y el logotipo caía a 2,6:1 en la costura de entrada y a
+     2,7 en la de salida. La condición honesta es que la barra ENTERA esté
+     sobre lo oscuro —arriba por encima del borde superior y abajo por debajo
+     del inferior—, y eso no lo expresa un rootMargin: se mide con el rect.
+     Va en el lector del módulo de scroll, que ya corre un solo rAF y se para
+     al quedarse quieto, y se pinta en el pintor: leer y escribir separados. */
   var oscuras = [].slice.call(document.querySelectorAll('#work .stage'));
   if(oscuras.length){
-    var ioOsc = null, navPx = parseInt(alto, 10) || 64;
-    var rehacer = function(){
-      if(ioOsc) ioOsc.disconnect();
-      var resto = Math.max(0, (window.innerHeight || 800) - navPx);
-      ioOsc = new IntersectionObserver(function(es){
-        var dentro = false;
-        for(var i=0;i<es.length;i++) if(es[i].isIntersecting) dentro = true;
-        document.documentElement.classList.toggle('nav-oscura', dentro);
-      }, { rootMargin: '0px 0px -' + resto + 'px 0px' });
-      oscuras.forEach(function(o){ ioOsc.observe(o); });
+    var navPx = parseInt(alto, 10) || 64, quiere = false, puesta = false;
+    var mideOsc = function(){
+      var d = false;
+      for(var i=0;i<oscuras.length;i++){
+        var r = oscuras[i].getBoundingClientRect();
+        if(r.top <= 0 && r.bottom >= navPx){ d = true; break; }
+      }
+      quiere = d;
     };
-    rehacer();
+    var pintaOsc = function(){
+      if(quiere === puesta) return;
+      puesta = quiere;
+      document.documentElement.classList.toggle('nav-oscura', puesta);
+    };
+    if(window.AIS_SCROLL && AIS_SCROLL.alLeer){
+      AIS_SCROLL.alLeer(mideOsc); AIS_SCROLL.alPintar(pintaOsc);
+    }else{
+      addEventListener('scroll', function(){ mideOsc(); pintaOsc(); }, {passive:true});
+    }
     var tRe = 0;
-    addEventListener('resize', function(){ clearTimeout(tRe); tRe = setTimeout(rehacer, 180); }, {passive:true});
+    addEventListener('resize', function(){
+      clearTimeout(tRe);
+      tRe = setTimeout(function(){
+        navPx = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'), 10) || 64;
+        mideOsc(); pintaOsc();
+      }, 180);
+    }, {passive:true});
+    mideOsc(); pintaOsc();
   }
 })();
 </script>
