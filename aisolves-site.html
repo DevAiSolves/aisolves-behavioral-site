@@ -3978,6 +3978,61 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
    eso son 60 px de nada robados al cuerpo. */
 #hud .hud-foot{margin-top:0}
 
+/* ==========================================================================
+   El cerebro en el móvil: más negro, las tarjetas más abajo.
+
+   Al soltarse el escenario quedaban 152 px de papel crema antes de la sección
+   siguiente, y la frontal tapaba la parte baja de la cabeza. La mitad de ese
+   blanco pasa a ser negro del cerebro: una cola de 120 px debajo del
+   escenario, del mismo #06070a que el carrusel para que no haya costura. El
+   fondo propio de .stage es un degradado que acaba en #0a0c12, y la cola lo
+   delataba.
+
+   El padding va en el propio escenario, y es lo que hace que la cola exista:
+   un sticky no puede entrar en el relleno de su contenedor, así que el
+   carrusel se suelta 120 px antes del final y deja ese negro debajo.
+
+   La tarjeta baja hasta 113 px dentro de la cola (mod-orbita, caida()). Para
+   que no la recorte el carrusel, su recorte vertical se abre y el clip-path
+   lo limita a esos 120 px de cola.
+
+   OJO con el eje horizontal: las tarjetas vecinas de la órbita se salen por
+   los lados, y con overflow:visible ese desborde cuenta como ancho del
+   documento. En un teléfono el navegador lo resuelve alejando el zoom de TODA
+   la página —medido: innerHeight 909 con la ventana visual en 844—, y la
+   barra inferior se iba 65 px por debajo de la pantalla. clip-path recorta la
+   pintura pero no el desborde; overflow-x:clip sí, y a diferencia de hidden
+   no obliga al otro eje a recortar.
+   ========================================================================== */
+@media(max-width:760px){
+  #work .stage{padding-bottom:120px;background:#06070a}
+  #work .stage .carousel{overflow:visible;overflow-x:clip;clip-path:inset(0 0 -120px 0)}
+  #work .stage .car-cell.brain{overflow:visible;overflow-x:clip}
+  /* el blanco que queda: de 110 a 50 px de entrada en la sección siguiente */
+  #constraint{padding-top:50px}
+}
+
+/* Movimiento reducido en el teléfono. Sin órbita, las seis tarjetas caen en
+   una rejilla de una columna de 1.067 px, y la rejilla vivía dentro de un
+   carrusel fijado de 720: se salía 173 px por arriba y 173 por abajo. La 01
+   no se podía ver ni pulsar nunca, la 02 quedaba bajo el rótulo del cerebro,
+   y la rejilla montaba sobre la sección siguiente. Ya pasaba antes de la
+   cola; la cola solo cambió qué trozo de la 06 asomaba.
+
+   Aquí no hay nada que animar, así que fijar el escenario durante dos
+   pantallas de scroll no aporta nada. Se desfija y la rejilla corre con la
+   página: medido a 360, 390 y 430, las seis al 100 % y pulsables, sin tocar
+   #constraint. top:auto hace falta porque el carrusel hereda el top:64px del
+   sticky, y en position:relative eso lo desplaza hacia abajo. Solo por debajo
+   de 761: en tableta y escritorio las seis ya se veían enteras y desfijar
+   ponía la pila de etiquetas encima de la 06. */
+@media(prefers-reduced-motion:reduce) and (max-width:760px){
+  .stage,#work .stage{min-height:0;padding-bottom:0}
+  .stage .carousel,#work .stage .carousel{position:relative;top:auto;height:auto;clip-path:none;overflow:hidden}
+  .stage .car-body,.stage .car-cell.brain,#work .stage .car-cell.brain{position:relative;inset:auto;height:auto;overflow:hidden}
+  .orb{position:relative;inset:auto;align-content:start;padding:200px 16px 40px}
+}
+
 /* A 320 px la fila de acciones pedía 287 px sobre 286 y se partía en dos por
    un píxel; y la primera línea de la pantallita se cortaba a mitad de palabra
    por el text-overflow. Ocho píxeles de holgura arreglan lo primero —aguanta
@@ -10285,6 +10340,27 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     var libre = oyMax - oyPx;
     PUSH = Math.max(0, Math.min(189, libre));   /* 3+2 cm pedidos, si caben */
     PERSP = narrow ? Math.max(560, W * 1.5) : Math.max(700, W * 0.62);
+    fijoArriba = parseFloat(getComputedStyle(pin).top) || 0;
+    /* La caída sale de la cola que haya de verdad, no de narrow: narrow es
+       W < 860 y la cola sólo existe por debajo de 761. Entre medias la tarjeta
+       habría caído fuera del carrusel y se habría recortado. */
+    var cola = parseFloat(getComputedStyle(stage).paddingBottom) || 0;
+    CAIDA = Math.max(0, Math.min(113, cola - 7));
+  }
+
+  /* ---------- caída al soltarse (móvil) ----------
+     Mientras el cerebro está fijado la frontal ya toca el borde de abajo: 7 px
+     sobre la barra inferior, no hay sitio para bajarla sin taparla. El sitio
+     nace al soltarse. El escenario lleva debajo una cola negra de 120 px, y
+     conforme el cerebro sube la tarjeta se queda quieta en la pantalla hasta
+     haber bajado CAIDA px respecto a él: la cabeza queda al descubierto y la
+     tarjeta acaba dentro de la cola, no sobre el papel. 113 px son los 3 cm
+     pedidos a 96 ppp, la misma cuenta que el empuje de arriba. */
+  var CAIDA = 0, fijoArriba = 0;
+  function caida() {
+    if (!CAIDA) return 0;
+    var sube = fijoArriba - pin.getBoundingClientRect().top;
+    return sube > 0 ? Math.min(CAIDA, sube) : 0;
   }
 
   /* ---------- progreso del escenario ---------- */
@@ -10319,7 +10395,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     else if (Math.abs(target - cur) > STEP * 1.6) cur = target;
     else cur += (target - cur) * (quieto > 8 ? 0.30 : 0.16);   /* asienta antes al parar */
 
-    var frontI = 0, frontD = -2;
+    var frontI = 0, frontD = -2, dy = caida();
     for (var i = 0; i < N; i++) {
       var a = i * STEP - cur;
       var s = Math.sin(a), c = Math.cos(a);
@@ -10327,7 +10403,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       var z = R * c;
       var k = PERSP / (PERSP - z);               /* escala por perspectiva */
       var x = R * s * k;
-      var y = PUSH + (narrow ? 8 : 14) * (1 - d);   /* las lejanas caen un poco más */
+      var y = PUSH + dy + (narrow ? 8 : 14) * (1 - d);   /* las lejanas caen un poco más */
 
       var op = Math.pow(d, 3.4);                 /* caida marcada: a mitad de paso la vecina ya cede */
       var esc = (narrow ? 0.62 : 0.70) + (narrow ? 0.38 : 0.30) * d;
