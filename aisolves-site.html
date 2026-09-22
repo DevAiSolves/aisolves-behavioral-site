@@ -3822,6 +3822,12 @@ html{ scroll-padding-top:calc(var(--hueco-arriba) + 14px) }
 }
 /* el identificador de la visita se distingue: es lo único que nace del permiso */
 .cnl-full .cnl-id{ border-color:rgba(47,197,177,.45); color:var(--teal,#2fc5b1) }
+/* la persona del enlace: en blanco y sin caja, es un nombre, no un código */
+.cnl-full .cnl-persona{
+  font-style:normal; font-size:10px; letter-spacing:.04em; text-transform:none;
+  color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+}
+.scrim .cnl-full .cnl-persona{ color:var(--ink,#18181b) }
 
 /* ---------- sobre fondo claro: el reporte vive dentro de .scrim ---------- */
 .scrim .cnl-full{border-color:rgba(47,197,177,.42);background:rgba(47,197,177,.06)}
@@ -5204,6 +5210,12 @@ function arrancaNotas(){
                   </svg>
                   <b>WhatsApp</b>
                 </span>
+                <span class="hud-ch" id="hud-ch-instagram" aria-label="Instagram: sin señal" data-on="0">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.8"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/>
+                  </svg>
+                  <b>Instagram</b>
+                </span>
                 <span class="hud-ch" id="hud-ch-meta" aria-label="Meta: sin señal" data-on="0">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
                     <circle cx="8" cy="12" r="4.4"/><circle cx="16" cy="12" r="4.4"/>
@@ -5417,18 +5429,77 @@ const isTouch=coarse||('ontouchstart' in window);
 function parseAttribution(){
   const q=new URLSearchParams(location.search);
   const g=k=>{const v=q.get(k);return v?String(v).trim().slice(0,120):'';};
-  const gclid=g('gclid'),fbclid=g('fbclid'),ttclid=g('ttclid'),source=g('utm_source');
+  const gclid=g('gclid'),fbclid=g('fbclid'),ttclid=g('ttclid'),source=g('utm_source'),medium=g('utm_medium');
   let referrer='';
   try{ if(document.referrer){const h=new URL(document.referrer).hostname; if(h&&h!==location.hostname) referrer=h;} }catch(e){}
-  const MAP={google:'google',meta:'meta',facebook:'meta',fb:'meta',instagram:'meta',ig:'meta',tiktok:'tiktok'};
-  const src=source.toLowerCase();
-  // click id > utm_source conocido > utm_source desconocido o referrer externo (referral) > direct
-  const platform=gclid?'google':fbclid?'meta':ttclid?'tiktok':(MAP[src]||((src||referrer)?'referral':'direct'));
-  const ua=navigator.userAgent||'';
+  const src=source.toLowerCase(),med=medium.toLowerCase(),ua=navigator.userAgent||'';
+  /* LA RED CONCRETA. Antes todo lo social caía en dos cubos: 'meta' si traía
+     fbclid y 'referral' si no, y una visita desde la bio de Instagram salía
+     como "referido · l.instagram.com". Se reconoce por, en este orden: el
+     utm_source que pusimos nosotros (incluidos los códigos ig/fb/msg/an que
+     Meta rellena con {{site_source_name}}), el host del referente —Instagram,
+     Facebook y Threads sacan los enlaces por su propio acortador l.*— y el
+     navegador interno de la app, que se anuncia en el user agent. WhatsApp
+     casi nunca manda referente: sin utm llega como directa, y eso no se
+     puede adivinar. */
+  const RED_SRC={ig:'instagram',instagram:'instagram',fb:'facebook',facebook:'facebook',msg:'messenger',messenger:'messenger',
+                 an:'audience',threads:'threads',whatsapp:'whatsapp',wa:'whatsapp'};
+  const redRef=h=>/(^|\.)instagram\.com$/.test(h)?'instagram'
+    :/(^|\.)(facebook\.com|fb\.com|fb\.me)$/.test(h)?'facebook'
+    :/(^|\.)(messenger\.com|m\.me)$/.test(h)?'messenger'
+    :/(^|\.)threads\.(net|com)$/.test(h)?'threads'
+    :/(^|\.)(whatsapp\.com|wa\.me|wl\.co)$/.test(h)?'whatsapp':'';
+  const redUA=/Instagram/.test(ua)?'instagram':/FBAN|FBAV|FB_IAB/.test(ua)?'facebook':'';
+  const network=RED_SRC[src]||redRef(referrer)||redUA||'';
+  /* PAGADO solo con señal de anuncio: un medio de pago o los parámetros que
+     solo rellena el administrador de anuncios. El fbclid NO basta: Facebook
+     lo pega también a los enlaces orgánicos. */
+  const paid=/^(paid|cpc|ppc|cpm|ads?|paid[_-]?social|paidsocial|display)$/.test(med)
+    ||!!(g('ad_id')||g('adset_id')||g('campaign_id')||g('ad_name')||g('adset_name')||g('placement'));
+  const metaFam=!!fbclid||src==='meta'||['instagram','facebook','messenger','audience','threads'].indexOf(network)>=0;
+  // click id de Google > TikTok > anuncio de Meta > Instagram orgánico > WhatsApp > resto de Meta > utm google > referido > directa
+  const platform=gclid?'google'
+    :(ttclid||src==='tiktok')?'tiktok'
+    :(paid&&metaFam)?'meta'
+    :network==='instagram'?'instagram'
+    :network==='whatsapp'?'whatsapp'
+    :metaFam?'meta'
+    :src==='google'?'google'
+    :((src||referrer)?'referral':'direct');
+  /* LA PERSONA. Ninguna plataforma le dice a una web quién es el visitante:
+     ni Instagram, ni WhatsApp, ni un anuncio. Lo único que llega es lo que
+     viaje en el enlace, y eso solo lo puede poner quien lo envía —el bot de
+     ManyChat, que sí sabe con quién habla—. ig lleva el @ de Instagram, que
+     es público; nombre lleva solo el nombre de pila. Los dígitos se tiran:
+     un teléfono NUNCA debe viajar en una URL, que acaba en historiales,
+     registros y capturas. Se lee aquí, en memoria, pero solo se enseña tras
+     aceptar, igual que el identificador de visita. */
+  const handle=g('ig').replace(/^@+/,'').replace(/[^A-Za-z0-9._]/g,'').slice(0,30);
+  const nombre=g('nombre').replace(/[^A-Za-z\u00C0-\u024F\s'-]/g,'').trim().split(/\s+/).slice(0,2).join(' ').slice(0,24);
   const device=(/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||(coarse&&innerWidth<=760))?'mobile':'desktop';
-  return {platform,source,medium:g('utm_medium'),campaign:g('utm_campaign')||g('campaign_name'),content:g('utm_content'),term:g('utm_term'),
+  return {platform,network,paid,handle,nombre,source,medium,campaign:g('utm_campaign')||g('campaign_name'),content:g('utm_content'),term:g('utm_term'),
     adName:g('ad_name'),adsetName:g('adset_name'),placement:g('placement'),gclid,fbclid,ttclid,referrer,
     landing:location.pathname,device,firstTouch:new Date().toISOString()};
+}
+
+/* ---------- el origen, en palabras: una sola fuente para todos los paneles ----------
+   Cuatro sitios pintan el origen —panel de consentimiento, lupa plegada, lupa
+   abierta y reporte— y cada uno tenía su propio diccionario. Con redes nuevas
+   eso eran cuatro sitios que olvidar. */
+const RED_TXT={instagram:'Instagram',facebook:'Facebook',messenger:'Messenger',threads:'Threads',audience:'Audience Network',whatsapp:'WhatsApp'};
+const PLAT_TXT={google:'Google',meta:'Meta',tiktok:'TikTok',instagram:'Instagram',whatsapp:'WhatsApp',referral:'Referido',direct:'Directo'};
+function origen(at,conConsent){
+  at=at||{};
+  const pf=String(at.platform||'');
+  const placement=String(at.placement||'').replace(/_/g,' ').trim();
+  const red=RED_TXT[at.network]||'';
+  const nombre=pf==='meta'&&at.paid?'Meta Ads':(pf==='meta'&&red&&!at.paid?red:(PLAT_TXT[pf]||pf||'Directo'));
+  let via='';
+  if(pf==='meta'&&at.paid) via=placement||red;
+  else if(pf==='instagram'||pf==='whatsapp') via=at.medium||'';
+  else if(pf==='referral') via=at.source||at.referrer||'';
+  const persona=conConsent?(at.handle?'@'+at.handle:(at.nombre||'')):'';
+  return {pf,nombre,via,red,campaign:String(at.campaign||''),ad:String(at.adName||at.content||''),persona,paid:!!at.paid};
 }
 
 /* ---------- estado público ---------- */
@@ -5745,7 +5816,9 @@ function tick(){
 }
 
 /* ---------- arranque ---------- */
-const AIS={state:st,on,off,emit,accept,essential,score:calcScore,signal,setLead,util};
+const AIS={state:st,on,off,emit,accept,essential,score:calcScore,signal,setLead,util,
+  /* origen() en palabras; la persona solo sale con el consentimiento dado */
+  origen:()=>origen(st.attribution,st.consent)};
 buildStages();
 /* buildStages solo consulta el DOM; measure() lee geometría, y hacerlo aquí
    —mientras el parser sigue trabajando— costaba 85 ms de maqueta forzada. La
@@ -6572,11 +6645,13 @@ function boot(){
   }
   function originText(at){
     if(!at) return 'origen · —';
-    const P={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'referido',direct:'directo'};
-    const parts=[P[at.platform]||at.platform||'directo'];
-    if(at.platform==='referral'&&(at.source||at.referrer)) parts.push(at.source||at.referrer);
-    if(at.campaign) parts.push(at.campaign);
-    if(at.adName) parts.push(at.adName); else if(at.content) parts.push(at.content);
+    /* el panel se ve ANTES de aceptar: sin persona, solo el canal */
+    const o=(window.AIS&&AIS.origen)?AIS.origen():null;
+    if(!o) return 'origen · —';
+    const parts=[o.pf==='direct'?'directo':o.pf==='referral'?'referido':o.nombre];
+    if(o.via) parts.push(o.via);
+    if(o.campaign) parts.push(o.campaign);
+    if(o.ad) parts.push(o.ad);
     return 'origen · '+parts.join(' · ');
   }
   function renderStatic(){
@@ -6768,7 +6843,7 @@ const mobile=()=>mqMobile.matches, reduced=()=>mqReduce.matches;
 const CUR_MAX=1500;
 const TILT=4.5; // grados máximos de inclinación
 const HUD_FALLBACK_MS=6000; // red de seguridad: si hay HUD pero nunca emite 'hud:collapsed', la lupa aparece igual
-const PLAT={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'Referral',direct:'Directo'};
+const PLAT={google:'Google',meta:'Meta',tiktok:'TikTok',instagram:'Instagram',whatsapp:'WhatsApp',referral:'Referral',direct:'Directo'};
 const GO_LABEL={go:'go · llamar',hold:'hold · nutrir',stop:'stop · awareness',off:'—'};
 const LAMPS=['go','hold','stop','off'];
 // tipo de evento del core → etiqueta corta; el label del evento se muestra tal cual
@@ -7012,10 +7087,10 @@ if(!boot()){
 
   const DEMO_QS='utm_source=meta&utm_medium=paid&utm_campaign=verano_lanzamiento&adset_name=intencion_alta&ad_name=video_a&fbclid=IwAR0demo';
   const DEMO_ID='IwAR0demo';
-  const URL_KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','utm_id','gclid','gbraid','wbraid','dclid','fbclid','ttclid','msclkid','ad_name','adset_name','campaign_name','ad_id','adset_id','campaign_id'];
-  const PLATFORM={google:'Google',meta:'Meta',tiktok:'TikTok',referral:'Referral',direct:'Directo'};
+  const URL_KEYS=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','utm_id','gclid','gbraid','wbraid','dclid','fbclid','ttclid','msclkid','ad_name','adset_name','campaign_name','ad_id','adset_id','campaign_id','placement','ig','nombre'];
+  const PLATFORM={google:'Google',meta:'Meta',tiktok:'TikTok',instagram:'Instagram',whatsapp:'WhatsApp',referral:'Referral',direct:'Directo'};
   const DEVICE={mobile:'móvil',desktop:'escritorio'};
-  const NOT_TXT='<b>Qué NO llega:</b> Google y Meta no entregan el nombre de usuario de la persona. Solo lo que tú escribes.';
+  const NOT_TXT='<b>Qué NO llega:</b> ni Instagram, ni WhatsApp, ni Google, ni Meta le dicen a una web quién es la persona. El @ solo aparece si venía en el enlace personal que le enviaste, o si lo escribe ella.';
   const reg=[];                                             // elementos pintados {el, mode}
   let installed=false, sfWrapped=false, rtWrapped=false, pendingIg='', igRetries=0, tickN=0;
 
@@ -7062,7 +7137,12 @@ if(!boot()){
     const sigTxt=tags.length?tags.join(' + '):(pf==='direct'?'sin campaña':'—');
     const s=siteS(),leadObj=(st&&st.lead)||(s&&s.lead)||null;
     const igRaw=(leadObj&&typeof leadObj==='object'&&leadObj.instagram)?str(leadObj.instagram).replace(/^@+/,''):'';
-    return{ready:!!st,pf,pfLabel:PLATFORM[pf]||(pf?pf.charAt(0).toUpperCase()+pf.slice(1):''),campaign,adset,ad,content,term,source,medium,
+    const o=(A&&A.origen)?A.origen():{nombre:'',via:'',persona:'',red:''};
+    const consent=!!(st&&st.consent);
+    /* el @ escrito por la persona manda sobre el del enlace: el enlace se pudo reenviar */
+    const igEnlace=consent&&a.handle?str(a.handle):'';
+    return{ready:!!st,pf,pfLabel:o.nombre||PLATFORM[pf]||(pf?pf.charAt(0).toUpperCase()+pf.slice(1):''),via:o.via,red:o.red,persona:o.persona,
+      igEnlace,nombreEnlace:consent?str(a.nombre):'',campaign,adset,ad,content,term,source,medium,
       ids:ids.map(x=>x[0]+' · '+mask(x[1])),refHost,landing:str(a.landing),landingPath:pathOf(a.landing),
       device:DEVICE[str(a.device).toLowerCase()]||str(a.device),first:fmtTime(a.firstTouch),ig:igRaw?'@'+igRaw:'',
       demo:a.fbclid===DEMO_ID,sig,sigTxt,testable:!urlHasAttribution()};
@@ -7080,7 +7160,9 @@ if(!boot()){
       ['campaña',v.campaign],['conjunto',v.adset],['anuncio',v.ad],
       ['contenido',v.content],['término',v.term],['fuente · medio',[v.source,v.medium].filter(Boolean).join(' · ')],
       ['click id',v.ids.join(', ')],['referrer',v.refHost],['landing',v.landingPath,v.landing],
-      ['dispositivo',v.device],['primer contacto',v.first,'',v.first?'hora local':''],['instagram',v.ig,'',v.ig?'escrito por ti':'']
+      ['red',v.red],['dispositivo',v.device],['primer contacto',v.first,'',v.first?'hora local':''],
+      ['instagram',v.ig||(v.igEnlace?'@'+v.igEnlace:''),'',v.ig?'escrito por ti':(v.igEnlace?'del enlace':'')],
+      ['nombre',v.nombreEnlace,'',v.nombreEnlace?'del enlace':'']
     ].map(c=>cell(c[0],c[1],c[2],c[3])).join('');
     let test='';
     if(v.demo)test=`<div class="attr-test"><em class="attr-tag">prueba</em><span>datos del enlace de prueba, no de una campaña real</span><button type="button" class="attr-link" data-attr-act="clear">quitar →</button></div>`;
@@ -7093,7 +7175,8 @@ if(!boot()){
     if(!v.ready){parts=['—'];title='esperando core';}
     else if(!v.pf){parts=['—'];title='sin atribución';}
     else if(v.pf==='direct'){parts=['directo','sin campaña'];title='Directo · sin utm ni click id';}
-    else{parts=[v.pf,v.campaign||(v.pf==='referral'?v.refHost:''),v.ad].filter(Boolean);title=[v.pfLabel,v.campaign,v.adset,v.ad].filter(Boolean).join(' · ');}
+    else{parts=[v.pfLabel.toLowerCase(),v.persona,v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
+      title=[v.pfLabel,v.persona,v.via,v.campaign,v.adset,v.ad].filter(Boolean).join(' · ');}
     const rest=parts.slice(1);
     return `<span class="attr-chip" title="${esc(title)}"><i class="attr-dot attr-${v.sig}"></i><span><b>${esc(parts[0])}</b>${rest.length?' · '+rest.map(esc).join(' · '):''}</span>${v.demo?'<em class="attr-tag">prueba</em>':''}</span>`;
   }
@@ -7115,7 +7198,7 @@ if(!boot()){
   function onTick(){if((++tickN&7)!==0)return;if(document.querySelector('[data-attr-chip]:not(.attr-chip-host)'))refresh();}
   function line(){
     const v=vm();if(!v.ready||!v.pf||v.pf==='direct')return '';
-    const parts=[v.pf,v.campaign||(v.pf==='referral'?v.refHost:''),v.ad].filter(Boolean);
+    const parts=[v.pfLabel,v.persona,v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
     return 'Origen: '+parts.join(' · ')+(v.demo?' (prueba)':'');
   }
   function data(){return Object.assign({},vm());}
@@ -7195,12 +7278,30 @@ if(!boot()){
   /* ---------- API + arranque ---------- */
   const api={render:render,chip:chip,refresh:refresh,data:data,line:line,mount:mountPanel,
     demo:{query:DEMO_QS,id:DEMO_ID,url:demoUrl,active:()=>vm().demo}};
+  /* ---------- el formulario, relleno con lo que traiga el enlace ----------
+     Si el enlace personal traía el @ o el nombre, la persona no tiene que
+     volver a escribirlos. Solo tras aceptar, solo si el campo está vacío, y
+     nunca otra vez si la persona lo toca: si lo borra es porque no es ella
+     —el enlace se pudo reenviar—, y volver a ponerlo sería discutirle. */
+  function prefill(){
+    const A=ais(),st=A&&A.state;if(!st||!st.consent)return;
+    const a=st.attribution||{};
+    const ig=document.getElementById('attr-ig');
+    if(ig&&a.handle&&!ig.value&&!ig.dataset.tocado){
+      ig.value='@'+str(a.handle);
+      const h=ig.parentElement&&ig.parentElement.querySelector('.attr-hint');
+      if(h)h.textContent='Venía en tu enlace personal. Bórralo si no eres tú.';
+    }
+    const f=document.querySelector('#mForm form'),nm=(f&&f.elements)?f.elements.namedItem('name'):null;
+    if(nm&&a.nombre&&!nm.value&&!nm.dataset.tocado)nm.value=str(a.nombre);
+  }
+  document.addEventListener('input',e=>{const t=e.target;if(t&&(t.id==='attr-ig'||(t.name==='name'&&t.closest&&t.closest('#mForm'))))t.dataset.tocado='1';},true);
   function install(){
     const A=ais();if(!A)return false;
     if(!installed){
       installed=true;
       try{A.attr=api;}catch(e){}
-      if(typeof A.on==='function'){A.on('lead',onLead);A.on('tick',onTick);}
+      if(typeof A.on==='function'){A.on('lead',onLead);A.on('tick',onTick);A.on('tick',prefill);A.on('consent',()=>{prefill();refresh();});}
       document.dispatchEvent(new CustomEvent('attr:ready',{detail:api}));
     }
     refresh();return true;
@@ -7851,6 +7952,12 @@ addEventListener('load',function(){wrapReport();bindAIS();});
 
   /* ---------- panel de lectura: sale del cerebro ---------- */
   var C = 150.8;                                  // 2πr con r=36
+  /* El origen lleva texto que llega en la URL —utm_campaign, utm_medium,
+     placement— y este panel se monta con innerHTML. Sin escapar, un enlace con
+     ?utm_campaign=<img src=x onerror=…> ejecutaba código en cuanto el cerebro
+     emitía su lectura. Ya pasaba con la campaña antes de este cambio; con la
+     vía y la ubicación había más puertas. */
+  function escO(t){ return String(t).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function readout(fmt){
     var a = A(); if(!a) return '<div class="be-wait">esperando al core…</div>';
     var s = a.state, sc = s.score || {total:0,band:'—'};
@@ -7858,7 +7965,9 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     for(var i=0;i<st.length;i++) reads += (st[i].reads ? st[i].reads.length : 0);
     var vis = st.filter(function(x){ return x.status==='visited'; }).length;
     var at = s.attribution || {};
+    var og = a.origen ? a.origen() : null;
     var origen = at.platform==='direct' ? 'directo'
+               : og ? [og.nombre, og.persona, og.via, og.campaign].filter(Boolean).join(' · ')
                : [at.platform, at.campaign, at.adName].filter(Boolean).join(' · ');
     return ''+
     '<div class="be-top">'+
@@ -7883,7 +7992,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
       '<div><i>confianza</i><b>'+n1(s.trustSeconds)+'s</b></div>'+
       '<div><i>señales</i><b>'+s.signals+'</b></div>'+
     '</div>'+
-    '<div class="be-meta"><span>origen</span> '+(origen||'directo')+'</div>'+
+    '<div class="be-meta"><span>origen</span> '+escO(origen||'directo')+'</div>'+
     '<div class="be-meta"><span>metadata</span> '+(s.events?s.events.length:0)+' eventos analizados · IP se resuelve en servidor</div>'+
     (fmt ? '<div class="be-fmtline"><span>formato</span> '+fmt.name+' — '+fmt.desc+'</div>' : '');
   }
@@ -10039,10 +10148,11 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     tiktok:   '<path d="M9 15.5a3.5 3.5 0 1 0 3.5 3.5V4c.7 2.2 2.4 3.6 4.5 3.8"/>',
     referral: '<path d="M10 14a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 1 0-5.7-5.7L11.4 7"/><path d="M14 10a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 1 0 5.7 5.7L12.6 17"/>',
     direct:   '<circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4M12 3.8c2.2 2.4 3.3 5.2 3.3 8.2s-1.1 5.8-3.3 8.2c-2.2-2.4-3.3-5.2-3.3-8.2S9.8 6.2 12 3.8z"/>',
-    whatsapp: '<path d="M21 11.8a8.3 8.3 0 0 1-8.3 8.2 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.6a8 8 0 0 1-1-3.8A8.3 8.3 0 0 1 12.2 3 8.3 8.3 0 0 1 21 11.8z"/>'
+    whatsapp: '<path d="M21 11.8a8.3 8.3 0 0 1-8.3 8.2 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.6a8 8 0 0 1-1-3.8A8.3 8.3 0 0 1 12.2 3 8.3 8.3 0 0 1 21 11.8z"/>',
+    instagram:'<rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.8"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/>'
   };
-  var NOMBRES = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Web directa', whatsapp:'WhatsApp' };
-  var CORTOS  = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Directo', whatsapp:'WhatsApp' };
+  var NOMBRES = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Web directa', whatsapp:'WhatsApp', instagram:'Instagram' };
+  var CORTOS  = { google:'Google', meta:'Meta', tiktok:'TikTok', referral:'Referido', direct:'Directo', whatsapp:'WhatsApp', instagram:'Instagram' };
 
   function estado(){
     try{ return (window.AIS && AIS.state) || null; }catch(e){ return null; }
@@ -10066,16 +10176,21 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
       try{ if(/^https?:/.test(host)) host = new URL(host).hostname.replace(/^www\./,''); }catch(e){}
     }
 
-    var detalle = at.campaign ? String(at.campaign)
-                : host ? host
-                : clave === 'direct' ? 'sin campaña' : 'sin campaña';
+    /* el nombre y la vía salen de AIS.origen(): la misma fuente que los demás
+       paneles, para que ninguno diga una cosa y otro otra */
+    var o = (window.AIS && AIS.origen) ? AIS.origen() : null;
+    var via = o && o.via ? o.via : '';
+    var detalle = [via, at.campaign ? String(at.campaign) : ''].filter(Boolean).join(' · ')
+                || host
+                || (clave === 'instagram' ? 'perfil' : clave === 'whatsapp' ? 'enlace' : 'sin campaña');
 
     return {
       clave: clave,
-      nombre: NOMBRES[clave] || clave,
+      nombre: (o && o.nombre) || NOMBRES[clave] || clave,
       detalle: detalle,
       prueba: prueba,
-      /* el identificador de la visita solo existe tras aceptar */
+      /* la persona del enlace y el identificador de visita: solo tras aceptar */
+      persona: (o && o.persona) || '',
       visita: (st && st.visitId) || ''
     };
   }
@@ -10103,6 +10218,8 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
              esc(c.nombre) + '">' + icono(c.clave, 13) + '<b>' + esc(CORTOS[c.clave] || c.nombre) + '</b></span>';
     }
     var extra = '';
+    /* "enlace de", no "es": el enlace se pudo reenviar a otra persona */
+    if (c.persona) extra += '<em class="cnl-persona" title="Llegó con el enlace personal de ' + esc(c.persona) + '">' + esc(c.persona) + '</em>';
     if (c.prueba) extra += '<em class="cnl-prueba">' + esc(c.prueba) + '</em>';
     if (c.visita) extra += '<em class="cnl-id" title="Identificador de esta visita, generado al aceptar">' + esc(c.visita) + '</em>';
     return '<span class="cnl cnl-full" data-canal="' + c.clave + '">' +
@@ -10116,7 +10233,7 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
      haber varios montados a la vez. */
   function firma(c, tam){
     return tam + '|' + c.clave + '|' + c.nombre + '|' + (c.detalle||'') +
-           '|' + (c.prueba||'') + '|' + (c.visita||'');
+           '|' + (c.prueba||'') + '|' + (c.persona||'') + '|' + (c.visita||'');
   }
   function pinta(host, tam){
     if (!host) return;
@@ -10188,9 +10305,17 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     var at = (st && st.attribution) || {};
     var plat = at.platform || '';
 
-    var google = !!u.gclid || plat === 'google' || u.source === 'google';
-    var meta   = !!u.fbclid || plat === 'meta'  || u.source === 'facebook' || u.source === 'meta' || u.source === 'instagram';
-    var wa     = !!(st && st.lead && st.lead.wa);
+    /* La entrada sale de una sola fuente, platform, y enciende una sola
+       píldora. Antes Meta se encendía con cualquier fbclid y con
+       utm_source=instagram, así que una visita desde la bio de Instagram con
+       fbclid habría encendido Meta e Instagram a la vez. */
+    var google = plat === 'google';
+    var meta   = plat === 'meta';
+    var insta  = plat === 'instagram';
+    /* WhatsApp es a la vez entrada —un enlace enviado por WhatsApp— y
+       respuesta —deja su número en el formulario—. */
+    var waEntrada = plat === 'whatsapp';
+    var wa     = waEntrada || !!(st && st.lead && st.lead.wa);
 
     /* Siempre hay exactamente un canal de ENTRADA encendido: si no vino de un
        anuncio, vino escribiendo la dirección o desde otra web, y eso también
@@ -10201,11 +10326,12 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
     /* TikTok tenía señal reconocida por dentro —platform 'tiktok', ttclid—
        pero sin píldora propia caía en el cubo de 'Web directa' y el panel se
        contradecía consigo mismo: "origen · TikTok" dos cajas más arriba. */
-    var tiktok = !!u.ttclid || plat === 'tiktok' || u.source === 'tiktok';
-    var web = !google && !meta && !tiktok;
+    var tiktok = plat === 'tiktok';
+    var web = !google && !meta && !tiktok && !insta && !waEntrada;
 
     setOn($('hud-ch-google'), google, 'Google');
-    setOn($('hud-ch-meta'),   meta,   'Meta');
+    setOn($('hud-ch-meta'),   meta,   at.paid ? 'Meta Ads' : 'Meta');
+    setOn($('hud-ch-instagram'), insta, 'Instagram');
     setOn($('hud-ch-tiktok'), tiktok, 'TikTok');
     setOn($('hud-ch-web'),    web,    'Web directa');
     setOn($('hud-ch-wa'),     wa,     'WhatsApp');
@@ -10220,8 +10346,12 @@ window.HSCROLL = { refresh:refresh, scan:scan, update:update, scenes:scenes };
 
     var nota = $('hud-srcnote');
     if (nota){
-      nota.textContent = google ? 'google ads · click id en la url'
-                       : meta   ? 'meta ads · click id en la url'
+      var o = (window.AIS && AIS.origen) ? AIS.origen() : {via:''};
+      nota.textContent = google ? 'google · ' + (u.gclid ? 'click id en la url' : 'utm en la url')
+                       : meta   ? (at.paid ? 'meta ads · ' + (o.via || 'anuncio') : 'meta · ' + (o.red || 'orgánico').toLowerCase())
+                       : insta  ? 'instagram · ' + (o.via || 'perfil')
+                       : waEntrada ? 'whatsapp · ' + (o.via || 'enlace')
+                       : tiktok ? 'tiktok · ' + (u.ttclid ? 'click id en la url' : 'utm en la url')
                        : wa     ? 'whatsapp · número facilitado'
                        : (plat === 'referral' ? 'referido · sin campaña' : 'directo · sin campaña');
     }
