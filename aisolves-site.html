@@ -4943,7 +4943,7 @@ function bandShort(t){return t>=65?('HOT · '+(window.AIS_T||function(a){return 
 function journeyHTML(){return S.order.filter(n=>n!=='Hero').map(n=>{const s=S.sections[n],d=s.depth||0,l=d>=70?'go':d>=40?'hold':'stop';
   return `<div class="st"><div class="n"><span class="lens ${l}"></span>${n}</div><div class="d">${(s.dwell||0).toFixed(1)}s</div><div class="p">${d}%</div></div>`;}).join('');}
 function summaryText(){const sc=score(),pk=S.sections['Paquetes']||{},top=[...S.order].filter(n=>n!=='Hero').sort((a,b)=>(S.sections[b].dwell||0)-(S.sections[a].dwell||0))[0];
-  const T=(window.AIS_T||function(a){return a;}), quien=S.lead?S.lead.name:T('un visitante','a visitor');
+  const T=(window.AIS_T||function(a){return a;}), quien=S.lead?escTxt(S.lead.name):T('un visitante','a visitor');
   const foco=top||'Sistema', parada=pk.dwell>6
     ? `<span class="hl">${pk.dwell.toFixed(0)}s ${T('en Paquetes','on Pricing')}</span>`
     : T('recorrió el sistema','went through the system');
@@ -4978,7 +4978,15 @@ async function submitForm(e){e.preventDefault();const f=e.target,btn=document.ge
   S.lead={name:f.name.value.trim(),wa:f.wa.value.replace(/[^0-9+]/g,''),email:f.email.value.trim()};
   btn.classList.add('loading');btn.querySelector('.lbl').textContent='Generando reporte…';
   await fillBtn(btn,100,700);closeModal('mForm');resetBtn(btn);btn.querySelector('.lbl').textContent='Enviar mi reporte por WhatsApp';openSpot();}
-function openSpot(){rHi.innerHTML=`Reporte de <b style="color:var(--teal-ink)">${S.lead.name.split(' ')[0]}</b>`;
+/* El nombre lo escribe la persona y acababa dentro de innerHTML: escribir
+   <img src=x onerror=…> en el formulario ejecutaba código al abrirse el
+   reporte. Es self-XSS —solo se dispara a sí misma— pero prefill() conecta
+   ?nombre= con ese mismo campo, y el saneado de la URL era la única barrera.
+   Se escapa en el sumidero, que es donde de verdad se defiende. */
+function escTxt(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function openSpot(){rHi.textContent='Reporte de ';
+  var bNom=document.createElement('b'); bNom.style.color='var(--teal-ink)';
+  bNom.textContent=String(S.lead.name||'').split(' ')[0]; rHi.appendChild(bNom);
   mountReport(document.getElementById('spotBody'),false);dNum.textContent=maskWa(S.lead.wa);
   ['step1','step2','step3','step4'].forEach(id=>document.getElementById(id).className='step');
   dTrack.classList.remove('done');dFill.style.width='0%';
@@ -5476,6 +5484,18 @@ function parseAttribution(){
      aceptar, igual que el identificador de visita. */
   const handle=g('ig').replace(/^@+/,'').replace(/[^A-Za-z0-9._]/g,'').slice(0,30);
   const nombre=g('nombre').replace(/[^A-Za-z\u00C0-\u024F\s'-]/g,'').trim().split(/\s+/).slice(0,2).join(' ').slice(0,24);
+  /* Y se borran de la barra de direcciones en cuanto se leen. location.href
+     viaja entero en cada etiqueta: al dl de GA4 —que sale ANTES de aceptar, sin
+     cookies pero con la URL— y al event_source_url de Meta. El @ y el nombre
+     no tienen nada que hacer ahí, y además así no quedan en el historial ni en
+     una captura. Esto corre en el núcleo, antes de que se cargue ninguna
+     etiqueta. Los utm_* se quedan: son de campaña, no de persona. */
+  if((handle||nombre)&&window.history&&history.replaceState){
+    try{ q.delete('ig'); q.delete('nombre');
+      const resto=q.toString();
+      history.replaceState(null,'',location.pathname+(resto?'?'+resto:'')+location.hash);
+    }catch(e){}
+  }
   const device=(/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||(coarse&&innerWidth<=760))?'mobile':'desktop';
   return {platform,network,paid,handle,nombre,source,medium,campaign:g('utm_campaign')||g('campaign_name'),content:g('utm_content'),term:g('utm_term'),
     adName:g('ad_name'),adsetName:g('adset_name'),placement:g('placement'),gclid,fbclid,ttclid,referrer,
@@ -7175,8 +7195,9 @@ if(!boot()){
     if(!v.ready){parts=['—'];title='esperando core';}
     else if(!v.pf){parts=['—'];title='sin atribución';}
     else if(v.pf==='direct'){parts=['directo','sin campaña'];title='Directo · sin utm ni click id';}
-    else{parts=[v.pfLabel.toLowerCase(),v.persona,v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
-      title=[v.pfLabel,v.persona,v.via,v.campaign,v.adset,v.ad].filter(Boolean).join(' · ');}
+    else{const dePersona=v.persona?'enlace de '+v.persona:'';
+      parts=[v.pfLabel.toLowerCase(),dePersona,v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
+      title=[v.pfLabel,dePersona,v.via,v.campaign,v.adset,v.ad].filter(Boolean).join(' · ');}
     const rest=parts.slice(1);
     return `<span class="attr-chip" title="${esc(title)}"><i class="attr-dot attr-${v.sig}"></i><span><b>${esc(parts[0])}</b>${rest.length?' · '+rest.map(esc).join(' · '):''}</span>${v.demo?'<em class="attr-tag">prueba</em>':''}</span>`;
   }
@@ -7198,7 +7219,7 @@ if(!boot()){
   function onTick(){if((++tickN&7)!==0)return;if(document.querySelector('[data-attr-chip]:not(.attr-chip-host)'))refresh();}
   function line(){
     const v=vm();if(!v.ready||!v.pf||v.pf==='direct')return '';
-    const parts=[v.pfLabel,v.persona,v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
+    const parts=[v.pfLabel,v.persona?'enlace de '+v.persona:'',v.via||(v.pf==='referral'?v.refHost:''),v.campaign,v.ad].filter(Boolean);
     return 'Origen: '+parts.join(' · ')+(v.demo?' (prueba)':'');
   }
   function data(){return Object.assign({},vm());}
@@ -7283,25 +7304,67 @@ if(!boot()){
      volver a escribirlos. Solo tras aceptar, solo si el campo está vacío, y
      nunca otra vez si la persona lo toca: si lo borra es porque no es ella
      —el enlace se pudo reenviar—, y volver a ponerlo sería discutirle. */
+  const PISTA_IG='Solo si lo escribes tú. Ninguna plataforma lo entrega.';
+  function campoNombre(){const f=document.querySelector('#mForm form');return (f&&f.elements)?f.elements.namedItem('name'):null;}
   function prefill(){
     const A=ais(),st=A&&A.state;if(!st||!st.consent)return;
     const a=st.attribution||{};
     const ig=document.getElementById('attr-ig');
     if(ig&&a.handle&&!ig.value&&!ig.dataset.tocado){
-      ig.value='@'+str(a.handle);
+      ig.value='@'+str(a.handle); ig.dataset.prefill='1';
       const h=ig.parentElement&&ig.parentElement.querySelector('.attr-hint');
-      if(h)h.textContent='Venía en tu enlace personal. Bórralo si no eres tú.';
+      if(h)h.textContent='Este enlace venía a nombre de @'+str(a.handle)+'. Bórralo si no eres tú.';
     }
-    const f=document.querySelector('#mForm form'),nm=(f&&f.elements)?f.elements.namedItem('name'):null;
-    if(nm&&a.nombre&&!nm.value&&!nm.dataset.tocado)nm.value=str(a.nombre);
+    const nm=campoNombre();
+    if(nm&&a.nombre&&!nm.value&&!nm.dataset.tocado){nm.value=str(a.nombre);nm.dataset.prefill='1';}
   }
-  document.addEventListener('input',e=>{const t=e.target;if(t&&(t.id==='attr-ig'||(t.name==='name'&&t.closest&&t.closest('#mForm'))))t.dataset.tocado='1';},true);
+  /* Revocar tiene que deshacer lo que puso el prellenado, no lo que escribió la
+     persona: si no, "Sólo lo esencial" dejaba su @ y su nombre escritos en el
+     formulario, listos para enviarse. */
+  function desprefill(){
+    const A=ais(),a=(A&&A.state&&A.state.attribution)||{};
+    const ig=document.getElementById('attr-ig');
+    if(ig&&ig.dataset.prefill&&!ig.dataset.tocado&&ig.value==='@'+str(a.handle)){
+      ig.value=''; delete ig.dataset.prefill;
+      const h=ig.parentElement&&ig.parentElement.querySelector('.attr-hint');
+      if(h)h.textContent=PISTA_IG;
+    }
+    const nm=campoNombre();
+    if(nm&&nm.dataset.prefill&&!nm.dataset.tocado&&nm.value===str(a.nombre)){nm.value='';delete nm.dataset.prefill;}
+  }
+  /* Y si la persona corrige o borra lo prellenado —que es justo lo que le pide
+     la pista—, el enlace deja de hablar por ella: se suelta el dato en el
+     estado y con eso callan a la vez el chip, la insignia, la lectura del
+     cerebro y la línea del reporte. */
+  document.addEventListener('input',e=>{
+    const t=e.target;if(!t)return;
+    const esIg=t.id==='attr-ig', esNombre=t.name==='name'&&t.closest&&t.closest('#mForm');
+    if(!esIg&&!esNombre)return;
+    t.dataset.tocado='1';
+    const A=ais(),a=(A&&A.state&&A.state.attribution)||null;
+    if(!a||!t.dataset.prefill)return;
+    const suyo=esIg?('@'+str(a.handle)):str(a.nombre);
+    if(t.value!==suyo){
+      delete t.dataset.prefill;
+      if(esIg){
+        a.handle='';
+        const h=t.parentElement&&t.parentElement.querySelector('.attr-hint');
+        if(h)h.textContent=PISTA_IG;          /* ya ha decidido: la pista sobra */
+      }else a.nombre='';
+      refresh();
+      /* mod-canal solo repinta con un evento del núcleo, y aquí no hay ninguno:
+         sin este aviso la insignia de la lupa se quedaba con el @ viejo */
+      try{ if(window.AIS_CANAL&&AIS_CANAL.refresca)AIS_CANAL.refresca(); }catch(err){}
+    }
+  },true);
   function install(){
     const A=ais();if(!A)return false;
     if(!installed){
       installed=true;
       try{A.attr=api;}catch(e){}
-      if(typeof A.on==='function'){A.on('lead',onLead);A.on('tick',onTick);A.on('tick',prefill);A.on('consent',()=>{prefill();refresh();});}
+      if(typeof A.on==='function'){A.on('lead',onLead);A.on('tick',onTick);A.on('tick',prefill);
+        A.on('consent',d=>{ if(d&&d.essential)desprefill(); else prefill(); refresh();
+          try{ if(window.AIS_CANAL&&AIS_CANAL.refresca)AIS_CANAL.refresca(); }catch(err){} });}
       document.dispatchEvent(new CustomEvent('attr:ready',{detail:api}));
     }
     refresh();return true;
@@ -7967,7 +8030,7 @@ addEventListener('load',function(){wrapReport();bindAIS();});
     var at = s.attribution || {};
     var og = a.origen ? a.origen() : null;
     var origen = at.platform==='direct' ? 'directo'
-               : og ? [og.nombre, og.persona, og.via, og.campaign].filter(Boolean).join(' · ')
+               : og ? [og.nombre, og.persona?'enlace de '+og.persona:'', og.via, og.campaign].filter(Boolean).join(' · ')
                : [at.platform, at.campaign, at.adName].filter(Boolean).join(' · ');
     return ''+
     '<div class="be-top">'+
